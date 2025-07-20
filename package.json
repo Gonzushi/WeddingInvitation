@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docker:build": "docker build -f Dockerfile.prod -t wedding-invitation .",
+    "docker:run": "docker run -p 3000:3000 wedding-invitation",
+    "docker:dev": "npm run docker:build && npm run docker:run"
   },
   "dependencies": {
     "@react-three/fiber": "^9.2.0",
