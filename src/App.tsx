@@ -129,14 +129,16 @@ export default function ScrollSections() {
               data-section="0"
               className="absolute inset-0 z-50 w-full h-dvh bg-cover bg-center"
               style={{
-                backgroundImage: `url('/assets/Lux1-37-FILEminimizer.jpg')`,
+                backgroundImage: `url('/assets/couple2.jpg')`,
+                backgroundSize: "180%", // Zoom in (100% is default)
+                backgroundPosition: "45% 100%", // Adjust to focus (e.g. shift upward)
               }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1 }}
             >
-              <div className="absolute inset-0 z-10 bg-gradient-to-t from-white/90 via-white/30 to-transparent" />
+              <div className="absolute inset-0 z-10 bg-gradient-to-t from-white/100 via-white/30 to-transparent" />
 
               <div className="absolute inset-x-0 bottom-0 z-20 w-full text-center px-6 pb-12 flex flex-col items-center justify-end h-1/2">
                 <motion.p
@@ -155,7 +157,7 @@ export default function ScrollSections() {
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.4 }}
                 >
-                  Haryanto & Finna
+                  Hary & Finna
                 </motion.h1>
                 <motion.p
                   className="text-md font-light mb-2"
@@ -266,7 +268,7 @@ export default function ScrollSections() {
 
           {/* Couple */}
           <motion.img
-            src="/assets/couple.png"
+            src="/assets/couple3.png"
             alt="Couple"
             initial={{ opacity: 0, scale: 0.9, x: 0 }}
             animate={{
