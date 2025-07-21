@@ -2,8 +2,330 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DEBUG_MODE = false;
+const maxGuests = 2;
+
+const images = [
+  { src: "/assets/gal1.jpg", span: 4 },
+  { src: "/assets/gal2.jpg", span: 2 },
+  { src: "/assets/gal3.jpg", span: 2 },
+  { src: "/assets/gal4.jpg", span: 4 },
+  { src: "/assets/gal5.jpg", span: 2 },
+  { src: "/assets/gal6.jpg", span: 2 },
+];
+
+type FormData = {
+  name: string;
+  wish: string;
+  attending: string;
+  guests: number;
+};
+
+type Section5Props = {
+  currentSection: number;
+  form: FormData;
+  handleChange: (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => void;
+  handleSubmit: () => void;
+};
+
+const ReceptionCountdown = () => {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    mins: 0,
+    secs: 0,
+  });
+
+  useEffect(() => {
+    const target = new Date("2026-02-07T00:00:00").getTime();
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const diff = target - now;
+
+      if (diff <= 0) {
+        clearInterval(interval);
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const mins = Math.floor((diff / (1000 * 60)) % 60);
+      const secs = Math.floor((diff / 1000) % 60);
+
+      setTimeLeft({ days, hours, mins, secs });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const unit = (value: number, label: string) => (
+    <div className="flex flex-col items-center flex-1 min-w-[72px]">
+      <div className="bg-white text-[#E2725B] text-2xl md:text-3xl font-bold px-4 py-2 rounded-t-xl shadow-md w-full text-center">
+        {pad(value)}
+      </div>
+      <div className="text-xs mt-1 text-white">{label}</div>
+    </div>
+  );
+
+  return (
+    <div className="flex justify-center gap-3 mt-4 mx-14">
+      {unit(timeLeft.days, "Days")}
+      {unit(timeLeft.hours, "Hours")}
+      {unit(timeLeft.mins, "Minutes")}
+      {unit(timeLeft.secs, "Seconds")}
+    </div>
+  );
+};
+
+function GallerySection() {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  const closeModal = () => setActiveIndex(null);
+  const prev = () =>
+    setActiveIndex((i) => (i! - 1 + images.length) % images.length);
+  const next = () => setActiveIndex((i) => (i! + 1) % images.length);
+
+  return (
+    <section className="space-y-4 overflow-hidden">
+      <h3 className="text-xl font-bold text-white text-center">Gallery</h3>
+
+      <div className="grid grid-cols-4 gap-2 relative">
+        {images.map((img, idx) => (
+          <div key={img.src} className={`col-span-${img.span} overflow-hidden`}>
+            <motion.div
+              initial={{ opacity: 0, x: idx % 2 === 0 ? -100 : 100 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true, amount: 0.3 }}
+              className="cursor-pointer"
+              onClick={() => setActiveIndex(idx)}
+            >
+              <img
+                src={img.src}
+                alt={`Gallery ${idx}`}
+                className="rounded-lg w-full h-48 object-cover"
+              />
+            </motion.div>
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {activeIndex !== null && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 text-white text-3xl z-50"
+            >
+              ✕
+            </button>
+            <button
+              onClick={prev}
+              className="absolute left-4 text-white text-3xl z-50"
+            >
+              ◀
+            </button>
+            <button
+              onClick={next}
+              className="absolute right-4 text-white text-3xl z-50"
+            >
+              ▶
+            </button>
+            <motion.img
+              key={images[activeIndex].src}
+              src={images[activeIndex].src}
+              alt="Fullscreen"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.3 }}
+              className="max-w-4xl max-h-[90vh] rounded-xl shadow-lg"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
+
+function ScrollSection({
+  currentSection,
+  form,
+  handleChange,
+  handleSubmit,
+}: Section5Props) {
+  const wishes = [
+    { name: "Alice", wish: "Wishing you a lifetime of love and happiness!" },
+    { name: "Bob", wish: "So excited for your big day. Congrats!" },
+  ];
+
+  return (
+    <motion.div
+      initial={{ y: "100%", opacity: 0 }}
+      animate={{ y: currentSection === 5 ? "0%" : "100%", opacity: 1 }}
+      transition={{
+        delay: currentSection === 5 ? 1 : 0,
+        duration: 1,
+        ease: "easeInOut",
+      }}
+      data-section="5"
+      className="h-dvh w-full overflow-y-auto relative z-30"
+    >
+      {/* Full Overlay */}
+      <div className="fixed left-1/2 top-0 transform -translate-x-1/2 w-full max-w-[480px] h-full bg-[#E2725B]/70 backdrop-blur-sxs -z-10" />
+
+      {/* Countdown Timer */}
+      <div className="mt-8">
+        <ReceptionCountdown />
+      </div>
+
+      {/* Top Image */}
+      {/* <div className="arch-container">
+        <motion.svg
+          initial={{ x: "-100%" }}
+          animate={{ x: 0 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="arch-svg"
+        >
+          <defs>
+            <clipPath id="arch-shape" clipPathUnits="objectBoundingBox">
+              <path d="M0,1 L0,0.65 Q0.5,0.15 1,0.65 L1,1 Z" />
+            </clipPath>
+          </defs>
+          <image
+            href="/assets/couple2.jpg"
+            width="100%"
+            height="100%"
+            clipPath="url(#arch-shape)"
+            preserveAspectRatio="xMidYMid slice"
+          />
+        </motion.svg>
+      </div> */}
+
+      <div className=" mt-10 max-w-xl mx-auto px-4 pb-8 space-y-10 relative z-30">
+        {/* Love Story Timeline */}
+        <section className="text-white space-y-6">
+          <h2 className="text-3xl font-bold text-center">Our Love Story</h2>
+          <div className="relative border-l-2 border-white pl-6 space-y-6">
+            {[
+              {
+                year: "2019",
+                text: "We met for the first time at a campus event.",
+              },
+              {
+                year: "2020",
+                text: "Our friendship grew deeper during the pandemic.",
+              },
+              {
+                year: "2022",
+                text: "We took our first trip together to Bali.",
+              },
+              {
+                year: "2023",
+                text: "Engaged with love and blessings from our families.",
+              },
+              { year: "2026", text: "And now, we’re getting married!" },
+            ].map((item, i) => (
+              <div key={i} className="relative pl-4">
+                <div className="absolute left-[-10px] top-1 w-4 h-4 bg-white rounded-full border-2 border-pink-300" />
+                <div className="font-bold text-pink-200">{item.year}</div>
+                <div className="text-sm">{item.text}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* RSVP Form */}
+        <section className="bg-white/90 rounded-xl p-4 shadow space-y-4">
+          <h3 className="text-xl font-bold text-[#E2725B] text-center">RSVP</h3>
+          <div className="space-y-2">
+            <input
+              type="text"
+              name="name"
+              placeholder="Your Name"
+              className="w-full p-2 rounded border"
+              value={form.name}
+              onChange={handleChange}
+            />
+            <textarea
+              name="wish"
+              placeholder="Write your best wishes"
+              className="w-full p-2 rounded border"
+              rows={3}
+              value={form.wish}
+              onChange={handleChange}
+            />
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium">Will you attend?</label>
+              <select
+                name="attending"
+                value={form.attending}
+                onChange={handleChange}
+                className="border p-1 rounded"
+              >
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">
+                Number of Guests (max 2)
+              </label>
+              <input
+                type="number"
+                name="guests"
+                min={1}
+                max={2}
+                value={form.guests?.toString() ?? ""}
+                onChange={handleChange}
+                className="w-full p-2 rounded border"
+              />
+            </div>
+            <button
+              onClick={handleSubmit}
+              className="w-full bg-[#E2725B] text-white py-2 rounded shadow font-semibold"
+            >
+              Submit
+            </button>
+          </div>
+
+          {/* Wishes List */}
+          <div className="pt-4">
+            <h4 className="text-md font-bold text-[#E2725B]">Wishes</h4>
+            <ul className="space-y-2 max-h-40 overflow-y-auto">
+              {wishes.map((w, idx) => (
+                <li key={idx} className="bg-white border p-2 rounded shadow-sm">
+                  <p className="text-sm text-gray-700 italic">"{w.wish}"</p>
+                  <p className="text-xs text-gray-500 text-right">— {w.name}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Gallery */}
+        <GallerySection />
+      </div>
+    </motion.div>
+  );
+}
 
 export default function ScrollSections() {
+  const [isLoaded, setIsLoaded] = useState(false);
+
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [currentSection, setCurrentSection] = useState(0);
   const [hasOpened, setHasOpened] = useState(false);
@@ -14,6 +336,14 @@ export default function ScrollSections() {
   const sectionLastRef = useRef<HTMLDivElement | null>(null);
   const [sectionLastScrollTop, setSectionLastScrollTop] = useState(0);
 
+  const [form, setForm] = useState<FormData>({
+    name: "",
+    wish: "",
+    attending: "yes",
+    guests: 1,
+  });
+
+  // Download fonts
   useEffect(() => {
     const link = document.createElement("link");
     link.href =
@@ -31,6 +361,39 @@ export default function ScrollSections() {
     title: "'Dancing Script', cursive", // Optional alias for section titles
   };
 
+  // Preload images
+  useEffect(() => {
+    const imageUrls = [
+      "/assets/couple2.jpg",
+      "/assets/background.jpeg",
+      "/assets/stage.png",
+      "/assets/couple.png",
+      "/assets/textarea.png",
+      "/assets/cloud1.webp",
+      "/assets/flower2.png",
+      "/assets/flowers.png",
+      "/assets/vases.png",
+      "/assets/lamps.png",
+      "/assets/arch.png",
+    ];
+
+    let loadedCount = 0;
+
+    imageUrls.forEach((url) => {
+      const img = new Image();
+      img.src = url;
+      img.onload = () => {
+        loadedCount++;
+        if (loadedCount === imageUrls.length) {
+          setTimeout(() => {
+            setIsLoaded(true);
+          }, 0);
+        }
+      };
+    });
+  }, []);
+
+  // Handle scroll and wheel events
   useEffect(() => {
     const container = scrollContainerRef.current;
     const sectionHeight = window.innerHeight;
@@ -100,6 +463,7 @@ export default function ScrollSections() {
     };
   }, [currentSection]);
 
+  // Handle scroll position for section 5
   useEffect(() => {
     const sectionLast = sectionLastRef.current;
     if (currentSection === 5 && sectionLast) {
@@ -111,6 +475,7 @@ export default function ScrollSections() {
     }
   }, [currentSection]);
 
+  // Handle opening the invitation
   const handleOpen = () => {
     setHasOpened(true);
     scrollContainerRef.current?.scrollTo({
@@ -119,6 +484,38 @@ export default function ScrollSections() {
     });
   };
 
+  // Update form state
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    console.log("Form change:", e.target.name, e.target.value);
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  //  Handle form submission
+  const handleSubmit = () => {
+    if (!form.name.trim()) {
+      alert("Please enter your name.");
+      return;
+    }
+
+    if (!form.wish.trim()) {
+      alert("Please write your best wishes.");
+      return;
+    }
+
+    if (form.guests !== 1 && form.guests !== 2) {
+      alert("Number of guests must be 1 or 2.");
+      return;
+    }
+
+    alert("RSVP Submitted!");
+  };
+
+  // Render sections based on currentSection
   const renderSection = (index: number) => {
     if (index === 0) {
       return (
@@ -136,9 +533,25 @@ export default function ScrollSections() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1 }}
+              transition={{ duration: 2 }}
             >
               <div className="absolute inset-0 z-10 bg-gradient-to-t from-white/100 via-white/30 to-transparent" />
+
+              {!isLoaded && (
+                <div>
+                  {/* Dark Blur Blue Overlay */}
+                  <div className="absolute inset-0 z-50 bg-[#E2725B]/60 backdrop-blur-sm" />
+
+                  {/* Centered U character */}
+                  <div className="absolute inset-0 flex items-center justify-center z-50">
+                    <div className="w-24 h-24 bg-white/70 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-5xl font-bold text-[#E2725B] animate-pulse">
+                        U
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="absolute inset-x-0 bottom-0 z-20 w-full text-center px-6 pb-12 flex flex-col items-center justify-end h-1/2">
                 <motion.p
@@ -207,7 +620,7 @@ export default function ScrollSections() {
           ) : null}
         </AnimatePresence>
       );
-    } else if (index >= 1 && index <= 4) {
+    } else if (index >= 1 && index <= 5) {
       return (
         <div
           data-section="1"
@@ -219,7 +632,7 @@ export default function ScrollSections() {
             alt="Background"
             initial={{ scale: 1 }}
             animate={{ scale: 1 }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 2 }}
             className="absolute inset-0 w-full h-full object-cover z-0"
           />
 
@@ -261,16 +674,16 @@ export default function ScrollSections() {
                   ? "120%"
                   : "0%",
             }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 2 }}
             className="absolute z-1"
             style={{ bottom: "15%", left: "0%", width: "150%" }}
           />
 
           {/* Couple */}
           <motion.img
-            src="/assets/couple3.png"
+            src="/assets/couple.png"
             alt="Couple"
-            initial={{ opacity: 0, scale: 0.9, x: 0 }}
+            initial={{ opacity: 1, scale: 4, x: 0 }}
             animate={{
               opacity: currentSection === 1 ? 1 : 1,
               scale:
@@ -304,8 +717,8 @@ export default function ScrollSections() {
                   ? "200%"
                   : "0%",
             }}
-            transition={{ duration: 1 }}
-            className="absolute z-3"
+            transition={{ duration: 2 }}
+            className="absolute z-14"
             style={{ bottom: "42%", left: "33%", width: "32%" }}
           />
 
@@ -320,7 +733,7 @@ export default function ScrollSections() {
               x: currentSection === 2 ? "120%" : "200%",
               y: currentSection === 2 ? "30%" : "0%",
             }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 2 }}
             className="absolute z-4"
             style={{ bottom: "42%", left: "33%", width: "32%" }}
           />
@@ -333,7 +746,7 @@ export default function ScrollSections() {
               x: currentSection === 2 ? "120%" : "300%",
               y: currentSection === 2 ? "48%" : "48%",
             }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 2 }}
             className="absolute z-21 text-center text-black"
             style={{
               bottom: "46%",
@@ -399,11 +812,11 @@ export default function ScrollSections() {
             initial={{ opacity: 0, scale: 0.9, x: 0 }}
             animate={{
               opacity: currentSection === 3 ? 1 : 0,
-              scale: currentSection === 3 ? 3.2 : 0,
+              scale: currentSection === 3 ? 4 : 0,
               x: currentSection === 3 ? "-85%" : "-200%",
               y: currentSection === 3 ? "90%" : "0%",
             }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 2 }}
             className="absolute z-4"
             style={{ bottom: "42%", left: "33%", width: "32%" }}
           />
@@ -413,10 +826,10 @@ export default function ScrollSections() {
             animate={{
               opacity: currentSection === 3 ? 1 : 0,
               scale: currentSection === 3 ? 1 : 0,
-              x: currentSection === 3 ? "-120%" : "-300%",
+              x: currentSection === 3 ? "-105%" : "-300%",
               y: currentSection === 3 ? "92%" : "50%",
             }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 2 }}
             className="absolute z-21 text-center text-black"
             style={{
               bottom: "46%",
@@ -485,13 +898,13 @@ export default function ScrollSections() {
           <motion.img
             src="/assets/cloud1.webp"
             alt="Cloud 1"
-            initial={{ opacity: 0 }}
+            initial={{ opacity: 0, y: "-300%" }}
             animate={{
               opacity: currentSection === 4 ? 1 : 0,
               scale: 6,
               y: currentSection === 4 ? "0%" : "-300%",
             }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 2 }}
             className="absolute z-10"
             style={{ bottom: "65%", left: "33%", width: "35%" }}
           />
@@ -517,18 +930,18 @@ export default function ScrollSections() {
                 scale: 1.3,
                 y: currentSection === 4 ? "0%" : "-300%",
               }}
-              transition={{ duration: 1 }}
+              transition={{ duration: 2 }}
               className="w-full h-auto"
             />
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: "-300%" }}
             animate={{
               opacity: currentSection === 4 ? 1 : 0,
               y: currentSection === 4 ? "0%" : "-300%",
             }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 2 }}
             className="absolute z-20 text-center text-black"
             style={{ bottom: "65%", left: "5%", width: "35%" }}
           >
@@ -536,14 +949,14 @@ export default function ScrollSections() {
               className="text-2xl font-bold mb-1 tracking-wide"
               style={{ fontFamily: fonts.title || "Georgia, serif" }}
             >
-              Sangjit
+              Blessing
             </p>
 
             <p
               className="text-lg font-medium mb-1"
               style={{ fontFamily: fonts.body || "Cormorant Garamond, serif" }}
             >
-              Sunday, 11 January 2026
+              Saturday, 07 February 2026
             </p>
 
             <p
@@ -568,12 +981,12 @@ export default function ScrollSections() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: "-300%" }}
             animate={{
               opacity: currentSection === 4 ? 1 : 0,
               y: currentSection === 4 ? "0%" : "-300%",
             }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 2 }}
             className="absolute z-20 text-center text-black"
             style={{ bottom: "55%", left: "53%", width: "35%" }}
           >
@@ -612,24 +1025,18 @@ export default function ScrollSections() {
             </a>
           </motion.div>
 
-          {/* Locations */}
-          <motion.img
-            src="/assets/flowers.png"
-            alt="Flowers"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: currentSection === 1 ? 1 : 0 }}
-            transition={{ duration: 1 }}
-            className="absolute z-10"
-            style={{ bottom: "34%", left: "33%", width: "35%" }}
-          />
-
           {/* Flowers */}
           <motion.img
             src="/assets/flowers.png"
             alt="Flowers"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: currentSection === 1 ? 1 : 0 }}
-            transition={{ duration: 1 }}
+            initial={{ opacity: 0, scale: 4 }}
+            animate={{
+              opacity: currentSection === 1 || currentSection === 5 ? 1 : 0,
+              scale: currentSection === 1 || currentSection === 5 ? 1 : 4,
+              y: currentSection === 1 || currentSection === 5 ? "0%" : "1200%",
+              x: currentSection === 1 || currentSection === 5 ? "0%" : "-60%",
+            }}
+            transition={{ duration: currentSection === 1 ? 2 : 2 }}
             className="absolute z-10"
             style={{ bottom: "34%", left: "33%", width: "35%" }}
           />
@@ -638,9 +1045,14 @@ export default function ScrollSections() {
           <motion.img
             src="/assets/vases.png"
             alt="Vases"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: currentSection === 1 ? 1 : 0 }}
-            transition={{ duration: 1 }}
+            initial={{ opacity: 0, scale: 4 }}
+            animate={{
+              opacity: currentSection === 1 || currentSection === 5 ? 1 : 0,
+              scale: currentSection === 1 || currentSection === 5 ? 1 : 4,
+              y: currentSection === 1 || currentSection === 5 ? "0%" : "400%",
+              x: currentSection === 1 || currentSection === 5 ? "0%" : "-60%",
+            }}
+            transition={{ duration: currentSection === 1 ? 2 : 2 }}
             className="absolute z-11"
             style={{ bottom: "28%", left: "25%", width: "50%" }}
           />
@@ -649,9 +1061,14 @@ export default function ScrollSections() {
           <motion.img
             src="/assets/lamps.png"
             alt="Lamps"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: currentSection === 1 ? 1 : 0 }}
-            transition={{ duration: 1 }}
+            initial={{ opacity: 0, scale: 4, y: "50%" }}
+            animate={{
+              opacity: currentSection === 1 || currentSection === 5 ? 1 : 0,
+              scale: currentSection === 1 || currentSection === 5 ? 1 : 4,
+              y: currentSection === 1 || currentSection === 5 ? "0%" : "400%",
+              x: currentSection === 1 || currentSection === 5 ? "0%" : "-60%",
+            }}
+            transition={{ duration: currentSection === 1 ? 2 : 2 }}
             className="absolute z-12"
             style={{ bottom: "22%", left: "18%", width: "65%" }}
           />
@@ -660,68 +1077,32 @@ export default function ScrollSections() {
           <motion.img
             src="/assets/arch.png"
             alt="Arch"
-            initial={{ scale: 1 }}
+            initial={{ scale: 4 }}
             animate={{
-              scale: currentSection === 1 ? 1.2 : 1,
-              opacity: currentSection === 1 ? 1 : 0,
+              scale: currentSection === 1 || currentSection === 5 ? 1.2 : 7,
+              opacity: currentSection === 1 || currentSection === 5 ? 1 : 0,
+              y: currentSection === 1 || currentSection === 5 ? "0%" : "115%",
+              x: currentSection === 1 || currentSection === 5 ? "0%" : "-60%",
             }}
-            transition={{ duration: 1 }}
+            transition={{ duration: currentSection === 1 ? 2 : 2 }}
             className="absolute z-13 transform -translate-x-1/2"
             style={{ bottom: "15%", left: "50%", width: "100%" }}
           />
-        </div>
-      );
 
-      return (
-        <div
-          data-section="4"
-          className="h-dvh flex flex-col items-center justify-center text-white bg-purple-600 transition-all duration-500"
-        >
-          <h1 className="text-4xl font-bold">Section {index}</h1>
-          <p>More content here</p>
-        </div>
-      );
-    } else if (index === 5) {
-      return (
-        <div
-          ref={sectionLastRef}
-          data-section="5"
-          className="h-dvh w-full overflow-y-auto bg-gradient-to-b from-pink-100 to-white"
-        >
-          <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-            <h2 className="text-4xl font-bold text-center text-pink-600">
-              🎉 Welcome to Section 5!
-            </h2>
-            <p className="text-center text-gray-600 text-lg">
-              This is the scrollable part of your wedding invitation — you can
-              put any content here like event details, love stories, RSVP form,
-              or guest messages.
-            </p>
-
-            <div className="space-y-4">
-              {Array.from({ length: 15 }).map((_, idx) => (
-                <p
-                  key={idx}
-                  className="text-gray-800 text-base leading-relaxed"
-                >
-                  {idx + 1}. Lorem ipsum dolor sit amet, consectetur adipiscing
-                  elit. Pellentesque eleifend, nunc ac iaculis imperdiet, justo
-                  sapien sollicitudin nulla, nec vestibulum magna nisi non
-                  velit.
-                </p>
-              ))}
-            </div>
-
-            <div className="text-center mt-10 text-pink-500 font-semibold text-sm">
-              — End of Section 5 —
-            </div>
-          </div>
+          {/* Content */}
+          <ScrollSection
+            currentSection={index}
+            handleChange={handleChange}
+            handleSubmit={handleSubmit}
+            form={form}
+          />
         </div>
       );
     }
   };
 
-  const totalSections = 6; // Section 0 to 8
+  // Total sections (0 to 5)
+  const totalSections = 6;
 
   return (
     <div className="w-full flex justify-center">
