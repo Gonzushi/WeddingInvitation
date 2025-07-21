@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DEBUG_MODE = false;
-const maxGuests = 2;
 
 const images = [
   { src: "/assets/gal1.jpg", span: 4 },
