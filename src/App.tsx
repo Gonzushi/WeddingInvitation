@@ -762,7 +762,12 @@ export default function ScrollSections() {
             }}
             transition={{ duration: 2 }}
             className="absolute z-14"
-            style={{ bottom: "42%", left: "33%", width: "32%" }}
+            style={{
+              bottom: "42%",
+              left: "33%",
+              width: "32%",
+              willChange: "transform",
+            }}
           />
 
           {/* Bride Details */}
