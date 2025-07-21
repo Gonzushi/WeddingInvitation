@@ -4,12 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 const DEBUG_MODE = false;
 
 const images = [
-  "/assets/gal1.jpg",
-  "/assets/gal2.jpg",
-  "/assets/gal3.jpg",
-  "/assets/gal4.jpg",
-  "/assets/gal5.jpg",
-  "/assets/gal6.jpg",
+  { src: "/assets/gal1.jpg", span: 8, animation: "left" },
+  { src: "/assets/gal2.jpg", span: 3, animation: "left" },
+  { src: "/assets/gal3.jpg", span: 5, animation: "right" },
+  { src: "/assets/gal4.jpg", span: 8, animation: "left" },
+  { src: "/assets/gal5.jpg", span: 4, animation: "left" },
+  { src: "/assets/gal6.jpg", span: 4, animation: "right" },
 ];
 
 type FormData = {
@@ -89,70 +89,93 @@ function GallerySection() {
     setActiveIndex((i) => (i! - 1 + images.length) % images.length);
   const next = () => setActiveIndex((i) => (i! + 1) % images.length);
 
+  const getSpanClass = (span: number = 8) => {
+    return `col-span-${span}`;
+  };
+
   return (
     <section className="space-y-4 overflow-hidden">
       <h3 className="text-xl font-bold text-white text-center">Gallery</h3>
-      <div className="grid grid-cols-4 gap-2 relative">
-        {images.map((img, idx) => (
-          <div key={img} className="col-span-2 md:col-span-2 overflow-hidden">
-            <motion.div
-              initial={{ opacity: 0, x: idx % 2 === 0 ? -100 : 100 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              whileHover={{ scale: 1.05 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true, amount: 0.3 }}
-              className="cursor-pointer"
-              onClick={() => setActiveIndex(idx)}
+
+      <div className="grid grid-cols-8 gap-2">
+        {images.map((img, idx) => {
+          const spanClass = getSpanClass(img.span);
+          const fromX = img.animation === "left" ? -100 : 100;
+
+          return (
+            <div
+              key={img.src}
+              className={`${spanClass} overflow-hidden rounded-lg`}
             >
-              <img
-                src={img}
-                alt={`Gallery ${idx}`}
-                className="rounded-lg w-full h-48 object-cover"
-              />
-            </motion.div>
-          </div>
-        ))}
+              <motion.div
+                initial={{ opacity: 0, x: fromX }}
+                whileInView={{ opacity: 1, x: 0 }}
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true, amount: 0.3 }}
+                className="cursor-pointer"
+                onClick={() => setActiveIndex(idx)}
+              >
+                <img
+                  src={img.src}
+                  alt={`Gallery ${idx}`}
+                  className="w-full h-48 object-cover"
+                />
+              </motion.div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Fullscreen Modal */}
       <AnimatePresence>
         {activeIndex !== null && (
           <motion.div
-            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+            className="fixed inset-0 bg-white/90 z-50 flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <button
               onClick={closeModal}
-              className="absolute top-4 right-4 text-white text-3xl z-50"
+              className="absolute top-4 right-4 text-black text-3xl z-50"
             >
               ✕
             </button>
 
             <button
               onClick={prev}
-              className="absolute left-4 text-white text-3xl z-50"
+              className="absolute left-4 text-black text-3xl z-50"
             >
               ◀
             </button>
 
             <button
               onClick={next}
-              className="absolute right-4 text-white text-3xl z-50"
+              className="absolute right-4 text-black text-3xl z-50"
             >
               ▶
             </button>
 
             <motion.img
-              key={images[activeIndex]}
-              src={images[activeIndex]}
+              key={images[activeIndex].src}
+              src={images[activeIndex].src}
               alt="Fullscreen"
-              initial={{ opacity: 0, scale: 0.9 }}
+              className="max-w-4xl max-h-[90vh] rounded-xl shadow-xl"
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.3 }}
-              className="max-w-4xl max-h-[90vh] rounded-xl shadow-lg"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(e, info) => {
+                if (info.offset.x < -100) next();
+                else if (info.offset.x > 100) prev();
+              }}
+              onDrag={(e, info) => {
+                if (info.offset.y > 100) closeModal();
+              }}
             />
           </motion.div>
         )}
@@ -185,15 +208,14 @@ function ScrollSection({
       className="h-dvh w-full overflow-y-auto relative z-30"
     >
       {/* Full Overlay */}
-      <div className="fixed left-1/2 top-0 transform -translate-x-1/2 w-full max-w-[480px] h-full bg-[#E2725B]/70 backdrop-blur-sxs -z-10" />
+      <div className="absolute left-0 top-0 w-full bg-[#E2725B]/70 backdrop-blur-sxs -z-10">
+        {/* Countdown Timer */}
+        <div className="mt-8">
+          <ReceptionCountdown />
+        </div>
 
-      {/* Countdown Timer */}
-      <div className="mt-8">
-        <ReceptionCountdown />
-      </div>
-
-      {/* Top Image */}
-      {/* <div className="arch-container">
+        {/* Top Image */}
+        {/* <div className="arch-container">
         <motion.svg
           initial={{ x: "-100%" }}
           animate={{ x: 0 }}
@@ -217,109 +239,122 @@ function ScrollSection({
         </motion.svg>
       </div> */}
 
-      <div className=" mt-10 max-w-xl mx-auto px-4 pb-8 space-y-10 relative z-30">
-        {/* Love Story Timeline */}
-        <section className="text-white space-y-6">
-          <h2 className="text-3xl font-bold text-center">Our Love Story</h2>
-          <div className="relative border-l-2 border-white pl-6 space-y-6">
-            {[
-              {
-                year: "2019",
-                text: "We met for the first time at a campus event.",
-              },
-              {
-                year: "2020",
-                text: "Our friendship grew deeper during the pandemic.",
-              },
-              {
-                year: "2022",
-                text: "We took our first trip together to Bali.",
-              },
-              {
-                year: "2023",
-                text: "Engaged with love and blessings from our families.",
-              },
-              { year: "2026", text: "And now, we’re getting married!" },
-            ].map((item, i) => (
-              <div key={i} className="relative pl-4">
-                <div className="absolute left-[-10px] top-1 w-4 h-4 bg-white rounded-full border-2 border-pink-300" />
-                <div className="font-bold text-pink-200">{item.year}</div>
-                <div className="text-sm">{item.text}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* RSVP Form */}
-        <section className="bg-white/90 rounded-xl p-4 shadow space-y-4">
-          <h3 className="text-xl font-bold text-[#E2725B] text-center">RSVP</h3>
-          <div className="space-y-2">
-            <input
-              type="text"
-              name="name"
-              placeholder="Your Name"
-              className="w-full p-2 rounded border"
-              value={form.name}
-              onChange={handleChange}
-            />
-            <textarea
-              name="wish"
-              placeholder="Write your best wishes"
-              className="w-full p-2 rounded border"
-              rows={3}
-              value={form.wish}
-              onChange={handleChange}
-            />
-            <div className="flex items-center gap-4">
-              <label className="text-sm font-medium">Will you attend?</label>
-              <select
-                name="attending"
-                value={form.attending}
-                onChange={handleChange}
-                className="border p-1 rounded"
-              >
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium">
-                Number of Guests (max 2)
-              </label>
-              <input
-                type="number"
-                name="guests"
-                min={1}
-                max={2}
-                value={form.guests?.toString() ?? ""}
-                onChange={handleChange}
-                className="w-full p-2 rounded border"
-              />
-            </div>
-            <button
-              onClick={handleSubmit}
-              className="w-full bg-[#E2725B] text-white py-2 rounded shadow font-semibold"
-            >
-              Submit
-            </button>
-          </div>
-
-          {/* Wishes List */}
-          <div className="pt-4">
-            <h4 className="text-md font-bold text-[#E2725B]">Wishes</h4>
-            <ul className="space-y-2 max-h-40 overflow-y-auto">
-              {wishes.map((w, idx) => (
-                <li key={idx} className="bg-white border p-2 rounded shadow-sm">
-                  <p className="text-sm text-gray-700 italic">"{w.wish}"</p>
-                  <p className="text-xs text-gray-500 text-right">— {w.name}</p>
-                </li>
+        <div className=" mt-10 max-w-xl mx-auto px-4 pb-8 space-y-10 relative z-30">
+          {/* Love Story Timeline */}
+          <section className="bg-white/90 text-black px-4 py-6 rounded-2xl shadow-lg space-y-6 max-w-xl mx-auto">
+            <h2 className="text-2xl font-bold text-center text-[#E2725B]">
+              Our Love Story
+            </h2>
+            <div className="relative border-l-2 border-gray-300 pl-6 space-y-6">
+              {[
+                {
+                  year: "2019",
+                  text: "We met for the first time at a campus event.",
+                },
+                {
+                  year: "2020",
+                  text: "Our friendship grew deeper during the pandemic.",
+                },
+                {
+                  year: "2022",
+                  text: "We took our first trip together to Bali.",
+                },
+                {
+                  year: "2023",
+                  text: "Engaged with love and blessings from our families.",
+                },
+                {
+                  year: "2026",
+                  text: "And now, we’re getting married!",
+                },
+              ].map((item, i) => (
+                <div key={i} className="relative pl-4">
+                  <div className="absolute left-[-10px] top-1 w-4 h-4 bg-[#E2725B] rounded-full border-2 border-white" />
+                  <div className="font-bold text-[#E2725B]">{item.year}</div>
+                  <div className="text-sm">{item.text}</div>
+                </div>
               ))}
-            </ul>
-          </div>
-        </section>
+            </div>
+          </section>
 
-        {/* Gallery */}
-        <GallerySection />
+          {/* RSVP Form */}
+          <section className="bg-white/90 rounded-xl p-4 shadow space-y-4">
+            <h3 className="text-xl font-bold text-[#E2725B] text-center">
+              RSVP
+            </h3>
+            <div className="space-y-2">
+              <input
+                type="text"
+                name="name"
+                placeholder="Your Name"
+                className="w-full p-2 rounded border"
+                value={form.name}
+                onChange={handleChange}
+              />
+              <textarea
+                name="wish"
+                placeholder="Write your best wishes"
+                className="w-full p-2 rounded border"
+                rows={3}
+                value={form.wish}
+                onChange={handleChange}
+              />
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-medium">Will you attend?</label>
+                <select
+                  name="attending"
+                  value={form.attending}
+                  onChange={handleChange}
+                  className="border p-1 rounded"
+                >
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">
+                  Number of Guests (max 2)
+                </label>
+                <input
+                  type="number"
+                  name="guests"
+                  min={1}
+                  max={2}
+                  value={form.guests?.toString() ?? ""}
+                  onChange={handleChange}
+                  className="w-full p-2 rounded border"
+                />
+              </div>
+              <button
+                onClick={handleSubmit}
+                className="w-full bg-[#E2725B] text-white py-2 rounded shadow font-semibold"
+              >
+                Submit
+              </button>
+            </div>
+
+            {/* Wishes List */}
+            <div className="pt-4">
+              <h4 className="text-md font-bold text-[#E2725B]">Wishes</h4>
+              <ul className="space-y-2 max-h-40 overflow-y-auto">
+                {wishes.map((w, idx) => (
+                  <li
+                    key={idx}
+                    className="bg-white border p-2 rounded shadow-sm"
+                  >
+                    <p className="text-sm text-gray-700 italic">"{w.wish}"</p>
+                    <p className="text-xs text-gray-500 text-right">
+                      — {w.name}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          {/* Gallery */}
+          <GallerySection />
+        </div>
       </div>
     </motion.div>
   );
@@ -737,7 +772,7 @@ export default function ScrollSections() {
             initial={{ opacity: 0, scale: 0.9, x: 0 }}
             animate={{
               opacity: currentSection === 2 ? 1 : 0,
-              scale: currentSection === 2 ? 3 : 0,
+              scale: currentSection === 2 ? 3.5 : 0,
               x: currentSection === 2 ? "120%" : "200%",
               y: currentSection === 2 ? "30%" : "0%",
             }}
