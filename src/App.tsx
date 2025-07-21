@@ -766,7 +766,6 @@ export default function ScrollSections() {
               bottom: "42%",
               left: "33%",
               width: "32%",
-              willChange: "transform",
             }}
           />
 
