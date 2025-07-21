@@ -4,12 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 const DEBUG_MODE = false;
 
 const images = [
-  { src: "/assets/gal1.jpg", span: 4 },
-  { src: "/assets/gal2.jpg", span: 2 },
-  { src: "/assets/gal3.jpg", span: 2 },
-  { src: "/assets/gal4.jpg", span: 4 },
-  { src: "/assets/gal5.jpg", span: 2 },
-  { src: "/assets/gal6.jpg", span: 2 },
+  "/assets/gal1.jpg",
+  "/assets/gal2.jpg",
+  "/assets/gal3.jpg",
+  "/assets/gal4.jpg",
+  "/assets/gal5.jpg",
+  "/assets/gal6.jpg",
 ];
 
 type FormData = {
@@ -92,10 +92,9 @@ function GallerySection() {
   return (
     <section className="space-y-4 overflow-hidden">
       <h3 className="text-xl font-bold text-white text-center">Gallery</h3>
-
       <div className="grid grid-cols-4 gap-2 relative">
         {images.map((img, idx) => (
-          <div key={img.src} className={`col-span-${img.span} overflow-hidden`}>
+          <div key={img} className="col-span-2 md:col-span-2 overflow-hidden">
             <motion.div
               initial={{ opacity: 0, x: idx % 2 === 0 ? -100 : 100 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -106,7 +105,7 @@ function GallerySection() {
               onClick={() => setActiveIndex(idx)}
             >
               <img
-                src={img.src}
+                src={img}
                 alt={`Gallery ${idx}`}
                 className="rounded-lg w-full h-48 object-cover"
               />
@@ -115,6 +114,7 @@ function GallerySection() {
         ))}
       </div>
 
+      {/* Fullscreen Modal */}
       <AnimatePresence>
         {activeIndex !== null && (
           <motion.div
@@ -129,21 +129,24 @@ function GallerySection() {
             >
               ✕
             </button>
+
             <button
               onClick={prev}
               className="absolute left-4 text-white text-3xl z-50"
             >
               ◀
             </button>
+
             <button
               onClick={next}
               className="absolute right-4 text-white text-3xl z-50"
             >
               ▶
             </button>
+
             <motion.img
-              key={images[activeIndex].src}
-              src={images[activeIndex].src}
+              key={images[activeIndex]}
+              src={images[activeIndex]}
               alt="Fullscreen"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
