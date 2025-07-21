@@ -169,11 +169,11 @@ function GallerySection() {
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.2}
-              onDragEnd={(e, info) => {
+              onDragEnd={(_, info) => {
                 if (info.offset.x < -100) next();
                 else if (info.offset.x > 100) prev();
               }}
-              onDrag={(e, info) => {
+              onDrag={(_, info) => {
                 if (info.offset.y > 100) closeModal();
               }}
             />
