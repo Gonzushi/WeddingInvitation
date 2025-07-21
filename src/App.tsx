@@ -375,6 +375,12 @@ export default function ScrollSections() {
       "/assets/vases.png",
       "/assets/lamps.png",
       "/assets/arch.png",
+      "/assets/gal1.jpg",
+      "/assets/gal2.jpg",
+      "/assets/gal3.jpg",
+      "/assets/gal4.jpg",
+      "/assets/gal5.jpg",
+      "/assets/gal6.jpg",
     ];
 
     let loadedCount = 0;
