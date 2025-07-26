@@ -159,6 +159,7 @@ export default function GuestAdmin() {
   };
 
   const columnDefs: ColDef<Guest>[] = [
+    { field: "nickname", headerName: "Nickname", width: 120, minWidth: 150 },
     {
       headerName: "Actions",
       width: 120,
@@ -269,7 +270,6 @@ export default function GuestAdmin() {
         return "—";
       },
     },
-    { field: "nickname", headerName: "Nickname", width: 120, minWidth: 150 },
     {
       field: "is_attending",
       headerName: "RSVP Status",
