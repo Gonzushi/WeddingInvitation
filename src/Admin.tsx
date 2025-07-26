@@ -105,7 +105,7 @@ export default function GuestAdmin() {
 
   const handleAdd = () => {
     setEditingId(null);
-    setFormData({});
+    setFormData({ num_attendees: 2 });
     setAdditionalNamesInput("");
     dialogRef.current?.showModal();
   };
