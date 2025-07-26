@@ -11,7 +11,9 @@ import {
   ModuleRegistry,
 } from "ag-grid-community";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import { MdQrCode } from "react-icons/md";
 import { Html5Qrcode } from "html5-qrcode";
+import QRCode from "react-qr-code";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -37,6 +39,12 @@ type Guest = {
   updated_at?: string; // ISO date string
   tag?: string;
   num_attendees_confirmed?: number;
+  attendance_confirmed?: boolean;
+};
+
+type QRScannerProps = {
+  onResult: (result: string) => void;
+  setShowScanner: (value: boolean) => void;
 };
 
 function toTitleCase(str: string): string {
@@ -47,40 +55,105 @@ function toTitleCase(str: string): string {
     .join(" ");
 }
 
-function QRScanner({ onScan }: { onScan: (result: string) => void }) {
-  const scannerRef = useRef<HTMLDivElement | null>(null);
+function QRScanner({ onResult, setShowScanner }: QRScannerProps) {
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
-    const html5QrCode = new Html5Qrcode("qr-reader");
+    const scannerId = "qr-scanner-element";
 
-    html5QrCode
-      .start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        (decodedText) => {
-          onScan(decodedText);
-          html5QrCode.stop(); // stop after first scan
-        },
-        (error) => {
-          console.warn("QR Scan error:", error);
+    const startScanner = async () => {
+      if (scannerRef.current) return;
+
+      const html5QrCode = new Html5Qrcode(scannerId);
+      scannerRef.current = html5QrCode;
+
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+          },
+          (decodedText) => {
+            onResult(decodedText);
+            handleClose();
+          },
+          (errorMessage) => {
+            console.warn("QR scan error:", errorMessage);
+          }
+        );
+      } catch (err) {
+        console.error("Scanner start failed", err);
+      }
+    };
+
+    const stopScanner = async () => {
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.stop();
+          await scannerRef.current.clear();
+          scannerRef.current = null;
+        } catch (err) {
+          console.error("Scanner stop failed", err);
         }
-      )
-      .catch((err) => {
-        console.error("Failed to start QR scanner", err);
-      });
+      }
+    };
+
+    const handleClose = async () => {
+      await stopScanner();
+      setShowScanner(false);
+    };
+
+    startScanner();
 
     return () => {
-      html5QrCode.stop().catch(() => {});
+      stopScanner();
     };
-  }, [onScan]);
+  }, [onResult, setShowScanner]);
+
+  const handleClose = async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop();
+        await scannerRef.current.clear();
+        scannerRef.current = null;
+      } catch (err) {
+        console.error("Scanner stop failed", err);
+      }
+    }
+    setShowScanner(false);
+  };
 
   return (
-    <div className="mt-4">
-      <div
-        id="qr-reader"
-        ref={scannerRef}
-        className="w-full max-w-md mx-auto"
-      />
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90">
+      {/* Close Button */}
+      <button
+        onClick={handleClose}
+        className="absolute top-4 right-4 text-white text-3xl bg-black/50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-red-600 z-50"
+      >
+        ×
+      </button>
+
+      {/* QR Scanner Container */}
+      <div id="qr-scanner-element" className="w-full" />
+    </div>
+  );
+}
+
+function QRCodeModal({ id, onClose }: { id: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div className="relative bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+        <button
+          className="absolute top-2 right-2 text-xl text-gray-600 hover:text-red-600"
+          onClick={onClose}
+        >
+          ×
+        </button>
+        <h2 className="text-lg mb-4 font-semibold">QR Code</h2>
+        <QRCode value={id} size={256} />
+        <p className="mt-4 text-sm text-gray-500 break-all">{id}</p>
+      </div>
     </div>
   );
 }
@@ -95,10 +168,17 @@ export default function GuestAdmin() {
     formData.additional_names?.join(", ") || ""
   );
   const [showSummary, setShowSummary] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredRows, setFilteredRows] = useState<Guest[] | null>(null);
+  const [showInvalidQRModal, setShowInvalidQRModal] = useState(false);
+  const [successGuest, setSuccessGuest] = useState<{
+    full_name: string;
+    additional_names?: string[];
+  } | null>(null);
+
+  const [qrId, setQrId] = useState<string | null>(null);
+  const [showQR, setShowQR] = useState(false);
 
   const fetchGuests = useCallback(async () => {
     setLoading(true);
@@ -148,6 +228,7 @@ export default function GuestAdmin() {
       num_attendees: data.num_attendees,
       additional_names: data.additional_names,
       tag: data.tag,
+      attendance_confirmed: data.attendance_confirmed,
     });
     setAdditionalNamesInput(data.additional_names?.join(", ") || "");
     dialogRef.current?.showModal();
@@ -205,6 +286,39 @@ export default function GuestAdmin() {
       fetchGuests();
     } catch (err) {
       console.error("Submit failed", err);
+    }
+  };
+
+  const handleResult = async (result: string) => {
+    try {
+      const response = await fetch(`${API_URL}/guests/${result}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: result,
+          attendance_confirmed: true,
+        }),
+      });
+
+      if (!response.ok) {
+        setShowInvalidQRModal(true);
+        return;
+      }
+
+      // Find the guest locally in rowData
+      const guest = rowData.find((g) => g.id === result);
+      console.log(guest);
+      if (guest) {
+        setSuccessGuest({
+          full_name: guest.full_name,
+          additional_names: guest.additional_names || [],
+        });
+      }
+
+      fetchGuests(); // Refresh data
+    } catch (error) {
+      console.error("Error handling QR result:", error);
+      setShowInvalidQRModal(true);
     }
   };
 
@@ -325,7 +439,20 @@ export default function GuestAdmin() {
       headerName: "RSVP Status",
       width: 120,
       minWidth: 100,
-      cellRenderer: "agTextCellRenderer", // force plain text rendering
+      cellRenderer: "agTextCellRenderer",
+      valueFormatter: (params) =>
+        params.value === true
+          ? "✅ Yes"
+          : params.value === false
+          ? "❌ No"
+          : "—",
+    },
+    {
+      field: "attendance_confirmed",
+      headerName: "Attendance Confirmed",
+      width: 120,
+      minWidth: 100,
+      cellRenderer: "agTextCellRenderer",
       valueFormatter: (params) =>
         params.value === true
           ? "✅ Yes"
@@ -415,6 +542,35 @@ export default function GuestAdmin() {
           >
             Open Link
           </a>
+        );
+      },
+    },
+    {
+      headerName: "QR",
+      width: 80,
+      cellRenderer: (params: ICellRendererParams<Guest>) => {
+        if (!params.data) return null;
+        return (
+          <button
+            title="Show QR Code"
+            style={{
+              color: "black",
+              border: "none",
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+            onClick={() => {
+              setQrId(params.data!.id);
+              setShowQR(true);
+            }}
+          >
+            <MdQrCode size={18} />
+          </button>
         );
       },
     },
@@ -662,11 +818,79 @@ export default function GuestAdmin() {
         </div>
       </div>
 
-      {showScanner && <QRScanner onScan={(res) => setResult(res)} />}
+      {showScanner && (
+        <QRScanner
+          onResult={(result) => {
+            handleResult(result);
+          }}
+          setShowScanner={setShowScanner}
+        />
+      )}
 
-      {result && (
-        <div className="bg-green-100 p-2 rounded text-green-800">
-          Scanned Result: {result}
+      {showQR && qrId && (
+        <QRCodeModal id={qrId} onClose={() => setShowQR(false)} />
+      )}
+
+      {/* Invalid QR Modal */}
+      {showInvalidQRModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm text-center">
+            <h2 className="text-xl font-semibold mb-2">Invalid QR Code</h2>
+            <p className="text-gray-700 mb-4">No matching guest was found.</p>
+            <button
+              onClick={() => setShowInvalidQRModal(false)}
+              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success QR Modal */}
+      {successGuest && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full text-center animate-fadeIn">
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-green-100 text-green-600 p-3 rounded-full">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-green-700">
+              Attendance Confirmed
+            </h2>
+            <p className="text-gray-800 font-medium">
+              {successGuest.full_name}
+            </p>
+            {successGuest!.additional_names!.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm text-gray-500 mb-1">With:</p>
+                <ul className="list-disc list-inside text-sm text-gray-700 text-left inline-block">
+                  {successGuest!.additional_names!.map((name, index) => (
+                    <li key={index}>{name}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <button
+              onClick={() => setSuccessGuest(null)}
+              className="mt-6 bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition-colors"
+            >
+              OK
+            </button>
+          </div>
         </div>
       )}
 
@@ -817,6 +1041,31 @@ export default function GuestAdmin() {
                     setFormData({
                       ...formData,
                       is_attending:
+                        value === "yes" ? true : value === "no" ? false : null,
+                    });
+                  }}
+                >
+                  <option value="">Waiting for the response</option>
+                  <option value="yes">✅ Yes</option>
+                  <option value="no">❌ No</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="mb-1 font-medium">Attendance Confirmed</label>
+                <select
+                  className="border p-2 rounded h-12"
+                  value={
+                    formData.attendance_confirmed === true
+                      ? "yes"
+                      : formData.attendance_confirmed === false
+                      ? "no"
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({
+                      ...formData,
+                      attendance_confirmed:
                         value === "yes" ? true : value === "no" ? false : null,
                     });
                   }}
