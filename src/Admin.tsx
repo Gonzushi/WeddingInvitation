@@ -64,7 +64,13 @@ export default function GuestAdmin() {
       const response = await res.json();
 
       // Extract the data array from the response
-      const guests = response.data || [];
+      let guests = response.data || [];
+      // Sort by nickname (case-insensitive)
+      guests = guests.sort((a, b) =>
+        (a.nickname || "")
+          .toLowerCase()
+          .localeCompare((b.nickname || "").toLowerCase())
+      );
       setRowData(guests);
     } catch (err) {
       console.error("Error fetching guests", err);
