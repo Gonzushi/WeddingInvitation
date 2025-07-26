@@ -637,6 +637,18 @@ export default function GuestAdmin() {
             ))}
           </div>
           <div className="flex flex-col">
+            {editingId && <label className="mb-1 font-medium">Nickname</label>}
+            <input
+              className="border p-2 rounded"
+              placeholder="Nickname *"
+              value={formData.nickname || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, nickname: e.target.value })
+              }
+              required
+            />
+          </div>
+          <div className="flex flex-col">
             {editingId && <label className="mb-1 font-medium">Full Name</label>}
             <input
               className="border p-2 rounded"
@@ -666,18 +678,6 @@ export default function GuestAdmin() {
                     .filter(Boolean),
                 });
               }}
-            />
-          </div>
-          <div className="flex flex-col">
-            {editingId && <label className="mb-1 font-medium">Nickname</label>}
-            <input
-              className="border p-2 rounded"
-              placeholder="Nickname *"
-              value={formData.nickname || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, nickname: e.target.value })
-              }
-              required
             />
           </div>
           <div className="flex flex-col">
