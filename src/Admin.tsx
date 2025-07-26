@@ -66,7 +66,7 @@ export default function GuestAdmin() {
       // Extract the data array from the response
       let guests = response.data || [];
       // Sort by nickname (case-insensitive)
-      guests = guests.sort((a, b) =>
+      guests = guests.sort((a: Guest, b: Guest) =>
         (a.nickname || "")
           .toLowerCase()
           .localeCompare((b.nickname || "").toLowerCase())
@@ -376,31 +376,55 @@ export default function GuestAdmin() {
     {
       field: "rsvp_at",
       headerName: "RSVP Date",
-      width: 120,
-      minWidth: 100,
+      width: 180,
+      minWidth: 160,
       valueFormatter: (params) => {
         if (!params.value) return "—";
-        return new Date(params.value).toLocaleDateString();
+        return new Date(params.value).toLocaleString("en-US", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
       },
     },
     {
       field: "created_at",
       headerName: "Created",
-      width: 120,
-      minWidth: 100,
+      width: 180,
+      minWidth: 160,
       valueFormatter: (params) => {
         if (!params.value) return "—";
-        return new Date(params.value).toLocaleDateString();
+        return new Date(params.value).toLocaleString("en-US", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
       },
     },
     {
       field: "updated_at",
       headerName: "Updated",
-      width: 120,
-      minWidth: 100,
+      width: 180,
+      minWidth: 160,
       valueFormatter: (params) => {
         if (!params.value) return "—";
-        return new Date(params.value).toLocaleDateString();
+        return new Date(params.value).toLocaleString("en-US", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
       },
     },
   ];
