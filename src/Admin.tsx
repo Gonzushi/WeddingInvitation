@@ -15,6 +15,12 @@ import { MdQrCode } from "react-icons/md";
 import { Html5Qrcode } from "html5-qrcode";
 import QRCode from "react-qr-code";
 import { supabase } from "./supabaseClient";
+import {
+  ArrowLeftOnRectangleIcon,
+  ChartBarIcon,
+  QrCodeIcon,
+  UserPlusIcon,
+} from "@heroicons/react/24/outline";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -830,27 +836,37 @@ Finna & Hary`;
           </div>
           <button
             onClick={() => handleLogout()}
-            className="col-span-2 md:col-span-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
+            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 
+            bg-red-500 hover:bg-red-600 text-white 
+            px-4 py-2 rounded border border-red-700 
+            w-full md:w-auto active:scale-95 transition-transform duration-100"
           >
-            Log Out
+            <ArrowLeftOnRectangleIcon className="h-5 w-5" />
+            <span className="hidden md:inline">Log Out</span>
           </button>
+
           <button
             onClick={() => setShowSummary(true)}
-            className="col-span-2 md:col-span-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
+            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
           >
-            Summary
+            <ChartBarIcon className="h-5 w-5" />
+            <span className="hidden md:inline">Summary</span>
           </button>
+
           <button
-            className="col-span-2 md:col-span-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
+            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
             onClick={() => setShowScanner((prev) => !prev)}
           >
-            Scan QR
+            <QrCodeIcon className="h-5 w-5" />
+            <span className="hidden md:inline">Scan QR</span>
           </button>
+
           <button
             onClick={handleAdd}
-            className="col-span-2 md:col-span-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100"
+            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100"
           >
-            + Add Guest
+            <UserPlusIcon className="h-5 w-5" />
+            <span className="hidden md:inline">Add Guest</span>
           </button>
         </div>
       </div>
