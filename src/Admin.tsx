@@ -53,6 +53,8 @@ export default function GuestAdmin() {
     formData.additional_names?.join(", ") || ""
   );
   const [showSummary, setShowSummary] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredRows, setFilteredRows] = useState<Guest[] | null>(null);
 
   const fetchGuests = useCallback(async () => {
     try {
@@ -228,16 +230,6 @@ export default function GuestAdmin() {
       },
     },
     {
-      field: "tag",
-      headerName: "Tag",
-      width: 100,
-      minWidth: 100,
-      valueFormatter: (params) => {
-        if (!params.value) return "—";
-        return params.value;
-      },
-    },
-    {
       field: "full_name",
       headerName: "Full Name",
       width: 150,
@@ -319,6 +311,16 @@ export default function GuestAdmin() {
       width: 130,
       minWidth: 180,
       valueFormatter: (params) => (!params.value ? "—" : params.value),
+    },
+    {
+      field: "tag",
+      headerName: "Tag",
+      width: 100,
+      minWidth: 100,
+      valueFormatter: (params) => {
+        if (!params.value) return "—";
+        return params.value;
+      },
     },
     {
       field: "wish",
@@ -440,16 +442,63 @@ export default function GuestAdmin() {
     >
       <div className="flex justify-between items-center mb-4 gap-2">
         <h2 className="text-2xl font-bold hidden md:block">Guest Management</h2>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-4 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
+          <div className="relative col-span-4 md:col-span-1">
+            <input
+              type="text"
+              className="border px-2 py-1 rounded pr-8 w-full h-10"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                const term = e.target.value.trim().toLowerCase();
+                if (!term) {
+                  setFilteredRows(null);
+                  return;
+                }
+                setFilteredRows(
+                  rowData.filter((row) => {
+                    const fullName = row.full_name?.toLowerCase() || "";
+                    const nickname = row.nickname?.toLowerCase() || "";
+                    const additionalNames = Array.isArray(row.additional_names)
+                      ? row.additional_names
+                          .map((n) => n.toLowerCase())
+                          .join(" ")
+                      : "";
+                    return (
+                      fullName.includes(term) ||
+                      nickname.includes(term) ||
+                      additionalNames.includes(term)
+                    );
+                  })
+                );
+              }}
+              style={{ minWidth: 120 }}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm("");
+                  setFilteredRows(null);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-full"
+                tabIndex={-1}
+                aria-label="Clear search"
+              >
+                &#10005;
+              </button>
+            )}
+          </div>
           <button
             onClick={() => setShowSummary(true)}
-            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300"
+            className="col-span-2 md:col-span-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto"
           >
             Summary
           </button>
           <button
             onClick={handleAdd}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="col-span-2 md:col-span-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto"
           >
             + Add Guest
           </button>
@@ -506,7 +555,7 @@ export default function GuestAdmin() {
         >
           <AgGridReact
             theme="legacy"
-            rowData={rowData}
+            rowData={filteredRows ?? rowData}
             columnDefs={columnDefs}
             defaultColDef={{
               resizable: true,
