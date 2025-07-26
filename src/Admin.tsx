@@ -142,10 +142,16 @@ function QRScanner({ onResult, setShowScanner }: QRScannerProps) {
 
 function QRCodeModal({ id, onClose }: { id: string; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div className="relative bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+      onDoubleClick={onClose}
+    >
+      <div
+        className="relative bg-white p-6 rounded-lg shadow-lg flex flex-col items-center"
+        onDoubleClick={(e) => e.stopPropagation()} // Prevent double-click inside from closing
+      >
         <button
-          className="absolute top-2 right-2 text-xl text-gray-600 hover:text-red-600"
+          className="absolute top-2 right-4 text-xl text-gray-600 hover:text-red-600"
           onClick={onClose}
         >
           ×
