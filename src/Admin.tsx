@@ -11,6 +11,7 @@ import {
   ModuleRegistry,
 } from "ag-grid-community";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import { Html5Qrcode } from "html5-qrcode";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -46,6 +47,44 @@ function toTitleCase(str: string): string {
     .join(" ");
 }
 
+function QRScanner({ onScan }: { onScan: (result: string) => void }) {
+  const scannerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const html5QrCode = new Html5Qrcode("qr-reader");
+
+    html5QrCode
+      .start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          onScan(decodedText);
+          html5QrCode.stop(); // stop after first scan
+        },
+        (error) => {
+          console.warn("QR Scan error:", error);
+        }
+      )
+      .catch((err) => {
+        console.error("Failed to start QR scanner", err);
+      });
+
+    return () => {
+      html5QrCode.stop().catch(() => {});
+    };
+  }, [onScan]);
+
+  return (
+    <div className="mt-4">
+      <div
+        id="qr-reader"
+        ref={scannerRef}
+        className="w-full max-w-md mx-auto"
+      />
+    </div>
+  );
+}
+
 export default function GuestAdmin() {
   const [loading, setLoading] = useState<boolean>(false);
   const [rowData, setRowData] = useState<Guest[]>([]);
@@ -56,6 +95,8 @@ export default function GuestAdmin() {
     formData.additional_names?.join(", ") || ""
   );
   const [showSummary, setShowSummary] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredRows, setFilteredRows] = useState<Guest[] | null>(null);
 
@@ -476,8 +517,8 @@ export default function GuestAdmin() {
     >
       <div className="flex justify-between items-center mb-4 gap-2">
         <h2 className="text-2xl font-bold hidden md:block">Guest Management</h2>
-        <div className="grid grid-cols-4 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
-          <div className="relative col-span-4 md:col-span-1">
+        <div className="grid grid-cols-6 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
+          <div className="relative col-span-6 md:col-span-1">
             <input
               type="text"
               className="border px-2 py-1 rounded pr-8 w-full h-10"
@@ -526,13 +567,19 @@ export default function GuestAdmin() {
           </div>
           <button
             onClick={() => setShowSummary(true)}
-            className="col-span-2 md:col-span-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto"
+            className="col-span-2 md:col-span-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
           >
             Summary
           </button>
           <button
+            className="col-span-2 md:col-span-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
+            onClick={() => setShowScanner((prev) => !prev)}
+          >
+            Scan QR
+          </button>
+          <button
             onClick={handleAdd}
-            className="col-span-2 md:col-span-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto"
+            className="col-span-2 md:col-span-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100"
           >
             + Add Guest
           </button>
@@ -614,6 +661,14 @@ export default function GuestAdmin() {
           )}
         </div>
       </div>
+
+      {showScanner && <QRScanner onScan={(res) => setResult(res)} />}
+
+      {result && (
+        <div className="bg-green-100 p-2 rounded text-green-800">
+          Scanned Result: {result}
+        </div>
+      )}
 
       <dialog
         ref={dialogRef}
