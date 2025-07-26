@@ -2,6 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DEBUG_MODE = false;
+const API_URL = "https://rest.trip-nus.com";
+// const API_URL = "http://localhost:3000";
+
+type Guest = {
+  id: string;
+  full_name: string;
+  nickname?: string;
+  address?: string;
+  phone_number?: string;
+  invitation_link?: string;
+  is_attending?: boolean;
+  num_attendees?: number;
+  wish?: string;
+  photo_url?: string;
+  additional_names?: string[];
+  wedding_id?: string;
+  rsvp_at?: string;
+};
 
 const images = [
   { src: "/assets/gal1.jpg", span: 8, animation: "left" },
@@ -94,48 +112,51 @@ function GallerySection() {
   };
 
   return (
-    <section className="space-y-4 overflow-hidden">
-      <h3 className="text-xl font-bold text-white text-center">Gallery</h3>
+    <>
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold text-white text-center">Gallery</h3>
+        <div className="grid grid-cols-8 gap-2">
+          {images.map((img, idx) => {
+            const spanClass = getSpanClass(img.span);
+            const fromX = img.animation === "left" ? -100 : 100;
 
-      <div className="grid grid-cols-8 gap-2">
-        {images.map((img, idx) => {
-          const spanClass = getSpanClass(img.span);
-          const fromX = img.animation === "left" ? -100 : 100;
-
-          return (
-            <div
-              key={img.src}
-              className={`${spanClass} overflow-hidden rounded-lg`}
-            >
-              <motion.div
-                initial={{ opacity: 0, x: fromX }}
-                whileInView={{ opacity: 1, x: 0 }}
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.5 }}
-                viewport={{ once: true, amount: 0.3 }}
-                className="cursor-pointer"
-                onClick={() => setActiveIndex(idx)}
+            return (
+              <div
+                key={img.src}
+                className={`${spanClass} overflow-hidden rounded-lg`}
               >
-                <img
-                  src={img.src}
-                  alt={`Gallery ${idx}`}
-                  className="w-full h-48 object-cover"
-                />
-              </motion.div>
-            </div>
-          );
-        })}
-      </div>
+                <motion.div
+                  initial={{ opacity: 0, x: fromX }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.5 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  className="cursor-pointer"
+                  onClick={() => setActiveIndex(idx)}
+                >
+                  <img
+                    src={img.src}
+                    alt={`Gallery ${idx}`}
+                    className="w-full h-48 object-cover"
+                  />
+                </motion.div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* Fullscreen Modal */}
       <AnimatePresence>
         {activeIndex !== null && (
           <motion.div
-            className="fixed inset-0 bg-white/90 z-50 flex items-center justify-center"
+            className="fixed inset-0 z-50 bg-white/90 flex flex-col items-center justify-center touch-none w-screen h-screen"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
           >
+            {/* Close Button */}
             <button
               onClick={closeModal}
               className="absolute top-4 right-4 text-black text-3xl z-50"
@@ -143,44 +164,33 @@ function GallerySection() {
               ✕
             </button>
 
-            <button
-              onClick={prev}
-              className="absolute left-4 text-black text-3xl z-50"
-            >
-              ◀
-            </button>
-
-            <button
-              onClick={next}
-              className="absolute right-4 text-black text-3xl z-50"
-            >
-              ▶
-            </button>
-
-            <motion.img
-              key={images[activeIndex].src}
-              src={images[activeIndex].src}
-              alt="Fullscreen"
-              className="max-w-4xl max-h-[90vh] rounded-xl shadow-xl"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 2 }}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.2}
-              onDragEnd={(_, info) => {
-                if (info.offset.x < -100) next();
-                else if (info.offset.x > 100) prev();
-              }}
-              onDrag={(_, info) => {
-                if (info.offset.y > 100) closeModal();
-              }}
-            />
+            {/* Fullscreen Image Centered */}
+            <div className="flex justify-center items-center w-full h-dvh -mt-20">
+              <motion.img
+                key={images[activeIndex].src}
+                src={images[activeIndex].src}
+                alt="Fullscreen"
+                className="max-w-4xl max-h-[90vh] rounded-xl shadow-xl mx-auto"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0 }}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(_, info) => {
+                  if (info.offset.x < -100) next();
+                  else if (info.offset.x > 100) prev();
+                }}
+                onDrag={(_, info) => {
+                  if (info.offset.y > 100) closeModal();
+                }}
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </section>
+    </>
   );
 }
 
@@ -208,7 +218,7 @@ function ScrollSection({
       className="h-dvh w-full overflow-y-auto relative z-30"
     >
       {/* Full Overlay */}
-      <div className="absolute left-0 top-0 w-full bg-[#E2725B]/70 backdrop-blur-sxs -z-10">
+      <div className="absolute left-0 top-0 w-full bg-[#E2725B]/70 backdrop-blur-sxs z-0">
         {/* Countdown Timer */}
         <div className="mt-8">
           <ReceptionCountdown />
@@ -361,7 +371,7 @@ function ScrollSection({
 }
 
 export default function ScrollSections() {
-  const [recipient, setRecipient] = useState<string | null>(null);
+  const [recipient, setRecipient] = useState<Guest | null>(null);
 
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -388,16 +398,20 @@ export default function ScrollSections() {
     const param = urlParams.get("to");
 
     if (param) {
-      // Replace dashes with spaces
-      const formatted = param
-        .replace("-", " ")
-        .split(" ")
-        .map(
-          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-        )
-        .join(" ");
-
-      setRecipient(formatted);
+      // Fetch guest data by ID
+      fetch(`${API_URL}/guests/${param}`)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Guest not found");
+          }
+          return res.json();
+        })
+        .then((data) => {
+          setRecipient(data?.data); // assuming your API wraps data under `data`
+        })
+        .catch((err) => {
+          console.error("Failed to fetch guest", err);
+        });
     }
   }, []);
 
@@ -662,7 +676,9 @@ export default function ScrollSections() {
                     className="text-lg font-semibold mb-6"
                     style={{ fontFamily: fonts.recipient }}
                   >
-                    {recipient ? recipient : "Nama Undangan"}
+                    {recipient?.nickname ||
+                      recipient?.full_name ||
+                      "Nama Undangan"}
                   </p>
 
                   <motion.button
@@ -826,12 +842,6 @@ export default function ScrollSections() {
               className="text-xl text-[#4B2E2E] leading-snug mb-1"
               style={{ fontFamily: fonts.heading, fontWeight: 600 }}
             >
-              Finna
-            </p>
-            <p
-              className="text-lg text-[#4B2E2E] mb-2 leading-snug"
-              style={{ fontFamily: fonts.subheading, fontStyle: "italic" }}
-            >
               Finna Widyanti
             </p>
 
@@ -908,12 +918,6 @@ export default function ScrollSections() {
             <p
               className="text-xl text-[#4B2E2E] leading-snug mb-1"
               style={{ fontFamily: fonts.heading, fontWeight: 600 }}
-            >
-              Hary
-            </p>
-            <p
-              className="text-lg text-[#4B2E2E] mb-2 leading-snug whitespace-nowrap"
-              style={{ fontFamily: fonts.subheading, fontStyle: "italic" }}
             >
               Haryanto Kartawijaya
             </p>

@@ -10,7 +10,7 @@ import {
   AllCommunityModule,
   ModuleRegistry,
 } from "ag-grid-community";
-import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiSend } from "react-icons/fi";
 import { MdQrCode } from "react-icons/md";
 import { Html5Qrcode } from "html5-qrcode";
 import QRCode from "react-qr-code";
@@ -39,7 +39,7 @@ type Guest = {
   updated_at?: string; // ISO date string
   tag?: string;
   num_attendees_confirmed?: number;
-  attendance_confirmed?: boolean;
+  attendance_confirmed?: boolean | null;
 };
 
 type QRScannerProps = {
@@ -331,20 +331,51 @@ export default function GuestAdmin() {
   const columnDefs: ColDef<Guest>[] = [
     {
       headerName: "Actions",
-      width: 120,
-      minWidth: 90,
+      width: 160,
+      minWidth: 130,
       cellRenderer: (params: ICellRendererParams<Guest>) => {
         if (!params.data) return null;
+
+        const waMessage = `Halo Bapak/Ibu ${params.data.full_name} 👋
+
+Kami mengundang dengan hormat ke acara pernikahan kami:
+
+💍 Finna & Hary  
+📅 Sabtu, 07 Februari 2026  
+📍 ASTON Bogor Hotel & Resort  
+🕒 18.00 - 21.00 WIB
+
+Undangan digital dapat dibuka melalui link berikut:  
+👉 http://hary-finna.trip-nus.com/?to=${params.data.id}
+
+Kami sangat berharap kehadiran Bapak/Ibu untuk berbagi kebahagiaan bersama kami.  
+
+Mohon konfirmasi kehadiran melalui link di atas ya.
+
+Terima kasih banyak 🙏  
+
+Salam hangat,  
+Finna & Hary`;
+
+        let phoneNumber = params.data.phone_number?.replace(/\D/g, "") || "";
+        if (phoneNumber.startsWith("0")) {
+          phoneNumber = "62" + phoneNumber.slice(1);
+        }
+        const waUrl = phoneNumber
+          ? `https://wa.me/${phoneNumber}?text=${encodeURIComponent(waMessage)}`
+          : `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
+
         return (
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center", // horizontal centering if needed
+              justifyContent: "center",
               gap: 8,
-              height: "100%", // ensures full cell height
+              height: "100%",
             }}
           >
+            {/* Edit button */}
             <button
               className="btn-edit"
               data-id={params.data.id}
@@ -370,6 +401,8 @@ export default function GuestAdmin() {
             >
               <FiEdit2 size={18} />
             </button>
+
+            {/* Delete button */}
             <button
               className="btn-delete"
               data-id={params.data.id}
@@ -395,6 +428,34 @@ export default function GuestAdmin() {
             >
               <FiTrash2 size={18} />
             </button>
+
+            {/* WhatsApp send button */}
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Send WhatsApp"
+              style={{
+                background: "#22c55e",
+                color: "white",
+                border: "none",
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "background 0.2s",
+                textDecoration: "none",
+              }}
+              onMouseOver={(e) =>
+                (e.currentTarget.style.background = "#15803d")
+              }
+              onMouseOut={(e) => (e.currentTarget.style.background = "#22c55e")}
+            >
+              <FiSend size={18} />
+            </a>
           </div>
         );
       },
@@ -533,15 +594,19 @@ export default function GuestAdmin() {
       },
     },
     {
-      field: "invitation_link",
+      field: "invitation_link", // You can keep this or change it to "id"
       headerName: "Invitation Link",
-      width: 150,
-      minWidth: 150,
-      cellRenderer: (params: ICellRendererParams<string>) => {
-        if (!params.value) return "—";
+      width: 200,
+      minWidth: 180,
+      cellRenderer: (params: ICellRendererParams<Guest>) => {
+        const id = params.data?.id;
+        if (!id) return "—";
+
+        const url = `http://hary-finna.trip-nus.com/?to=${id}`;
+
         return (
           <a
-            href={params.value}
+            href={url}
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: "#2563eb", textDecoration: "underline" }}
@@ -657,12 +722,30 @@ export default function GuestAdmin() {
   const summary = ["Finna", "Hary"].map((tag) => {
     const guests = rowData.filter((row) => row.tag === tag);
     const guestCount = guests.length;
+
     const attendeeCount = guests.reduce(
       (sum, row) =>
         sum + (typeof row.num_attendees === "number" ? row.num_attendees : 0),
       0
     );
-    return { tag, guestCount, attendeeCount };
+
+    const attendanceConfirmedCount = guests.reduce(
+      (sum, row) => sum + (row.attendance_confirmed ? 1 : 0),
+      0
+    );
+
+    const isAttendingCount = guests.reduce(
+      (sum, row) => sum + (row.is_attending ? 1 : 0),
+      0
+    );
+
+    return {
+      tag,
+      guestCount,
+      attendeeCount,
+      attendanceConfirmedCount,
+      isAttendingCount,
+    };
   });
 
   return (
@@ -760,12 +843,17 @@ export default function GuestAdmin() {
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xs mx-2 border border-black">
             <h3 className="text-lg font-bold mb-4 text-center">Summary</h3>
             <div className="flex flex-col gap-2 text-base font-medium">
+              {/* Guests */}
               {summary.map((s) => (
-                <div key={s.tag} className="flex justify-between">
+                <div key={s.tag + "-guests"} className="flex justify-between">
                   <span>{s.tag} Guests:</span>
                   <span>{s.guestCount}</span>
                 </div>
               ))}
+
+              <hr className="my-2 border-gray-300" />
+
+              {/* Attendees */}
               {summary.map((s) => (
                 <div
                   key={s.tag + "-attendees"}
@@ -775,7 +863,43 @@ export default function GuestAdmin() {
                   <span>{s.attendeeCount}</span>
                 </div>
               ))}
+
+              <hr className="my-2 border-gray-300" />
+
+              {/* Attendance Confirmed */}
+              {summary.map((s) => (
+                <div key={s.tag + "-rsvp"} className="flex justify-between">
+                  <span>{s.tag} RSVP Confirmed:</span>
+                  <span>{s.isAttendingCount}</span>
+                </div>
+              ))}
+
+              <hr className="my-2 border-gray-300" />
+
+              {/* Attendance Confirmed */}
+              {summary.map((s) => (
+                <div
+                  key={s.tag + "-attendance"}
+                  className="flex justify-between"
+                >
+                  <span>{s.tag} Attendance Confirmed:</span>
+                  <span>{s.attendanceConfirmedCount}</span>
+                </div>
+              ))}
+
+              {/* Total Row */}
+              <hr className="my-2 border-black" />
+              <div className="flex justify-between font-bold">
+                <span>Total Attendance Confirmed:</span>
+                <span>
+                  {summary.reduce(
+                    (total, s) => total + s.attendanceConfirmedCount,
+                    0
+                  )}
+                </span>
+              </div>
             </div>
+
             <button
               className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
               onClick={() => setShowSummary(false)}
