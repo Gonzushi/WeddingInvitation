@@ -15,6 +15,8 @@ import { FiEdit2, FiTrash2 } from "react-icons/fi";
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 const DEFAULT_WEDDING_ID = "931d5a18-9bce-40ab-9717-6a117766ff44";
+const API_URL = "https://rest.trip-nus.com";
+// const API_URL = "http://localhost:3000";
 
 type Guest = {
   id: string;
@@ -23,7 +25,7 @@ type Guest = {
   address?: string;
   phone_number?: string;
   invitation_link?: string;
-  is_attending?: boolean;
+  is_attending?: boolean | null;
   num_attendees?: number;
   wish?: string;
   photo_url?: string;
@@ -59,7 +61,7 @@ export default function GuestAdmin() {
   const fetchGuests = useCallback(async () => {
     try {
       const res = await fetch(
-        `https://rest.trip-nus.com/guests?wedding_id=${DEFAULT_WEDDING_ID}&limit=1000`
+        `${API_URL}/guests?wedding_id=${DEFAULT_WEDDING_ID}&limit=1000`
       );
       const response = await res.json();
 
@@ -84,7 +86,7 @@ export default function GuestAdmin() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure to delete this guest?")) return;
     try {
-      await fetch(`https://rest.trip-nus.com/guests/${id}`, {
+      await fetch(`${API_URL}/guests/${id}`, {
         method: "DELETE",
       });
       fetchGuests();
@@ -143,13 +145,13 @@ export default function GuestAdmin() {
 
     try {
       if (editingId) {
-        await fetch(`https://rest.trip-nus.com/guests/${editingId}`, {
+        await fetch(`${API_URL}/guests/${editingId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
       } else {
-        await fetch(`https://rest.trip-nus.com/guests`, {
+        await fetch(`${API_URL}/guests`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -281,6 +283,7 @@ export default function GuestAdmin() {
       headerName: "RSVP Status",
       width: 120,
       minWidth: 100,
+      cellRenderer: "agTextCellRenderer", // force plain text rendering
       valueFormatter: (params) =>
         params.value === true
           ? "✅ Yes"
@@ -752,11 +755,7 @@ export default function GuestAdmin() {
                     setFormData({
                       ...formData,
                       is_attending:
-                        value === "yes"
-                          ? true
-                          : value === "no"
-                          ? false
-                          : undefined,
+                        value === "yes" ? true : value === "no" ? false : null,
                     });
                   }}
                 >
