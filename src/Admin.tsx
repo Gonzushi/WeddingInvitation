@@ -47,6 +47,7 @@ function toTitleCase(str: string): string {
 }
 
 export default function GuestAdmin() {
+  const [loading, setLoading] = useState<boolean>(false);
   const [rowData, setRowData] = useState<Guest[]>([]);
   const [formData, setFormData] = useState<Partial<Guest>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -59,15 +60,13 @@ export default function GuestAdmin() {
   const [filteredRows, setFilteredRows] = useState<Guest[] | null>(null);
 
   const fetchGuests = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await fetch(
         `${API_URL}/guests?wedding_id=${DEFAULT_WEDDING_ID}&limit=1000`
       );
       const response = await res.json();
-
-      // Extract the data array from the response
       let guests = response.data || [];
-      // Sort by nickname (case-insensitive)
       guests = guests.sort((a: Guest, b: Guest) =>
         (a.nickname || "")
           .toLowerCase()
@@ -76,6 +75,8 @@ export default function GuestAdmin() {
       setRowData(guests);
     } catch (err) {
       console.error("Error fetching guests", err);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -586,25 +587,31 @@ export default function GuestAdmin() {
             minHeight: 0,
           }}
         >
-          <AgGridReact
-            theme="legacy"
-            rowData={filteredRows ?? rowData}
-            columnDefs={columnDefs}
-            defaultColDef={{
-              resizable: true,
-              sortable: true,
-              filter: true,
-            }}
-            animateRows
-            onGridReady={onGridReady}
-            suppressColumnVirtualisation={false}
-            suppressRowVirtualisation={false}
-            onCellDoubleClicked={(params) => {
-              if (params.data) {
-                handleEdit(params.data);
-              }
-            }}
-          />
+          {loading ? (
+            <div className="flex justify-center items-center h-full text-gray-600 text-lg">
+              Loading guests...
+            </div>
+          ) : (
+            <AgGridReact
+              theme="legacy"
+              rowData={filteredRows ?? rowData}
+              columnDefs={columnDefs}
+              defaultColDef={{
+                resizable: true,
+                sortable: true,
+                filter: true,
+              }}
+              animateRows
+              onGridReady={onGridReady}
+              suppressColumnVirtualisation={false}
+              suppressRowVirtualisation={false}
+              onCellDoubleClicked={(params) => {
+                if (params.data) {
+                  handleEdit(params.data);
+                }
+              }}
+            />
+          )}
         </div>
       </div>
 
