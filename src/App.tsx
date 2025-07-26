@@ -165,7 +165,7 @@ function GallerySection() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 2 }}
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.2}
@@ -361,6 +361,8 @@ function ScrollSection({
 }
 
 export default function ScrollSections() {
+  const [recipient, setRecipient] = useState<string | null>(null);
+
   const [isLoaded, setIsLoaded] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -379,6 +381,25 @@ export default function ScrollSections() {
     attending: "yes",
     guests: 1,
   });
+
+  // Get Recipient from URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const param = urlParams.get("to");
+
+    if (param) {
+      // Replace dashes with spaces
+      const formatted = param
+        .replace("-", " ")
+        .split(" ")
+        .map(
+          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        )
+        .join(" ");
+
+      setRecipient(formatted);
+    }
+  }, []);
 
   // Download fonts
   useEffect(() => {
@@ -641,7 +662,7 @@ export default function ScrollSections() {
                     className="text-lg font-semibold mb-6"
                     style={{ fontFamily: fonts.recipient }}
                   >
-                    Hendry Widyanto
+                    {recipient ? recipient : "Nama Undangan"}
                   </p>
 
                   <motion.button

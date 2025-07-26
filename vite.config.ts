@@ -6,6 +6,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     host: true, // Allow external access
-    allowedHosts: ["b3ff88e14fe0.ngrok-free.app"], // <- Add your ngrok domain here
+    allowedHosts: ["04ccaa9f532a.ngrok-free.app"], // <- Add your ngrok domain here
   },
 });
