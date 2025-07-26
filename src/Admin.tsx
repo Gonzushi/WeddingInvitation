@@ -643,6 +643,11 @@ Finna & Hary`;
     {
       headerName: "QR",
       width: 80,
+      cellStyle: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      },
       cellRenderer: (params: ICellRendererParams<Guest>) => {
         if (!params.data) return null;
         return (
@@ -838,7 +843,7 @@ Finna & Hary`;
             onClick={() => handleLogout()}
             className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 
             bg-red-500 hover:bg-red-600 text-white 
-            px-4 py-2 rounded border border-red-700 
+            px-4 py-2 rounded border border-red-600 
             w-full md:w-auto active:scale-95 transition-transform duration-100"
           >
             <ArrowLeftOnRectangleIcon className="h-5 w-5" />
