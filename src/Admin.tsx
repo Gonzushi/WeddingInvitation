@@ -14,6 +14,7 @@ import { FiEdit2, FiTrash2, FiSend } from "react-icons/fi";
 import { MdQrCode } from "react-icons/md";
 import { Html5Qrcode } from "html5-qrcode";
 import QRCode from "react-qr-code";
+import { supabase } from "./supabaseClient";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -40,6 +41,7 @@ type Guest = {
   tag?: string;
   num_attendees_confirmed?: number;
   attendance_confirmed?: boolean | null;
+  invited_by?: string;
 };
 
 type QRScannerProps = {
@@ -235,6 +237,7 @@ export default function GuestAdmin() {
       additional_names: data.additional_names,
       tag: data.tag,
       attendance_confirmed: data.attendance_confirmed,
+      invited_by: data.invited_by,
     });
     setAdditionalNamesInput(data.additional_names?.join(", ") || "");
     dialogRef.current?.showModal();
@@ -325,6 +328,13 @@ export default function GuestAdmin() {
     } catch (error) {
       console.error("Error handling QR result:", error);
       setShowInvalidQRModal(true);
+    }
+  };
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Logout error:", error.message);
     }
   };
 
@@ -459,6 +469,14 @@ Finna & Hary`;
           </div>
         );
       },
+    },
+    {
+      field: "invited_by",
+      headerName: "Invited By",
+      width: 130,
+      minWidth: 80,
+      valueFormatter: (params) =>
+        params.value == null || params.value === "" ? "—" : params.value,
     },
     { field: "nickname", headerName: "Nickname", width: 120, minWidth: 150 },
     {
@@ -762,8 +780,8 @@ Finna & Hary`;
     >
       <div className="flex justify-between items-center mb-4 gap-2">
         <h2 className="text-2xl font-bold hidden md:block">Guest Management</h2>
-        <div className="grid grid-cols-6 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
-          <div className="relative col-span-6 md:col-span-1">
+        <div className="grid grid-cols-8 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
+          <div className="relative col-span-8 md:col-span-1">
             <input
               type="text"
               className="border px-2 py-1 rounded pr-8 w-full h-10"
@@ -810,6 +828,12 @@ Finna & Hary`;
               </button>
             )}
           </div>
+          <button
+            onClick={() => handleLogout()}
+            className="col-span-2 md:col-span-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
+          >
+            Log Out
+          </button>
           <button
             onClick={() => setShowSummary(true)}
             className="col-span-2 md:col-span-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
@@ -1086,6 +1110,32 @@ Finna & Hary`;
             ))}
           </div>
           <div className="flex flex-col">
+            <label className="mb-1 font-medium">Invited By</label>
+            <select
+              className={`p-2 rounded h-12 w-full border border-black ${
+                !formData.invited_by ? "text-gray-500" : "text-black"
+              }`}
+              value={formData.invited_by}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData({
+                  ...formData,
+                  invited_by: value,
+                });
+              }}
+            >
+              <option value="" disabled selected>
+                Invited By *
+              </option>
+              <option value="Finna">Finna</option>
+              <option value="Finna - Papa">Finna - Papa</option>
+              <option value="Finna - Mama">Finna - Mama</option>
+              <option value="Hary">Hary</option>
+              <option value="Hary - Mama">Hary - Mama</option>
+              <option value="Hary - Koko">Hary - Koko</option>
+            </select>
+          </div>
+          <div className="flex flex-col">
             {editingId && <label className="mb-1 font-medium">Nickname</label>}
             <input
               className="border p-2 rounded"
@@ -1220,6 +1270,7 @@ Finna & Hary`;
               className={`px-4 py-2 rounded ${
                 !formData.nickname ||
                 formData.nickname.trim() === "" ||
+                !formData.invited_by ||
                 !formData.num_attendees ||
                 !formData.tag
                   ? "bg-gray-400 text-white cursor-not-allowed"
