@@ -345,32 +345,31 @@ export default function GuestAdmin() {
 
   const handleImport = async () => {
   try {
-    if (typeof window === "undefined" || typeof navigator === "undefined") return;
-
-    // 👇 Fix: cast navigator.contacts explicitly
-    const navContacts = (navigator as any).contacts;
-
-    if (!navContacts || typeof navContacts.select !== "function") {
-      alert("Contact Picker API is not supported in this browser.");
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
+    if (!('contacts' in navigator) || !('ContactsManager' in window)) {
+      alert('Contact Picker API not supported on this browser.');
       return;
     }
 
-    const props = ["name", "tel", "address"];
-    const opts = { multiple: false };
+    // Optional: check available properties
+    const available = await (navigator.contacts as any).getProperties?.();
+    const props = ['name', 'tel', 'address'].filter((p) => available?.includes(p) ?? true);
 
-    const contacts = await navContacts.select(props, opts);
+    const contacts = await (navigator.contacts as any).select(props, { multiple: false });
+    if (!contacts?.length) {
+      // no contact chosen or cancelled
+      return;
+    }
+
     const contact = contacts[0];
-
-    if (!contact) return;
-
     setFormData({
       ...formData,
-      nickname: contact.name?.[0] ?? "",
-      phone_number: contact.tel?.[0] ?? "",
-      address: contact.address?.[0]?.streetAddress ?? "",
+      nickname: contact.name?.[0] ?? '',
+      phone_number: contact.tel?.[0] ?? '',
+      address: contact.address?.[0]?.streetAddress ?? '',
     });
-  } catch (error) {
-    console.error("Failed to import contact:", error);
+  } catch (err) {
+    console.error('Contact picker error:', err);
   }
 };
 
