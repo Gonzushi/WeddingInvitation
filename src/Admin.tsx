@@ -30,6 +30,16 @@ const DEFAULT_WEDDING_ID = "931d5a18-9bce-40ab-9717-6a117766ff44";
 const API_URL = "https://rest.trip-nus.com";
 // const API_URL = "http://localhost:3000";
 
+const INVITERS = [
+  "All",
+  "Finna",
+  "Finna - Mama",
+  "Finna - Papa",
+  "Hary",
+  "Hary - Mama",
+  "Hary - Koko",
+];
+
 type Guest = {
   id: string;
   full_name: string;
@@ -393,6 +403,28 @@ export default function GuestAdmin() {
     console.error('Contact picker error:', err);
   }
 };
+
+  const handleInviterChange = (newLabel: string) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+
+    if (newLabel === "All") {
+      newParams.delete("invited_by");
+    } else {
+      const paramValue = newLabel.toLowerCase().replace(/ - /g, "-");
+      newParams.set("invited_by", paramValue);
+    }
+
+    setSearchParams(newParams);
+  };
+
+  const labelFromParam = (param: string | null) => {
+    if (!param) return "All";
+    return (
+      INVITERS.find(
+        (label) => label.toLowerCase().replace(/ - /g, "-") === param
+      ) || "All"
+    );
+  };
 
   const columnDefs: ColDef<Guest>[] = [
     {
@@ -842,6 +874,25 @@ Finna & Hary`;
       <div className="flex justify-between items-center mb-4 gap-2">
         <h2 className="text-2xl font-bold hidden md:block">Guest Management</h2>
         <div className="grid grid-cols-10 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
+          <div className="relative col-span-10 md:col-span-1">
+            <p className="text-sm font-semibold mb-1">
+        Undangan {labelFromParam(invitedBy)}
+      </p>
+
+      {/* 📋 Dropdown */}
+      <select
+        value={labelFromParam(invitedBy)}
+        onChange={(e) => handleInviterChange(e.target.value)}
+        className="border px-2 py-1 rounded w-full h-10 text-sm mb-2"
+      >
+        {INVITERS.map((label) => (
+          <option key={label} value={label}>
+            {label}
+          </option>
+        ))}
+      </select>
+          </div>
+          
           <div className="relative col-span-10 md:col-span-1">
             <input
               type="text"
