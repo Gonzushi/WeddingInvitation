@@ -345,7 +345,7 @@ export default function GuestAdmin() {
 
   const handleImport = async () => {
     try {
-      if (!("contacts" in navigator) || !navigator.contacts?.select) {
+      if (!("contacts" in navigator) && !('select' in navigator.contacts)) {
         alert("Contact Picker API is not supported in this browser.");
         return;
       }
