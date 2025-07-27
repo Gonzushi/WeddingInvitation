@@ -185,7 +185,7 @@ function QRCodeModal({ id, onClose }: { id: string; onClose: () => void }) {
 }
 
 export default function GuestAdmin() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const invitedBy = searchParams.get('invited_by');
   
   const [loading, setLoading] = useState<boolean>(false);
