@@ -359,20 +359,19 @@ export default function GuestAdmin() {
 
     const contact = contacts[0];
 
-    // Format full name
+    // Get full name
     const fullName = contact.name?.[0] ?? '';
 
     // Format phone number
     let rawPhone = contact.tel?.[0] ?? '';
-    let cleanedPhone = rawPhone.replace(/\s+/g, '').replace(/\+/g, ''); // remove spaces and plus
-    if (cleanedPhone.startsWith('62')) {
-      cleanedPhone = '0' + cleanedPhone.slice(2); // replace leading 62 with 0
-    }
+    let cleanedPhone = rawPhone
+      .replace(/[\s()+-]/g, '')  // Remove space, (, ), +, -
+      .replace(/^62/, '0');     // Replace starting 62 with 0
 
     setFormData({
       ...formData,
       full_name: fullName,
-      nickname: fullName, // you can split or modify if you want short names
+      nickname: fullName,
       phone_number: cleanedPhone,
       address: contact.address?.[0]?.streetAddress ?? '',
     });
