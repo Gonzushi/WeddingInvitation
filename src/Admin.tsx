@@ -1136,7 +1136,7 @@ Finna & Hary`;
               className={`p-2 rounded h-12 w-full border border-black ${
                 !formData.invited_by ? "text-gray-500" : "text-black"
               }`}
-              value={formData.invited_by}
+              value={formData.invited_by || ""}
               onChange={(e) => {
                 const value = e.target.value;
                 setFormData({
@@ -1145,7 +1145,7 @@ Finna & Hary`;
                 });
               }}
             >
-              <option value="" disabled selected>
+              <option value="" disabled>
                 Invited By *
               </option>
               <option value="Finna">Finna</option>
@@ -1156,6 +1156,7 @@ Finna & Hary`;
               <option value="Hary - Koko">Hary - Koko</option>
             </select>
           </div>
+
           <div className="flex flex-col">
             {editingId && <label className="mb-1 font-medium">Nickname</label>}
             <input
