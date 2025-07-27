@@ -676,11 +676,13 @@ export default function ScrollSections() {
                     className="text-lg font-semibold mb-6"
                     style={{ fontFamily: fonts.recipient }}
                   >
-                    {recipient?.full_name ||
+                    {(recipient?.full_name ||
                       recipient?.nickname ||
-                      "Nama Undangan"}
+                      "Nama Undangan") +
+                      (recipient?.additional_names?.length
+                        ? " & " + recipient.additional_names.join(" & ")
+                        : "")}
                   </p>
-
                   <motion.button
                     onClick={handleOpen}
                     whileHover={{ scale: 1.05 }}
