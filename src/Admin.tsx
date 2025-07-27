@@ -883,7 +883,7 @@ Finna & Hary`;
       <select
         value={labelFromParam(invitedBy)}
         onChange={(e) => handleInviterChange(e.target.value)}
-        className="border px-2 py-1 rounded w-full h-10 text-sm mb-2"
+        className="border px-2 py-1 rounded w-full h-11 text-sm mb-2"
       >
         {INVITERS.map((label) => (
           <option key={label} value={label}>
