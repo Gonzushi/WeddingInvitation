@@ -200,33 +200,33 @@ export default function GuestAdmin() {
   const [showQR, setShowQR] = useState(false);
 
   const fetchGuests = useCallback(async () => {
-    setLoading(true);
-    try {
-      const queryParams = new URLSearchParams({
-        wedding_id: DEFAULT_WEDDING_ID,
-        limit: "1000",
-      });
+  setLoading(true);
+  try {
+    const queryParams = new URLSearchParams({
+      wedding_id: DEFAULT_WEDDING_ID,
+      limit: "1000",
+    });
 
-      if (invitedBy) {
-        queryParams.set("invited_by", invitedBy);
-      }
-
-      const res = await fetch(`${API_URL}/guests?${queryParams.toString()}`);
-      
-      const response = await res.json();
-      let guests = response.data || [];
-      guests = guests.sort((a: Guest, b: Guest) =>
-        (a.nickname || "")
-          .toLowerCase()
-          .localeCompare((b.nickname || "").toLowerCase())
-      );
-      setRowData(guests);
-    } catch (err) {
-      console.error("Error fetching guests", err);
-    } finally {
-      setLoading(false);
+    if (invitedBy) {
+      const formattedInvitedBy = invitedBy.replace(/-/g, " - ");
+      queryParams.set("invited_by", formattedInvitedBy);
     }
-  }, []);
+
+    const res = await fetch(`${API_URL}/guests?${queryParams.toString()}`);
+    const response = await res.json();
+
+    let guests = response.data || [];
+    guests = guests.sort((a: Guest, b: Guest) =>
+      (a.nickname || "").toLowerCase().localeCompare((b.nickname || "").toLowerCase())
+    );
+
+    setRowData(guests);
+  } catch (err) {
+    console.error("Error fetching guests", err);
+  } finally {
+    setLoading(false);
+  }
+}, [invitedBy]); // <-- Don't forget to include invitedBy in deps!
 
   useEffect(() => {
     fetchGuests();
