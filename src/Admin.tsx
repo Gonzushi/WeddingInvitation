@@ -875,8 +875,8 @@ Finna & Hary`;
         <h2 className="text-2xl font-bold hidden md:block">Guest Management</h2>
         <div className="grid grid-cols-10 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
           <div className="relative col-span-10 md:col-span-1">
-            <p className="text-sm font-semibold mb-1">
-        Undangan {labelFromParam(invitedBy)}
+            <p className="text-sm font-semibold mb-1 text-center">
+        Guest Management
       </p>
 
       {/* 📋 Dropdown */}
