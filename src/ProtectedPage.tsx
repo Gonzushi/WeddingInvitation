@@ -69,7 +69,13 @@ export default function ProtectedPage({ page }: ProtectedPageProps) {
     await supabase.auth.signOut();
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-white text-black">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-black border-gray-300 mb-4" />
+        <p className="text-lg font-semibold">Loading, please wait...</p>
+      </div>
+    );
   if (!session)
     return <LoginPage page={page == "admin" ? "admin" : "admin/approval"} />;
 

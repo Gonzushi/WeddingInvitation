@@ -270,14 +270,14 @@ export default function GuestAdmin() {
       ...formData,
       full_name: formData.full_name
         ? toTitleCase(formData.full_name)
-        : undefined,
+        : null,
       additional_names: formData.additional_names
         ? formData.additional_names.map(toTitleCase)
-        : undefined,
-      nickname: formData.nickname ? toTitleCase(formData.nickname) : undefined,
-      address: formData.address ? toTitleCase(formData.address) : undefined,
-      wish: formData.wish ? toTitleCase(formData.wish) : undefined,
-      tag: formData.tag ? toTitleCase(formData.tag) : undefined,
+        : null,
+      nickname: formData.nickname ? toTitleCase(formData.nickname) : null,
+      address: formData.address ? toTitleCase(formData.address) : null,
+      wish: formData.wish ? toTitleCase(formData.wish) : null,
+      tag: formData.tag ? toTitleCase(formData.tag) : null,
       wedding_id: DEFAULT_WEDDING_ID,
     };
 
