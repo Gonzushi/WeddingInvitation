@@ -22,6 +22,7 @@ import {
   UserPlusIcon,
 } from "@heroicons/react/24/outline";
 import { ImportIcon } from "lucide-react";
+import { useSearchParams } from 'react-router-dom';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -174,6 +175,9 @@ function QRCodeModal({ id, onClose }: { id: string; onClose: () => void }) {
 }
 
 export default function GuestAdmin() {
+  const [searchParams] = useSearchParams();
+  const invitedBy = searchParams.get('invited_by');
+  
   const [loading, setLoading] = useState<boolean>(false);
   const [rowData, setRowData] = useState<Guest[]>([]);
   const [formData, setFormData] = useState<Partial<Guest>>({});
@@ -198,9 +202,17 @@ export default function GuestAdmin() {
   const fetchGuests = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `${API_URL}/guests?wedding_id=${DEFAULT_WEDDING_ID}&limit=1000`
-      );
+      const queryParams = new URLSearchParams({
+        wedding_id: DEFAULT_WEDDING_ID,
+        limit: "1000",
+      });
+
+      if (invitedBy) {
+        queryParams.set("invited_by", invitedBy);
+      }
+
+      const res = await fetch(`${API_URL}/guests?${queryParams.toString()}`);
+      
       const response = await res.json();
       let guests = response.data || [];
       guests = guests.sort((a: Guest, b: Guest) =>
