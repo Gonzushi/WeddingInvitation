@@ -345,10 +345,12 @@ export default function GuestAdmin() {
 
   const handleImport = async () => {
   try {
-    // Prevent server-side build-time error
     if (typeof window === "undefined" || typeof navigator === "undefined") return;
 
-    if (!("contacts" in navigator) || !("select" in navigator.contacts)) {
+    // 👇 Fix: cast navigator.contacts explicitly
+    const navContacts = (navigator as any).contacts;
+
+    if (!navContacts || typeof navContacts.select !== "function") {
       alert("Contact Picker API is not supported in this browser.");
       return;
     }
@@ -356,7 +358,7 @@ export default function GuestAdmin() {
     const props = ["name", "tel", "address"];
     const opts = { multiple: false };
 
-    const contacts = await navigator.contacts.select(props, opts);
+    const contacts = await navContacts.select(props, opts);
     const contact = contacts[0];
 
     if (!contact) return;
