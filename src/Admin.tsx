@@ -21,6 +21,7 @@ import {
   QrCodeIcon,
   UserPlusIcon,
 } from "@heroicons/react/24/outline";
+import { ImportIcon } from "lucide-react";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -268,9 +269,7 @@ export default function GuestAdmin() {
 
     const payload = {
       ...formData,
-      full_name: formData.full_name
-        ? toTitleCase(formData.full_name)
-        : null,
+      full_name: formData.full_name ? toTitleCase(formData.full_name) : null,
       additional_names: formData.additional_names
         ? formData.additional_names.map(toTitleCase)
         : null,
@@ -341,6 +340,32 @@ export default function GuestAdmin() {
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error("Logout error:", error.message);
+    }
+  };
+
+  const handleImport = async () => {
+    try {
+      if (!("contacts" in navigator) || !navigator.contacts?.select) {
+        alert("Contact Picker API is not supported in this browser.");
+        return;
+      }
+
+      const props = ["name", "tel", "address"];
+      const opts = { multiple: false };
+
+      const contacts = await navigator.contacts.select(props, opts);
+      const contact = contacts[0];
+
+      if (!contact) return;
+
+      setFormData({
+        ...formData,
+        nickname: contact.name?.[0] ?? "",
+        phone_number: contact.tel?.[0] ?? "",
+        address: contact.address?.[0]?.streetAddress ?? "",
+      });
+    } catch (error) {
+      console.error("Failed to import contact:", error);
     }
   };
 
@@ -791,8 +816,8 @@ Finna & Hary`;
     >
       <div className="flex justify-between items-center mb-4 gap-2">
         <h2 className="text-2xl font-bold hidden md:block">Guest Management</h2>
-        <div className="grid grid-cols-8 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
-          <div className="relative col-span-8 md:col-span-1">
+        <div className="grid grid-cols-10 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
+          <div className="relative col-span-10 md:col-span-1">
             <input
               type="text"
               className="border px-2 py-1 rounded pr-8 w-full h-10"
@@ -864,6 +889,14 @@ Finna & Hary`;
           >
             <QrCodeIcon className="h-5 w-5" />
             <span className="hidden md:inline">Scan QR</span>
+          </button>
+
+          <button
+            onClick={handleImport}
+            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100"
+          >
+            <ImportIcon className="h-5 w-5" />
+            <span className="hidden md:inline">Import Contact</span>
           </button>
 
           <button
