@@ -368,6 +368,7 @@ export default function GuestAdmin() {
       phone_number: contact.tel?.[0] ?? '',
       address: contact.address?.[0]?.streetAddress ?? '',
     });
+    dialogRef.current?.showModal();
   } catch (err) {
     console.error('Contact picker error:', err);
   }
