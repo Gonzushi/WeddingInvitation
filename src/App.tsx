@@ -676,8 +676,8 @@ export default function ScrollSections() {
                     className="text-lg font-semibold mb-6"
                     style={{ fontFamily: fonts.recipient }}
                   >
-                    {recipient?.nickname ||
-                      recipient?.full_name ||
+                    {recipient?.full_name ||
+                      recipient?.nickname ||
                       "Nama Undangan"}
                   </p>
 
