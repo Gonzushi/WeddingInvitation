@@ -351,23 +351,32 @@ export default function GuestAdmin() {
       return;
     }
 
-    // Optional: check available properties
     const available = await (navigator.contacts as any).getProperties?.();
     const props = ['name', 'tel', 'address'].filter((p) => available?.includes(p) ?? true);
 
     const contacts = await (navigator.contacts as any).select(props, { multiple: false });
-    if (!contacts?.length) {
-      // no contact chosen or cancelled
-      return;
-    }
+    if (!contacts?.length) return;
 
     const contact = contacts[0];
+
+    // Format full name
+    const fullName = contact.name?.[0] ?? '';
+
+    // Format phone number
+    let rawPhone = contact.tel?.[0] ?? '';
+    let cleanedPhone = rawPhone.replace(/\s+/g, '').replace(/\+/g, ''); // remove spaces and plus
+    if (cleanedPhone.startsWith('62')) {
+      cleanedPhone = '0' + cleanedPhone.slice(2); // replace leading 62 with 0
+    }
+
     setFormData({
       ...formData,
-      nickname: contact.name?.[0] ?? '',
-      phone_number: contact.tel?.[0] ?? '',
+      full_name: fullName,
+      nickname: fullName, // you can split or modify if you want short names
+      phone_number: cleanedPhone,
       address: contact.address?.[0]?.streetAddress ?? '',
     });
+
     dialogRef.current?.showModal();
   } catch (err) {
     console.error('Contact picker error:', err);
