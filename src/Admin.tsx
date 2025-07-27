@@ -344,30 +344,33 @@ export default function GuestAdmin() {
   };
 
   const handleImport = async () => {
-    try {
-      if (!("contacts" in navigator) && !('select' in navigator.contacts)) {
-        alert("Contact Picker API is not supported in this browser.");
-        return;
-      }
+  try {
+    // Prevent server-side build-time error
+    if (typeof window === "undefined" || typeof navigator === "undefined") return;
 
-      const props = ["name", "tel", "address"];
-      const opts = { multiple: false };
-
-      const contacts = await navigator.contacts.select(props, opts);
-      const contact = contacts[0];
-
-      if (!contact) return;
-
-      setFormData({
-        ...formData,
-        nickname: contact.name?.[0] ?? "",
-        phone_number: contact.tel?.[0] ?? "",
-        address: contact.address?.[0]?.streetAddress ?? "",
-      });
-    } catch (error) {
-      console.error("Failed to import contact:", error);
+    if (!("contacts" in navigator) || !("select" in navigator.contacts)) {
+      alert("Contact Picker API is not supported in this browser.");
+      return;
     }
-  };
+
+    const props = ["name", "tel", "address"];
+    const opts = { multiple: false };
+
+    const contacts = await navigator.contacts.select(props, opts);
+    const contact = contacts[0];
+
+    if (!contact) return;
+
+    setFormData({
+      ...formData,
+      nickname: contact.name?.[0] ?? "",
+      phone_number: contact.tel?.[0] ?? "",
+      address: contact.address?.[0]?.streetAddress ?? "",
+    });
+  } catch (error) {
+    console.error("Failed to import contact:", error);
+  }
+};
 
   const columnDefs: ColDef<Guest>[] = [
     {
