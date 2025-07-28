@@ -407,6 +407,7 @@ export default function GuestAdmin() {
         setSuccessGuest({
           full_name: guest.full_name,
           additional_names: guest.additional_names || [],
+          nickname: guest.nickname,
         });
       }
 
@@ -1281,7 +1282,7 @@ Finna & Hary`;
               Attendance Confirmed
             </h2>
             <p className="text-gray-800 font-medium">
-              {successGuest.full_name}
+              {successGuest.full_name ?? successGuest.nickname}
             </p>
             {successGuest!.additional_names!.length > 0 && (
               <div className="mt-3">
