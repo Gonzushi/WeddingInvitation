@@ -160,7 +160,7 @@ function QRScanner({ onResult, setShowScanner }: QRScannerProps) {
       <div
         id="qr-scanner-element"
         className="
-    w-full h-full
+    w-full
     sm:w-[600px] sm:h-auto sm:aspect-video
     sm:rounded-lg sm:shadow-lg bg-black
     sm:mirror-video
