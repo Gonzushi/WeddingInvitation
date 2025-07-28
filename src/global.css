@@ -1,1 +1,8 @@
 @import "tailwindcss";
+
+/* Flip the video only on desktop (≥640px) */
+@media (min-width: 640px) {
+    #qr-scanner-element video {
+      transform: scaleX(-1);
+    }
+  }

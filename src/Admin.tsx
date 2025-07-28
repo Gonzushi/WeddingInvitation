@@ -7,6 +7,7 @@ import {
   type ColDef,
   type GridReadyEvent,
   type CellClickedEvent,
+  type GridApi,
   AllCommunityModule,
   ModuleRegistry,
 } from "ag-grid-community";
@@ -22,7 +23,8 @@ import {
   UserPlusIcon,
 } from "@heroicons/react/24/outline";
 import { ImportIcon } from "lucide-react";
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from "react-router-dom";
+import { HiOutlineExternalLink } from "react-icons/hi";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -145,7 +147,7 @@ function QRScanner({ onResult, setShowScanner }: QRScannerProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
       {/* Close Button */}
       <button
         onClick={handleClose}
@@ -155,7 +157,15 @@ function QRScanner({ onResult, setShowScanner }: QRScannerProps) {
       </button>
 
       {/* QR Scanner Container */}
-      <div id="qr-scanner-element" className="w-full" />
+      <div
+        id="qr-scanner-element"
+        className="
+    w-full h-full
+    sm:w-[600px] sm:h-auto sm:aspect-video
+    sm:rounded-lg sm:shadow-lg bg-black
+    sm:mirror-video
+  "
+      />
     </div>
   );
 }
@@ -185,9 +195,17 @@ function QRCodeModal({ id, onClose }: { id: string; onClose: () => void }) {
 }
 
 export default function GuestAdmin() {
+  const gridApiRef = useRef<GridApi | null>(null);
+  const [filterModel, setFilterModel] = useState({});
+  const [sortColumn, setSortColumn] = useState("nickname");
+  const [sortKey, setSortKey] = useState<"asc" | "desc" | null | undefined>(
+    "asc"
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
   const [searchParams, setSearchParams] = useSearchParams();
-  const invitedBy = searchParams.get('invited_by');
-  
+  const invitedBy = searchParams.get("invited_by");
+
   const [loading, setLoading] = useState<boolean>(false);
   const [rowData, setRowData] = useState<Guest[]>([]);
   const [formData, setFormData] = useState<Partial<Guest>>({});
@@ -210,33 +228,37 @@ export default function GuestAdmin() {
   const [showQR, setShowQR] = useState(false);
 
   const fetchGuests = useCallback(async () => {
-  setLoading(true);
-  try {
-    const queryParams = new URLSearchParams({
-      wedding_id: DEFAULT_WEDDING_ID,
-      limit: "1000",
-    });
+    setLoading(true);
+    try {
+      const queryParams = new URLSearchParams({
+        wedding_id: DEFAULT_WEDDING_ID,
+        limit: "1000",
+      });
 
-    if (invitedBy) {
-      const formattedInvitedBy = invitedBy.replace(/-/g, " - ");
-      queryParams.set("invited_by", formattedInvitedBy);
+      if (invitedBy) {
+        const formattedInvitedBy = invitedBy.replace(/-/g, " - ");
+        queryParams.set("invited_by", formattedInvitedBy);
+      }
+
+      const res = await fetch(`${API_URL}/guests?${queryParams.toString()}`);
+      const response = await res.json();
+
+      let guests = response.data || [];
+      guests = guests.sort((a: Guest, b: Guest) =>
+        (a.nickname || "")
+          .toLowerCase()
+          .localeCompare((b.nickname || "").toLowerCase())
+      );
+
+      setRowData(guests);
+
+      return guests;
+    } catch (err) {
+      console.error("Error fetching guests", err);
+    } finally {
+      setLoading(false);
     }
-
-    const res = await fetch(`${API_URL}/guests?${queryParams.toString()}`);
-    const response = await res.json();
-
-    let guests = response.data || [];
-    guests = guests.sort((a: Guest, b: Guest) =>
-      (a.nickname || "").toLowerCase().localeCompare((b.nickname || "").toLowerCase())
-    );
-
-    setRowData(guests);
-  } catch (err) {
-    console.error("Error fetching guests", err);
-  } finally {
-    setLoading(false);
-  }
-}, [invitedBy]); // <-- Don't forget to include invitedBy in deps!
+  }, [invitedBy]);
 
   useEffect(() => {
     fetchGuests();
@@ -319,7 +341,23 @@ export default function GuestAdmin() {
       dialogRef.current?.close();
       setFormData({});
       setEditingId(null);
-      fetchGuests();
+
+      const updatedGuests = await fetchGuests();
+
+      setFilteredRows(
+        updatedGuests.filter((row: Guest) => {
+          const fullName = row.full_name?.toLowerCase() || "";
+          const nickname = row.nickname?.toLowerCase() || "";
+          const additionalNames = Array.isArray(row.additional_names)
+            ? row.additional_names.map((n) => n.toLowerCase()).join(" ")
+            : "";
+          return (
+            fullName.includes(searchTerm.trim().toLowerCase()) ||
+            nickname.includes(searchTerm.trim().toLowerCase()) ||
+            additionalNames.includes(searchTerm.trim().toLowerCase())
+          );
+        })
+      );
     } catch (err) {
       console.error("Submit failed", err);
     }
@@ -366,43 +404,50 @@ export default function GuestAdmin() {
   };
 
   const handleImport = async () => {
-  try {
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
-    if (!('contacts' in navigator) || !('ContactsManager' in window)) {
-      alert('Contact Picker API not supported on this browser.');
-      return;
+    try {
+      if (typeof window === "undefined" || typeof navigator === "undefined")
+        return;
+      if (!("contacts" in navigator) || !("ContactsManager" in window)) {
+        alert("Contact Picker API not supported on this browser.");
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const available = await (navigator.contacts as any).getProperties?.();
+      const props = ["name", "tel", "address"].filter(
+        (p) => available?.includes(p) ?? true
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contacts = await (navigator.contacts as any).select(props, {
+        multiple: false,
+      });
+      if (!contacts?.length) return;
+
+      const contact = contacts[0];
+
+      // Get full name
+      const fullName = contact.name?.[0] ?? "";
+
+      // Format phone number
+      const rawPhone = contact.tel?.[0] ?? "";
+      const cleanedPhone = rawPhone
+        .replace(/[\s()+-]/g, "") // Remove space, (, ), +, -
+        .replace(/^62/, "0"); // Replace starting 62 with 0
+
+      setFormData({
+        ...formData,
+        full_name: fullName,
+        nickname: fullName,
+        phone_number: cleanedPhone,
+        address: contact.address?.[0]?.streetAddress ?? "",
+      });
+
+      dialogRef.current?.showModal();
+    } catch (err) {
+      console.error("Contact picker error:", err);
     }
-
-    const available = await (navigator.contacts as any).getProperties?.();
-    const props = ['name', 'tel', 'address'].filter((p) => available?.includes(p) ?? true);
-
-    const contacts = await (navigator.contacts as any).select(props, { multiple: false });
-    if (!contacts?.length) return;
-
-    const contact = contacts[0];
-
-    // Get full name
-    const fullName = contact.name?.[0] ?? '';
-
-    // Format phone number
-    let rawPhone = contact.tel?.[0] ?? '';
-    let cleanedPhone = rawPhone
-      .replace(/[\s()+-]/g, '')  // Remove space, (, ), +, -
-      .replace(/^62/, '0');     // Replace starting 62 with 0
-
-    setFormData({
-      ...formData,
-      full_name: fullName,
-      nickname: fullName,
-      phone_number: cleanedPhone,
-      address: contact.address?.[0]?.streetAddress ?? '',
-    });
-
-    dialogRef.current?.showModal();
-  } catch (err) {
-    console.error('Contact picker error:', err);
-  }
-};
+  };
 
   const handleInviterChange = (newLabel: string) => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -558,14 +603,6 @@ Finna & Hary`;
         );
       },
     },
-    {
-      field: "invited_by",
-      headerName: "Invited By",
-      width: 130,
-      minWidth: 80,
-      valueFormatter: (params) =>
-        params.value == null || params.value === "" ? "—" : params.value,
-    },
     { field: "nickname", headerName: "Nickname", width: 120, minWidth: 150 },
     {
       field: "full_name",
@@ -664,6 +701,70 @@ Finna & Hary`;
       valueFormatter: (params) => (!params.value ? "—" : params.value),
     },
     {
+      field: "wish",
+      headerName: "Wish",
+      width: 250,
+      minWidth: 200,
+      valueFormatter: (params) => (!params.value ? "—" : params.value),
+    },
+    {
+      field: "invitation_link", // You can keep this or change it to "id"
+      headerName: "Invitation Link",
+      width: 100,
+      minWidth: 100,
+      cellRenderer: (params: ICellRendererParams<Guest>) => {
+        const id = params.data?.id;
+        if (!id) return "—";
+
+        const url = `http://hary-finna.trip-nus.com/?to=${id}`;
+
+        return (
+          <div style={{ display: "flex", gap: 6 }}>
+            {/* QR Button */}
+            <button
+              title="Show QR Code"
+              style={{
+                color: "black",
+                border: "none",
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                setQrId(id);
+                setShowQR(true);
+              }}
+            >
+              <MdQrCode size={18} />
+            </button>
+
+            {/* Open Link Button */}
+            <button
+              title="Open Invitation URL"
+              style={{
+                color: "black",
+                border: "none",
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+              onClick={() => window.open(url, "_blank")}
+            >
+              <HiOutlineExternalLink size={18} />
+            </button>
+          </div>
+        );
+      },
+    },
+    {
       field: "tag",
       headerName: "Tag",
       width: 100,
@@ -674,87 +775,12 @@ Finna & Hary`;
       },
     },
     {
-      field: "wish",
-      headerName: "Wish",
-      width: 250,
-      minWidth: 200,
-      valueFormatter: (params) => (!params.value ? "—" : params.value),
-    },
-    {
-      field: "photo_url",
-      headerName: "Photo URL",
-      width: 150,
+      field: "invited_by",
+      headerName: "Invited By",
+      width: 130,
       minWidth: 80,
-      cellRenderer: (params: ICellRendererParams<string>) => {
-        if (!params.value) return "—";
-        return (
-          <a
-            href={params.value}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "#2563eb", textDecoration: "underline" }}
-          >
-            Open Photo
-          </a>
-        );
-      },
-    },
-    {
-      field: "invitation_link", // You can keep this or change it to "id"
-      headerName: "Invitation Link",
-      width: 200,
-      minWidth: 180,
-      cellRenderer: (params: ICellRendererParams<Guest>) => {
-        const id = params.data?.id;
-        if (!id) return "—";
-
-        const url = `http://hary-finna.trip-nus.com/?to=${id}`;
-
-        return (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "#2563eb", textDecoration: "underline" }}
-          >
-            Open Link
-          </a>
-        );
-      },
-    },
-    {
-      headerName: "QR",
-      width: 80,
-      cellStyle: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      },
-      cellRenderer: (params: ICellRendererParams<Guest>) => {
-        if (!params.data) return null;
-        return (
-          <button
-            title="Show QR Code"
-            style={{
-              color: "black",
-              border: "none",
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => {
-              setQrId(params.data!.id);
-              setShowQR(true);
-            }}
-          >
-            <MdQrCode size={18} />
-          </button>
-        );
-      },
+      valueFormatter: (params) =>
+        params.value == null || params.value === "" ? "—" : params.value,
     },
     {
       field: "rsvp_at",
@@ -813,6 +839,20 @@ Finna & Hary`;
   ];
 
   const onGridReady = (params: GridReadyEvent) => {
+    gridApiRef.current = params.api;
+    gridApiRef.current.setFilterModel(filterModel);
+    gridApiRef.current.applyColumnState({
+      state: [{ colId: sortColumn, sort: sortKey }],
+      defaultState: { sort: null },
+    });
+    // gridApiRef.current.setNodesSelected(selected);
+
+    params.api.forEachNode((node) => {
+      if (node.data.id == selectedId) {
+        node.setSelected(true);
+      }
+    });
+
     params.api.addEventListener("cellClicked", (event: CellClickedEvent) => {
       const target = event.event?.target as HTMLElement;
       if (!target) return;
@@ -875,24 +915,24 @@ Finna & Hary`;
         <h2 className="text-2xl font-bold hidden md:block">Guest Management</h2>
         <div className="grid grid-cols-10 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
           <div className="relative col-span-10 md:col-span-1">
-            <p className="text-sm font-semibold mb-4 text-center">
-        Guest Management
-      </p>
+            <p className="block md:hidden text-sm font-semibold mb-4 text-center">
+              Guest Management
+            </p>
 
-      {/* 📋 Dropdown */}
-      <select
-        value={labelFromParam(invitedBy)}
-        onChange={(e) => handleInviterChange(e.target.value)}
-        className="border px-2 py-1 rounded w-full h-11 text-sm mb-2"
-      >
-        {INVITERS.map((label) => (
-          <option key={label} value={label}>
-            {label}
-          </option>
-        ))}
-      </select>
+            {/* 📋 Dropdown */}
+            <select
+              value={labelFromParam(invitedBy)}
+              onChange={(e) => handleInviterChange(e.target.value)}
+              className="border px-2 py-1 rounded pr-8 w-full h-10"
+            >
+              {INVITERS.map((label) => (
+                <option key={label} value={label}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
-          
+
           <div className="relative col-span-10 md:col-span-1">
             <input
               type="text"
@@ -900,6 +940,7 @@ Finna & Hary`;
               placeholder="Search..."
               value={searchTerm}
               onChange={(e) => {
+                console.log(e.target.value);
                 setSearchTerm(e.target.value);
                 const term = e.target.value.trim().toLowerCase();
                 if (!term) {
@@ -1081,6 +1122,7 @@ Finna & Hary`;
           ) : (
             <AgGridReact
               theme="legacy"
+              rowSelection="single"
               rowData={filteredRows ?? rowData}
               columnDefs={columnDefs}
               defaultColDef={{
@@ -1095,6 +1137,33 @@ Finna & Hary`;
               onCellDoubleClicked={(params) => {
                 if (params.data) {
                   handleEdit(params.data);
+                }
+              }}
+              onFilterChanged={() => {
+                if (gridApiRef.current) {
+                  const model = gridApiRef.current.getFilterModel();
+                  setFilterModel(model);
+                }
+              }}
+              onSortChanged={(e) => {
+                if (gridApiRef.current && e.columns) {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  if ((e.columns[0] as any).colId) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    setSortColumn((e.columns[0] as any).colId);
+                  }
+
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  if ((e.columns[0] as any).sort) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    setSortKey((e.columns[0] as any).sort);
+                  }
+                }
+              }}
+              onSelectionChanged={() => {
+                if (gridApiRef.current) {
+                  const newSelected = gridApiRef.current.getSelectedRows();
+                  setSelectedId(newSelected[0].id);
                 }
               }}
             />
