@@ -492,7 +492,7 @@ export default function GuestAdmin() {
     }
   };
 
-  const handleImportOpen = async () => {
+  const handleImportOpen = async (id: string | null) => {
     try {
       if (typeof window === "undefined" || typeof navigator === "undefined")
         return;
@@ -526,7 +526,7 @@ export default function GuestAdmin() {
         phone_number: cleanedPhone,
       });
 
-      setEditingId(formData.id || null);
+      setEditingId(id || null);
       setAdditionalNamesInput(formData.additional_names?.join(", ") || "");
 
       dialogRef.current?.showModal();
@@ -1527,7 +1527,7 @@ Finna & Hary`;
             </div>
 
             <button
-              onClick={handleImportOpen}
+              onClick={() => handleImportOpen(editingId)}
               className="flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 active:scale-95 transition-transform duration-100 my-1"
             >
               <ImportIcon className="h-5 w-5" />
