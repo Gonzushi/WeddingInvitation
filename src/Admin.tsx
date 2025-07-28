@@ -291,7 +291,8 @@ export default function GuestAdmin() {
         await fetch(`${API_URL}/guests/${id}`, {
           method: "DELETE",
         });
-        fetchGuests();
+        const updatedGuests = await fetchGuests();
+        setRowData(updatedGuests);
       } catch (err) {
         console.error("Delete failed", err);
       }
