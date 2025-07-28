@@ -292,7 +292,21 @@ export default function GuestAdmin() {
           method: "DELETE",
         });
         const updatedGuests = await fetchGuests();
-        setRowData(updatedGuests);
+
+        setFilteredRows(
+          updatedGuests.filter((row: Guest) => {
+            const fullName = row.full_name?.toLowerCase() || "";
+            const nickname = row.nickname?.toLowerCase() || "";
+            const additionalNames = Array.isArray(row.additional_names)
+              ? row.additional_names.map((n) => n.toLowerCase()).join(" ")
+              : "";
+            return (
+              fullName.includes(searchTerm.trim().toLowerCase()) ||
+              nickname.includes(searchTerm.trim().toLowerCase()) ||
+              additionalNames.includes(searchTerm.trim().toLowerCase())
+            );
+          })
+        );
       } catch (err) {
         console.error("Delete failed", err);
       }
@@ -309,7 +323,6 @@ export default function GuestAdmin() {
       is_attending: data.is_attending,
       num_attendees: data.num_attendees,
       additional_names: data.additional_names,
-      tag: data.tag,
       attendance_confirmed: data.attendance_confirmed,
       invited_by: data.invited_by,
     });
@@ -322,6 +335,12 @@ export default function GuestAdmin() {
     setFormData({ num_attendees: 2 });
     setAdditionalNamesInput("");
     dialogRef.current?.showModal();
+  };
+
+  const getTagFromInvitedBy = (invitedBy: string | null | undefined) => {
+    if (!invitedBy) return null;
+    const base = invitedBy.trim().split(" - ")[0]; // e.g., "Finna - Mama" → "Finna"
+    return INVITERS.includes(base) ? base : null;
   };
 
   const handleSubmit = async () => {
@@ -343,7 +362,7 @@ export default function GuestAdmin() {
       nickname: formData.nickname ? toTitleCase(formData.nickname) : null,
       address: formData.address ? toTitleCase(formData.address) : null,
       wish: formData.wish ? toTitleCase(formData.wish) : null,
-      tag: formData.tag ? toTitleCase(formData.tag) : null,
+      tag: getTagFromInvitedBy(formData.invited_by),
       wedding_id: DEFAULT_WEDDING_ID,
     };
 
@@ -468,6 +487,44 @@ export default function GuestAdmin() {
       });
 
       dialogRef.current?.showModal();
+    } catch (err) {
+      console.error("Contact picker error:", err);
+    }
+  };
+
+  const handleImportOpen = async () => {
+    try {
+      if (typeof window === "undefined" || typeof navigator === "undefined")
+        return;
+      if (!("contacts" in navigator) || !("ContactsManager" in window)) {
+        alert("Contact Picker API not supported on this browser.");
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const available = await (navigator.contacts as any).getProperties?.();
+      const props = ["name", "tel", "address"].filter(
+        (p) => available?.includes(p) ?? true
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contacts = await (navigator.contacts as any).select(props, {
+        multiple: false,
+      });
+      if (!contacts?.length) return;
+
+      const contact = contacts[0];
+
+      // Format phone number
+      const rawPhone = contact.tel?.[0] ?? "";
+      const cleanedPhone = rawPhone
+        .replace(/[\s()+-]/g, "") // Remove space, (, ), +, -
+        .replace(/^62/, "0"); // Replace starting 62 with 0
+
+      setFormData({
+        ...formData,
+        phone_number: cleanedPhone,
+      });
     } catch (err) {
       console.error("Contact picker error:", err);
     }
@@ -1350,7 +1407,7 @@ Finna & Hary`;
             ))}
           </div>
           {/* Tag (radio) */}
-          <div className="flex gap-6 items-center mb-2 justify-start">
+          {/* <div className="flex gap-6 items-center mb-2 justify-start">
             <span className="text-gray-700 w-40">
               Tag: <span className="text-red-500">*</span>
             </span>
@@ -1366,7 +1423,7 @@ Finna & Hary`;
                 {tag}
               </label>
             ))}
-          </div>
+          </div> */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium">Invited By</label>
             <select
@@ -1449,19 +1506,29 @@ Finna & Hary`;
               }
             />
           </div>
-          <div className="flex flex-col">
-            {editingId && (
-              <label className="mb-1 font-medium">Phone Number</label>
-            )}
-            <input
-              className="border p-2 rounded"
-              placeholder="Phone Number"
-              value={formData.phone_number || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, phone_number: e.target.value })
-              }
-            />
+          <div className="flex items-end gap-2">
+            <div className="flex flex-col flex-1">
+              {editingId && (
+                <label className="mb-1 font-medium">Phone Number</label>
+              )}
+              <input
+                className="border p-2 rounded w-full"
+                placeholder="Phone Number"
+                value={formData.phone_number || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone_number: e.target.value })
+                }
+              />
+            </div>
+
+            <button
+              onClick={handleImport}
+              className="flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 active:scale-95 transition-transform duration-100 my-1"
+            >
+              <ImportIcon className="h-5 w-5" />
+            </button>
           </div>
+
           {editingId && (
             <>
               <div className="flex flex-col">
@@ -1530,16 +1597,14 @@ Finna & Hary`;
                 !formData.nickname ||
                 formData.nickname.trim() === "" ||
                 !formData.invited_by ||
-                !formData.num_attendees ||
-                !formData.tag
+                !formData.num_attendees
                   ? "bg-gray-400 text-white cursor-not-allowed"
                   : "bg-blue-600 text-white hover:bg-blue-700"
               }`}
               disabled={
                 !formData.nickname ||
                 formData.nickname.trim() === "" ||
-                !formData.num_attendees ||
-                !formData.tag
+                !formData.num_attendees
               }
             >
               {editingId ? "Update" : "Create"}
