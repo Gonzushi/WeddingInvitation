@@ -279,6 +279,7 @@ export default function GuestAdmin() {
   }, [fetchGuests]);
 
   const handleDelete = async (id: string) => {
+    setSelectedId(null);
     if (!confirm("Are you sure to delete this guest?")) return;
     try {
       await fetch(`${API_URL}/guests/${id}`, {
