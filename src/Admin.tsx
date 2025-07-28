@@ -526,6 +526,9 @@ export default function GuestAdmin() {
         phone_number: cleanedPhone,
       });
 
+      setEditingId(formData.id || null);
+      setAdditionalNamesInput(formData.additional_names?.join(", ") || "");
+
       dialogRef.current?.showModal();
     } catch (err) {
       console.error("Contact picker error:", err);
