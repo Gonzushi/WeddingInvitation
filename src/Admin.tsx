@@ -525,6 +525,8 @@ export default function GuestAdmin() {
         ...formData,
         phone_number: cleanedPhone,
       });
+
+      dialogRef.current?.showModal();
     } catch (err) {
       console.error("Contact picker error:", err);
     }
