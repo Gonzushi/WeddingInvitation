@@ -224,6 +224,7 @@ export default function GuestAdmin() {
   const [successGuest, setSuccessGuest] = useState<{
     full_name: string;
     additional_names?: string[];
+    nickname: string;
   } | null>(null);
 
   const [qrId, setQrId] = useState<string | null>(null);
