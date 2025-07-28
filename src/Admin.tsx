@@ -278,17 +278,23 @@ export default function GuestAdmin() {
     fetchGuests();
   }, [fetchGuests]);
 
-  const handleDelete = async (id: string) => {
-    setSelectedId(null);
-    if (!confirm("Are you sure to delete this guest?")) return;
-    try {
-      await fetch(`${API_URL}/guests/${id}`, {
-        method: "DELETE",
-      });
-      fetchGuests();
-    } catch (err) {
-      console.error("Delete failed", err);
-    }
+  const handleDelete = (id: string) => {
+    const confirmed = confirm("Are you sure to delete this guest?");
+    if (!confirmed) return;
+
+    setSelectedId(null); // Clear selection first
+
+    // Wait a moment to allow UI update before fetch
+    setTimeout(async () => {
+      try {
+        await fetch(`${API_URL}/guests/${id}`, {
+          method: "DELETE",
+        });
+        fetchGuests();
+      } catch (err) {
+        console.error("Delete failed", err);
+      }
+    }, 100); // Delay 100ms (tweak if needed)
   };
 
   const handleEdit = (data: Guest) => {
@@ -1173,7 +1179,7 @@ Finna & Hary`;
             <AgGridReact
               theme="legacy"
               rowSelection="single"
-              rowData={filteredRows ?? rowData}
+              rowData={searchTerm ? filteredRows : rowData}
               columnDefs={columnDefs}
               defaultColDef={{
                 resizable: true,
