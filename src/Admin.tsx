@@ -203,6 +203,8 @@ export default function GuestAdmin() {
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const scrollPositionRef = useRef({ x: 0, y: 0 });
+
   const [searchParams, setSearchParams] = useSearchParams();
   const invitedBy = searchParams.get("invited_by");
 
@@ -226,6 +228,18 @@ export default function GuestAdmin() {
 
   const [qrId, setQrId] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
+
+  useEffect(() => {
+    if (!gridApiRef.current) return;
+    const viewport = document.querySelector(".ag-body-viewport") as HTMLElement;
+    if (viewport) {
+      viewport.scrollTo({
+        left: scrollPositionRef.current.x,
+        top: scrollPositionRef.current.y,
+        behavior: "auto",
+      });
+    }
+  }, [rowData]);
 
   const fetchGuests = useCallback(async () => {
     setLoading(true);
@@ -840,19 +854,54 @@ Finna & Hary`;
 
   const onGridReady = (params: GridReadyEvent) => {
     gridApiRef.current = params.api;
+
+    // Restore filter
     gridApiRef.current.setFilterModel(filterModel);
+
+    // Restore sort
     gridApiRef.current.applyColumnState({
       state: [{ colId: sortColumn, sort: sortKey }],
       defaultState: { sort: null },
     });
-    // gridApiRef.current.setNodesSelected(selected);
 
+    // Restore selection
     params.api.forEachNode((node) => {
       if (node.data.id == selectedId) {
         node.setSelected(true);
       }
     });
 
+    // Scroll tracking + restore
+    const verticalViewport = document.querySelector(
+      ".ag-body-viewport"
+    ) as HTMLElement;
+    const horizontalViewport = document.querySelector(
+      ".ag-center-cols-viewport"
+    ) as HTMLElement;
+
+    const handleScroll = () => {
+      scrollPositionRef.current = {
+        x: horizontalViewport?.scrollLeft ?? 0,
+        y: verticalViewport?.scrollTop ?? 0,
+      };
+    };
+
+    if (verticalViewport && horizontalViewport) {
+      verticalViewport.addEventListener("scroll", handleScroll);
+      horizontalViewport.addEventListener("scroll", handleScroll);
+
+      // Restore scroll position (after a short delay to ensure DOM is ready)
+      requestAnimationFrame(() => {
+        if (scrollPositionRef.current) {
+          verticalViewport.scrollTop = scrollPositionRef.current.y;
+          horizontalViewport.scrollLeft = scrollPositionRef.current.x;
+        }
+      });
+    } else {
+      console.warn("AG Grid viewports not found");
+    }
+
+    // Button click handling
     params.api.addEventListener("cellClicked", (event: CellClickedEvent) => {
       const target = event.event?.target as HTMLElement;
       if (!target) return;
