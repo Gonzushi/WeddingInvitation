@@ -1527,6 +1527,7 @@ Finna & Hary`;
             </div>
 
             <button
+              type="button"
               onClick={() => handleImportOpen(editingId)}
               className="flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 active:scale-95 transition-transform duration-100 my-1"
             >
