@@ -493,6 +493,7 @@ export default function GuestAdmin() {
           nickname: fullName,
           address: contact.address?.[0]?.streetAddress ?? "",
         }));
+        dialogRef.current?.close();
         setShowPhoneModal(true); // Show selection modal
       } else {
         const cleanedPhone =
