@@ -492,6 +492,7 @@ export default function GuestAdmin() {
           full_name: fullName,
           nickname: fullName,
           address: contact.address?.[0]?.streetAddress ?? "",
+          num_attendees: 2,
         }));
         setShowPhoneModal(true); // Show selection modal
       } else {
