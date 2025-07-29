@@ -1451,7 +1451,7 @@ Finna & Hary`;
               </label>
             ))}
           </div> */}
-          <div className="flex flex-col">
+          <div className="flex flex-col relative">
             <label className="mb-1 font-medium">Invited By</label>
             <select
               className={`p-2 rounded h-12 w-full border border-black ${
@@ -1478,10 +1478,10 @@ Finna & Hary`;
             </select>
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex flex-col relative">
             {editingId && <label className="mb-1 font-medium">Nickname</label>}
             <input
-              className="border p-2 rounded"
+              className="border p-2 rounded pr-8"
               placeholder="Nickname *"
               value={formData.nickname || ""}
               onChange={(e) =>
@@ -1489,24 +1489,42 @@ Finna & Hary`;
               }
               required
             />
+            {formData.nickname && (
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, nickname: "" })}
+                className="absolute right-3 bottom-2.5 text-gray-500 hover:text-black"
+              >
+                ✕
+              </button>
+            )}
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col relative">
             {editingId && <label className="mb-1 font-medium">Full Name</label>}
             <input
-              className="border p-2 rounded"
+              className="border p-2 rounded pr-8"
               placeholder="Full Name"
               value={formData.full_name || ""}
               onChange={(e) =>
                 setFormData({ ...formData, full_name: e.target.value })
               }
             />
+            {formData.full_name && (
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, full_name: "" })}
+                className="absolute right-3 bottom-2.5 text-gray-500 hover:text-black"
+              >
+                ✕
+              </button>
+            )}
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col relative">
             {editingId && (
               <label className="mb-1 font-medium">Additional Names</label>
             )}
             <input
-              className="border p-2 rounded"
+              className="border p-2 rounded pr-8"
               placeholder="Additional Names (comma separated)"
               value={additionalNamesInput}
               onChange={(e) => {
@@ -1521,42 +1539,81 @@ Finna & Hary`;
                 });
               }}
             />
+            {additionalNamesInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData({ ...formData, additional_names: [] });
+                  setAdditionalNamesInput("");
+                }}
+                className="absolute right-3 bottom-2.5 text-gray-500 hover:text-black"
+              >
+                ✕
+              </button>
+            )}
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col relative">
             {editingId && <label className="mb-1 font-medium">Address</label>}
             <input
-              className="border p-2 rounded"
+              className="border p-2 rounded pr-8"
               placeholder="Address"
               value={formData.address || ""}
               onChange={(e) =>
                 setFormData({ ...formData, address: e.target.value })
               }
             />
+            {formData.address && (
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, address: "" })}
+                className="absolute right-3 bottom-2.5 text-gray-500 hover:text-black"
+              >
+                ✕
+              </button>
+            )}
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col relative">
             {editingId && <label className="mb-1 font-medium">Notes</label>}
             <input
-              className="border p-2 rounded"
+              className="border p-2 rounded pr-8"
               placeholder="Notes"
               value={formData.notes || ""}
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
               }
             />
+            {formData.notes && (
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, notes: "" })}
+                className="absolute right-3 bottom-2.5 text-gray-500 hover:text-black"
+              >
+                ✕
+              </button>
+            )}
           </div>
           <div className="flex items-end gap-2">
-            <div className="flex flex-col flex-1">
+            <div className="flex flex-col flex-1 relative">
               {editingId && (
                 <label className="mb-1 font-medium">Phone Number</label>
               )}
               <input
-                className="border p-2 rounded w-full"
+                className="border p-2 rounded w-full pr-8"
                 placeholder="Phone Number"
                 value={formData.phone_number || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, phone_number: e.target.value })
                 }
               />
+              {formData.phone_number && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, phone_number: "" })}
+                  className="absolute right-3 bottom-2.5 text-gray-500 hover:text-black"
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
             <button
