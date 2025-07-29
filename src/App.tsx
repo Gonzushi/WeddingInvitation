@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import QRCode from "react-qr-code";
 
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 const API_URL = "https://rest.trip-nus.com";
 // const API_URL = "http://localhost:3000";
 
