@@ -1555,7 +1555,7 @@ Finna & Hary`;
           <div className="flex flex-col relative">
             {editingId && <label className="mb-1 font-medium">Address</label>}
             <input
-              className="border px-2 rounded pr-10"
+              className="border px-2 rounded pr-10 h-10"
               placeholder="Address"
               value={formData.address || ""}
               onChange={(e) =>
@@ -1614,7 +1614,7 @@ Finna & Hary`;
                   type="button"
                   onClick={() => setFormData({ ...formData, phone_number: "" })}
                   className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
-                  >
+                >
                   ✕
                 </button>
               )}
