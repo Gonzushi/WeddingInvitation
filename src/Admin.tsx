@@ -533,22 +533,27 @@ export default function GuestAdmin() {
       if (!contacts?.length) return;
 
       const contact = contacts[0];
+      const phones = contact.tel ?? [];
 
-      // Format phone number
-      const rawPhone = contact.tel?.[0] ?? "";
-      const cleanedPhone = rawPhone
-        .replace(/[\s()+-]/g, "") // Remove space, (, ), +, -
-        .replace(/^62/, "0"); // Replace starting 62 with 0
+      if (phones.length > 1) {
+        setPhoneOptions(phones);
+        setEditingId(id || null);
+        setAdditionalNamesInput(formData.additional_names?.join(", ") || "");
+        setShowPhoneModal(true); // 👉 open phone selection modal
+      } else {
+        const cleanedPhone =
+          phones[0]?.replace(/[\s()+-]/g, "").replace(/^62/, "0") ?? "";
 
-      setFormData({
-        ...formData,
-        phone_number: cleanedPhone,
-      });
+        setFormData({
+          ...formData,
+          phone_number: cleanedPhone,
+        });
 
-      setEditingId(id || null);
-      setAdditionalNamesInput(formData.additional_names?.join(", ") || "");
+        setEditingId(id || null);
+        setAdditionalNamesInput(formData.additional_names?.join(", ") || "");
 
-      dialogRef.current?.showModal();
+        dialogRef.current?.showModal();
+      }
     } catch (err) {
       console.error("Contact picker error:", err);
     }
@@ -1399,7 +1404,7 @@ Finna & Hary`;
       )}
 
       {showPhoneModal && (
-        <div className="fixed inset-0 border bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/10 border bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-[90%] max-w-sm border border-black">
             <h2 className="text-lg font-semibold mb-4">
               Choose a phone number
@@ -1426,12 +1431,14 @@ Finna & Hary`;
                 </li>
               ))}
             </ul>
-            <button
-              onClick={() => setShowPhoneModal(false)}
-              className="mt-4 text-sm text-gray-500 hover:underline"
-            >
-              Cancel
-            </button>
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => setShowPhoneModal(false)}
+                className="text-red-600 border border-red-600 px-3 py-1 rounded hover:bg-red-600 hover:text-white text-sm font-medium transition"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
