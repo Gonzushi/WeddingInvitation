@@ -1433,7 +1433,10 @@ Finna & Hary`;
             </ul>
             <div className="flex justify-end mt-4">
               <button
-                onClick={() => setShowPhoneModal(false)}
+                onClick={() => {
+                  setShowPhoneModal(false);
+                  dialogRef.current?.showModal();
+                }}
                 className="text-red-600 border border-red-600 px-3 py-1 rounded hover:bg-red-600 hover:text-white text-sm font-medium transition"
               >
                 Cancel
