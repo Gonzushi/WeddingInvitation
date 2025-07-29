@@ -62,6 +62,7 @@ type Guest = {
   num_attendees_confirmed?: number;
   attendance_confirmed?: boolean | null;
   invited_by?: string;
+  notes?: string;
 };
 
 type QRScannerProps = {
@@ -298,6 +299,7 @@ export default function GuestAdmin() {
             const fullName = row.full_name?.toLowerCase() || "";
             const nickname = row.nickname?.toLowerCase() || "";
             const address = row.address?.toLowerCase() || "";
+            const notes = row.notes?.toLowerCase() || "";
             const additionalNames = Array.isArray(row.additional_names)
               ? row.additional_names.map((n) => n.toLowerCase()).join(" ")
               : "";
@@ -305,7 +307,8 @@ export default function GuestAdmin() {
               fullName.includes(searchTerm.trim().toLowerCase()) ||
               nickname.includes(searchTerm.trim().toLowerCase()) ||
               additionalNames.includes(searchTerm.trim().toLowerCase()) ||
-              address.includes(searchTerm.trim().toLowerCase())
+              address.includes(searchTerm.trim().toLowerCase()) ||
+              notes.includes(searchTerm.trim().toLowerCase())
             );
           })
         );
@@ -327,6 +330,7 @@ export default function GuestAdmin() {
       additional_names: data.additional_names,
       attendance_confirmed: data.attendance_confirmed,
       invited_by: data.invited_by,
+      notes: data.notes,
     });
     setAdditionalNamesInput(data.additional_names?.join(", ") || "");
     dialogRef.current?.showModal();
@@ -363,6 +367,7 @@ export default function GuestAdmin() {
         : null,
       nickname: formData.nickname ? toTitleCase(formData.nickname) : null,
       address: formData.address ? toTitleCase(formData.address) : null,
+      notes: formData.notes ? toTitleCase(formData.notes) : null,
       wish: formData.wish ? toTitleCase(formData.wish) : null,
       tag: getTagFromInvitedBy(formData.invited_by),
       wedding_id: DEFAULT_WEDDING_ID,
@@ -393,6 +398,7 @@ export default function GuestAdmin() {
           const fullName = row.full_name?.toLowerCase() || "";
           const nickname = row.nickname?.toLowerCase() || "";
           const address = row.address?.toLowerCase() || "";
+          const notes = row.notes?.toLowerCase() || "";
           const additionalNames = Array.isArray(row.additional_names)
             ? row.additional_names.map((n) => n.toLowerCase()).join(" ")
             : "";
@@ -400,7 +406,8 @@ export default function GuestAdmin() {
             fullName.includes(searchTerm.trim().toLowerCase()) ||
             nickname.includes(searchTerm.trim().toLowerCase()) ||
             additionalNames.includes(searchTerm.trim().toLowerCase()) ||
-            address.includes(searchTerm.trim().toLowerCase())
+            address.includes(searchTerm.trim().toLowerCase()) ||
+            notes.includes(searchTerm.trim().toLowerCase())
           );
         })
       );
@@ -784,6 +791,13 @@ Finna & Hary`;
       valueFormatter: (params) => (!params.value ? "—" : params.value),
     },
     {
+      field: "notes",
+      headerName: "Notes",
+      width: 200,
+      minWidth: 180,
+      valueFormatter: (params) => (!params.value ? "—" : params.value),
+    },
+    {
       field: "phone_number",
       headerName: "Phone",
       width: 130,
@@ -1076,7 +1090,8 @@ Finna & Hary`;
                   rowData.filter((row) => {
                     const fullName = row.full_name?.toLowerCase() || "";
                     const nickname = row.nickname?.toLowerCase() || "";
-                    const address = row.address?.toLowerCase() || ""; 
+                    const address = row.address?.toLowerCase() || "";
+                    const notes = row.notes?.toLowerCase() || "";
                     const additionalNames = Array.isArray(row.additional_names)
                       ? row.additional_names
                           .map((n) => n.toLowerCase())
@@ -1086,7 +1101,8 @@ Finna & Hary`;
                       fullName.includes(term) ||
                       nickname.includes(term) ||
                       additionalNames.includes(term) ||
-                      address.includes(searchTerm.trim().toLowerCase())
+                      address.includes(term) ||
+                      notes.includes(term)
                     );
                   })
                 );
@@ -1514,6 +1530,17 @@ Finna & Hary`;
               value={formData.address || ""}
               onChange={(e) =>
                 setFormData({ ...formData, address: e.target.value })
+              }
+            />
+          </div>
+          <div className="flex flex-col">
+            {editingId && <label className="mb-1 font-medium">Notes</label>}
+            <input
+              className="border p-2 rounded"
+              placeholder="Notes"
+              value={formData.notes || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
               }
             />
           </div>
