@@ -1513,7 +1513,7 @@ Finna & Hary`;
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, full_name: "" })}
-                className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                className="absolute right-3 bottom-2 sm:bottom-1.5 text-gray-500 hover:text-black text-2xl sm:text-xl"
               >
                 ✕
               </button>
@@ -1546,7 +1546,7 @@ Finna & Hary`;
                   setFormData({ ...formData, additional_names: [] });
                   setAdditionalNamesInput("");
                 }}
-                className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                className="absolute right-3 bottom-2 sm:bottom-1.5 text-gray-500 hover:text-black text-2xl sm:text-xl"
               >
                 ✕
               </button>
@@ -1566,7 +1566,7 @@ Finna & Hary`;
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, address: "" })}
-                className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                className="absolute right-3 bottom-2 sm:bottom-1.5 text-gray-500 hover:text-black text-2xl sm:text-xl"
               >
                 ✕
               </button>
@@ -1586,7 +1586,7 @@ Finna & Hary`;
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, notes: "" })}
-                className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                className="absolute right-3 bottom-2 sm:bottom-1.5 text-gray-500 hover:text-black text-2xl sm:text-xl"
               >
                 ✕
               </button>
@@ -1613,7 +1613,7 @@ Finna & Hary`;
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, phone_number: "" })}
-                  className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                  className="absolute right-3 bottom-2 sm:bottom-1.5 text-gray-500 hover:text-black text-2xl sm:text-xl"
                   >
                   ✕
                 </button>
