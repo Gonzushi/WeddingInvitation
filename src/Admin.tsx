@@ -1481,7 +1481,7 @@ Finna & Hary`;
           <div className="flex flex-col relative">
             {editingId && <label className="mb-1 font-medium">Nickname</label>}
             <input
-              className="border p-2 rounded pr-8"
+              className="border p-2 rounded pr-10"
               placeholder="Nickname *"
               value={formData.nickname || ""}
               onChange={(e) =>
@@ -1493,7 +1493,7 @@ Finna & Hary`;
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, nickname: "" })}
-                className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-xl sm:text-2xl"
+                className="absolute right-3 bottom-1.5 text-gray-500 hover:text-black text-xl sm:text-2xl"
               >
                 ✕
               </button>
@@ -1502,7 +1502,7 @@ Finna & Hary`;
           <div className="flex flex-col relative">
             {editingId && <label className="mb-1 font-medium">Full Name</label>}
             <input
-              className="border p-2 rounded pr-8"
+              className="border p-2 rounded pr-10"
               placeholder="Full Name"
               value={formData.full_name || ""}
               onChange={(e) =>
@@ -1513,7 +1513,7 @@ Finna & Hary`;
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, full_name: "" })}
-                className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-xl sm:text-2xl"
+                className="absolute right-3 bottom-1.5 text-gray-500 hover:text-black text-xl sm:text-2xl"
               >
                 ✕
               </button>
@@ -1524,7 +1524,7 @@ Finna & Hary`;
               <label className="mb-1 font-medium">Additional Names</label>
             )}
             <input
-              className="border p-2 rounded pr-8"
+              className="border p-2 rounded pr-10"
               placeholder="Additional Names (comma separated)"
               value={additionalNamesInput}
               onChange={(e) => {
@@ -1546,7 +1546,7 @@ Finna & Hary`;
                   setFormData({ ...formData, additional_names: [] });
                   setAdditionalNamesInput("");
                 }}
-                className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-xl sm:text-2xl"
+                className="absolute right-3 bottom-1.5 text-gray-500 hover:text-black text-xl sm:text-2xl"
               >
                 ✕
               </button>
@@ -1555,7 +1555,7 @@ Finna & Hary`;
           <div className="flex flex-col relative">
             {editingId && <label className="mb-1 font-medium">Address</label>}
             <input
-              className="border p-2 rounded pr-8"
+              className="border p-2 rounded pr-10"
               placeholder="Address"
               value={formData.address || ""}
               onChange={(e) =>
@@ -1566,7 +1566,7 @@ Finna & Hary`;
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, address: "" })}
-                className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-xl sm:text-2xl"
+                className="absolute right-3 bottom-1.5 text-gray-500 hover:text-black text-xl sm:text-2xl"
               >
                 ✕
               </button>
@@ -1575,7 +1575,7 @@ Finna & Hary`;
           <div className="flex flex-col relative">
             {editingId && <label className="mb-1 font-medium">Notes</label>}
             <input
-              className="border p-2 rounded pr-8"
+              className="border p-2 rounded pr-10"
               placeholder="Notes"
               value={formData.notes || ""}
               onChange={(e) =>
@@ -1586,7 +1586,7 @@ Finna & Hary`;
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, notes: "" })}
-                className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-xl sm:text-2xl"
+                className="absolute right-3 bottom-1.5 text-gray-500 hover:text-black text-xl sm:text-2xl"
               >
                 ✕
               </button>
@@ -1601,7 +1601,7 @@ Finna & Hary`;
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                className="border p-2 rounded w-full pr-8"
+                className="border p-2 rounded w-full pr-10"
                 placeholder="Phone Number"
                 value={formData.phone_number || ""}
                 onChange={(e) =>
@@ -1613,8 +1613,8 @@ Finna & Hary`;
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, phone_number: "" })}
-                  className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-xl sm:text-2xl"
-                >
+                  className="absolute right-3 bottom-1.5 text-gray-500 hover:text-black text-xl sm:text-2xl"
+                  >
                   ✕
                 </button>
               )}
