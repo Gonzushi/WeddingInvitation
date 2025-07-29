@@ -297,13 +297,15 @@ export default function GuestAdmin() {
           updatedGuests.filter((row: Guest) => {
             const fullName = row.full_name?.toLowerCase() || "";
             const nickname = row.nickname?.toLowerCase() || "";
+            const address = row.address?.toLowerCase() || "";
             const additionalNames = Array.isArray(row.additional_names)
               ? row.additional_names.map((n) => n.toLowerCase()).join(" ")
               : "";
             return (
               fullName.includes(searchTerm.trim().toLowerCase()) ||
               nickname.includes(searchTerm.trim().toLowerCase()) ||
-              additionalNames.includes(searchTerm.trim().toLowerCase())
+              additionalNames.includes(searchTerm.trim().toLowerCase()) ||
+              address.includes(searchTerm.trim().toLowerCase())
             );
           })
         );
@@ -390,13 +392,15 @@ export default function GuestAdmin() {
         updatedGuests.filter((row: Guest) => {
           const fullName = row.full_name?.toLowerCase() || "";
           const nickname = row.nickname?.toLowerCase() || "";
+          const address = row.address?.toLowerCase() || "";
           const additionalNames = Array.isArray(row.additional_names)
             ? row.additional_names.map((n) => n.toLowerCase()).join(" ")
             : "";
           return (
             fullName.includes(searchTerm.trim().toLowerCase()) ||
             nickname.includes(searchTerm.trim().toLowerCase()) ||
-            additionalNames.includes(searchTerm.trim().toLowerCase())
+            additionalNames.includes(searchTerm.trim().toLowerCase()) ||
+            address.includes(searchTerm.trim().toLowerCase())
           );
         })
       );
@@ -1072,6 +1076,7 @@ Finna & Hary`;
                   rowData.filter((row) => {
                     const fullName = row.full_name?.toLowerCase() || "";
                     const nickname = row.nickname?.toLowerCase() || "";
+                    const address = row.address?.toLowerCase() || ""; 
                     const additionalNames = Array.isArray(row.additional_names)
                       ? row.additional_names
                           .map((n) => n.toLowerCase())
@@ -1080,7 +1085,8 @@ Finna & Hary`;
                     return (
                       fullName.includes(term) ||
                       nickname.includes(term) ||
-                      additionalNames.includes(term)
+                      additionalNames.includes(term) ||
+                      address.includes(searchTerm.trim().toLowerCase())
                     );
                   })
                 );
