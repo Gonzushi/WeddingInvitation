@@ -231,6 +231,9 @@ export default function GuestAdmin() {
   const [qrId, setQrId] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
 
+  const [phoneOptions, setPhoneOptions] = useState<string[]>([]);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+
   useEffect(() => {
     if (!gridApiRef.current) return;
     const viewport = document.querySelector(".ag-body-viewport") as HTMLElement;
@@ -479,25 +482,30 @@ export default function GuestAdmin() {
       if (!contacts?.length) return;
 
       const contact = contacts[0];
-
-      // Get full name
       const fullName = contact.name?.[0] ?? "";
+      const phones = contact.tel ?? [];
 
-      // Format phone number
-      const rawPhone = contact.tel?.[0] ?? "";
-      const cleanedPhone = rawPhone
-        .replace(/[\s()+-]/g, "") // Remove space, (, ), +, -
-        .replace(/^62/, "0"); // Replace starting 62 with 0
-
-      setFormData({
-        ...formData,
-        full_name: fullName,
-        nickname: fullName,
-        phone_number: cleanedPhone,
-        address: contact.address?.[0]?.streetAddress ?? "",
-      });
-
-      dialogRef.current?.showModal();
+      if (phones.length > 1) {
+        setPhoneOptions(phones);
+        setFormData((prev) => ({
+          ...prev,
+          full_name: fullName,
+          nickname: fullName,
+          address: contact.address?.[0]?.streetAddress ?? "",
+        }));
+        setShowPhoneModal(true); // Show selection modal
+      } else {
+        const cleanedPhone =
+          phones[0]?.replace(/[\s()+-]/g, "").replace(/^62/, "0") ?? "";
+        setFormData({
+          ...formData,
+          full_name: fullName,
+          nickname: fullName,
+          phone_number: cleanedPhone,
+          address: contact.address?.[0]?.streetAddress ?? "",
+        });
+        dialogRef.current?.showModal();
+      }
     } catch (err) {
       console.error("Contact picker error:", err);
     }
@@ -1385,6 +1393,44 @@ Finna & Hary`;
               className="mt-6 bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition-colors"
             >
               OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showPhoneModal && (
+        <div className="fixed inset-0 border bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-[90%] max-w-sm border border-black">
+            <h2 className="text-lg font-semibold mb-4">
+              Choose a phone number
+            </h2>
+            <ul className="flex flex-col gap-3">
+              {phoneOptions.map((phone, idx) => (
+                <li key={idx}>
+                  <button
+                    onClick={() => {
+                      const cleaned = phone
+                        .replace(/[\s()+-]/g, "")
+                        .replace(/^62/, "0");
+                      setFormData((prev) => ({
+                        ...prev,
+                        phone_number: cleaned,
+                      }));
+                      setShowPhoneModal(false);
+                      dialogRef.current?.showModal();
+                    }}
+                    className="w-full text-left border px-4 py-2 rounded hover:bg-gray-100"
+                  >
+                    {phone}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => setShowPhoneModal(false)}
+              className="mt-4 text-sm text-gray-500 hover:underline"
+            >
+              Cancel
             </button>
           </div>
         </div>
