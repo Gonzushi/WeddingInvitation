@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import QRCode from "react-qr-code";
 
-const DEBUG_MODE = false;
+const DEBUG_MODE = true;
 const API_URL = "https://rest.trip-nus.com";
 // const API_URL = "http://localhost:3000";
 
@@ -19,6 +20,7 @@ type Guest = {
   additional_names?: string[];
   wedding_id?: string;
   rsvp_at?: string;
+  attendance_confirmed?: boolean;
 };
 
 const images = [
@@ -33,8 +35,8 @@ const images = [
 type FormData = {
   name: string;
   wish: string;
-  attending: string;
-  guests: number;
+  is_attending: boolean;
+  num_attendees_confirmed: number;
 };
 
 type Section5Props = {
@@ -46,6 +48,8 @@ type Section5Props = {
     >
   ) => void;
   handleSubmit: () => void;
+  numberOfGuests: number;
+  recipient: Guest | null;
 };
 
 const ReceptionCountdown = () => {
@@ -61,7 +65,7 @@ const ReceptionCountdown = () => {
     const target = new Date("2026-02-07T00:00:00").getTime();
 
     const interval = setInterval(() => {
-      const now = new Date().getTime();
+      const now = Date.now();
       const diff = target - now;
 
       if (diff <= 0) {
@@ -69,28 +73,36 @@ const ReceptionCountdown = () => {
         return;
       }
 
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      const mins = Math.floor((diff / (1000 * 60)) % 60);
-      const secs = Math.floor((diff / 1000) % 60);
-
-      setTimeLeft({ days, hours, mins, secs });
+      setTimeLeft({
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        mins: Math.floor((diff / (1000 * 60)) % 60),
+        secs: Math.floor((diff / 1000) % 60),
+      });
     }, 1000);
 
     return () => clearInterval(interval);
   }, []);
 
   const unit = (value: number, label: string) => (
-    <div className="flex flex-col items-center flex-1 min-w-[72px]">
-      <div className="bg-white text-[#E2725B] text-2xl md:text-3xl font-bold px-4 py-2 rounded-t-xl shadow-md w-full text-center">
+    <div className="flex flex-col items-center w-16">
+      <div
+        className="text-4xl font-bold text-[#E2725B]"
+        style={{ fontFamily: "'Cormorant Garamond', serif" }}
+      >
         {pad(value)}
       </div>
-      <div className="text-xs mt-1 text-white">{label}</div>
+      <div
+        className="text-xl text-[#E2725B]"
+        style={{ fontFamily: "'Cormorant Garamond', serif" }}
+      >
+        {label}
+      </div>
     </div>
   );
 
   return (
-    <div className="flex justify-center gap-3 mt-4 mx-14">
+    <div className="flex justify-center gap-4 mt-4">
       {unit(timeLeft.days, "Days")}
       {unit(timeLeft.hours, "Hours")}
       {unit(timeLeft.mins, "Minutes")}
@@ -199,6 +211,8 @@ function ScrollSection({
   form,
   handleChange,
   handleSubmit,
+  numberOfGuests = 2,
+  recipient,
 }: Section5Props) {
   const wishes = [
     { name: "Alice", wish: "Wishing you a lifetime of love and happiness!" },
@@ -218,44 +232,199 @@ function ScrollSection({
       className="h-dvh w-full overflow-y-auto relative z-30"
     >
       {/* Full Overlay */}
-      <div className="absolute left-0 top-0 w-full bg-[#E2725B]/70 backdrop-blur-sxs z-0">
+      <div className="absolute left-0 top-0 w-full bg-white/90 backdrop-blur-sxs z-0">
+        {/* Top Flower */}
+        <motion.img
+          src="/assets/flower_top.png"
+          alt="flower_top"
+          initial={{ opacity: 0, scale: 0.9, x: "-30%", y: "-25%" }}
+          animate={{
+            opacity: currentSection === 5 ? 1 : 0,
+            scale: currentSection === 5 ? 0.9 : 0.9,
+            x: currentSection === 5 ? "-18%" : "-30%",
+            y: currentSection === 5 ? "-25%" : "-25%",
+          }}
+          transition={{ duration: 2 }}
+          className="absolute z-40"
+          style={{ left: "1%", top: "1%" }}
+        />
+
+        <motion.p
+          className="text-xl font-bold text-[#E2725B]"
+          style={{ fontFamily: "'Dancing Script', cursive" }}
+          initial={{ scale: 1, x: "0%", opacity: 1 }}
+          animate={{
+            scale: currentSection === 5 ? 2.5 : 1,
+            x: currentSection === 5 ? "110%" : "0%",
+            y: currentSection === 5 ? "600%" : "600%",
+          }}
+          transition={{ delay: 2 }}
+        >
+          Save
+        </motion.p>
+
+        <motion.p
+          className="text-xl font-bold text-[#E2725B]"
+          style={{ fontFamily: "'Dancing Script', cursive" }}
+          initial={{ scale: 1, x: "240%", opacity: 1 }}
+          animate={{
+            scale: currentSection === 5 ? 2.5 : 1,
+            x: currentSection === 5 ? "120%" : "240%",
+            y: currentSection === 5 ? "700%" : "700%",
+          }}
+          transition={{ delay: 2 }}
+        >
+          The
+        </motion.p>
+
+        <motion.p
+          className="text-xl font-bold text-[#E2725B]"
+          style={{ fontFamily: "'Dancing Script', cursive" }}
+          initial={{ scale: 1, x: "240%", opacity: 1 }}
+          animate={{
+            scale: currentSection === 5 ? 2.5 : 1,
+            x: currentSection === 5 ? "130%" : "240%",
+            y: currentSection === 5 ? "800%" : "800%",
+          }}
+          transition={{ delay: 2 }}
+        >
+          Date
+        </motion.p>
+
         {/* Countdown Timer */}
-        <div className="mt-8">
+        <div className="mt-72">
           <ReceptionCountdown />
         </div>
 
-        {/* Top Image */}
-        {/* <div className="arch-container">
-        <motion.svg
-          initial={{ x: "-100%" }}
-          animate={{ x: 0 }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          className="arch-svg"
-        >
-          <defs>
-            <clipPath id="arch-shape" clipPathUnits="objectBoundingBox">
-              <path d="M0,1 L0,0.65 Q0.5,0.15 1,0.65 L1,1 Z" />
-            </clipPath>
-          </defs>
-          <image
-            href="/assets/couple2.jpg"
-            width="100%"
-            height="100%"
-            clipPath="url(#arch-shape)"
-            preserveAspectRatio="xMidYMid slice"
-          />
-        </motion.svg>
-      </div> */}
-
         <div className=" mt-10 max-w-xl mx-auto px-4 pb-8 space-y-10 relative z-30">
+          {/* RSVP Form */}
+          <section className="bg-white/90 rounded-xl p-4 shadow space-y-4 border border-[#E2725B]">
+            <h3 className="text-xl font-bold text-[#E2725B] text-center">
+              RSVP
+            </h3>
+
+            {!recipient?.is_attending ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Your Name"
+                  className="w-full p-2 rounded border border-[#E2725B]"
+                  value={form.name}
+                  onChange={handleChange}
+                />
+                <textarea
+                  name="wish"
+                  placeholder="Write your best wishes"
+                  className="w-full p-2 rounded border border-[#E2725B]"
+                  rows={3}
+                  value={form.wish}
+                  onChange={handleChange}
+                />
+
+                {/* Will you attend? */}
+                <div className="flex items-center gap-4 mb-3">
+                  <label className="text-sm font-medium min-w-[150px]">
+                    Will you attend?
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="radio"
+                        name="is_attending"
+                        value="yes"
+                        checked={(form.is_attending ? "yes" : "no") == "yes"}
+                        onChange={handleChange}
+                        className="accent-[#E2725B]"
+                      />
+                      Yes
+                    </label>
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="radio"
+                        name="is_attending"
+                        value="no"
+                        checked={(form.is_attending ? "yes" : "no") == "no"}
+                        onChange={handleChange}
+                        className="accent-[#E2725B]"
+                      />
+                      No
+                    </label>
+                  </div>
+                </div>
+
+                {/* Number of Guests */}
+                <div className="flex items-center gap-4 flex-wrap mb-3">
+                  <label className="text-sm font-medium min-w-[150px]">
+                    Number of Guests?
+                  </label>
+                  <div className="flex gap-3">
+                    {Array.from(
+                      { length: numberOfGuests ?? 2 },
+                      (_, i) => i + 1
+                    ).map((num) => (
+                      <label key={num} className="flex items-center gap-1">
+                        <input
+                          type="radio"
+                          name="num_attendees_confirmed"
+                          value={num.toString()}
+                          checked={form.num_attendees_confirmed == num}
+                          onChange={(e) => {
+                            handleChange(e);
+                          }}
+                          className="accent-[#E2725B]"
+                        />
+                        {num}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSubmit}
+                  className="w-full bg-[#E2725B] text-white py-2 rounded shadow font-semibold mb-4"
+                >
+                  Submit
+                </button>
+              </div>
+            ) : (
+              <div
+                className="relative bg-white p-6 rounded-lg  flex flex-col items-center"
+                onDoubleClick={(e) => e.stopPropagation()} // Prevent double-click inside from closing
+              >
+                <QRCode value={recipient.id} size={256} />
+                <p className="text-center text-sm max-w-xs text-[#E2725B] mt-8">
+                  Please present this QR code when attending the wedding. It
+                  helps us confirm your attendance quickly at the venue.
+                </p>
+              </div>
+            )}
+
+            {/* Wishes List */}
+            <div className="">
+              <h4 className="text-md font-bold text-[#E2725B]">Wishes</h4>
+              <ul className="space-y-2 max-h-40 overflow-y-auto">
+                {wishes.map((w, idx) => (
+                  <li
+                    key={idx}
+                    className="bg-white border border-[#E2725B] p-2 rounded shadow-sm"
+                  >
+                    <p className="text-sm text-gray-700 italic">"{w.wish}"</p>
+                    <p className="text-xs text-gray-500 text-right">
+                      — {w.name}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
           {/* Love Story Timeline */}
-          <section className="bg-white/90 text-black px-4 py-6 rounded-2xl shadow-lg space-y-6 max-w-xl mx-auto">
+          <section className="bg-white/90 text-black px-4 py-6 rounded-2xl shadow-lg space-y-6 max-w-xl mx-auto border border-[#E2725B]">
             <h2 className="text-2xl font-bold text-center text-[#E2725B]">
               Our Love Story
             </h2>
-            <div className="relative border-l-2 border-gray-300 pl-6 space-y-6">
+            <div className="relative border-l-2 border-[#E2725B] pl-6 space-y-6">
               {[
                 {
                   year: "2019",
@@ -287,81 +456,6 @@ function ScrollSection({
             </div>
           </section>
 
-          {/* RSVP Form */}
-          <section className="bg-white/90 rounded-xl p-4 shadow space-y-4">
-            <h3 className="text-xl font-bold text-[#E2725B] text-center">
-              RSVP
-            </h3>
-            <div className="space-y-2">
-              <input
-                type="text"
-                name="name"
-                placeholder="Your Name"
-                className="w-full p-2 rounded border"
-                value={form.name}
-                onChange={handleChange}
-              />
-              <textarea
-                name="wish"
-                placeholder="Write your best wishes"
-                className="w-full p-2 rounded border"
-                rows={3}
-                value={form.wish}
-                onChange={handleChange}
-              />
-              <div className="flex items-center gap-4">
-                <label className="text-sm font-medium">Will you attend?</label>
-                <select
-                  name="attending"
-                  value={form.attending}
-                  onChange={handleChange}
-                  className="border p-1 rounded"
-                >
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">
-                  Number of Guests (max 2)
-                </label>
-                <input
-                  type="number"
-                  name="guests"
-                  min={1}
-                  max={2}
-                  value={form.guests?.toString() ?? ""}
-                  onChange={handleChange}
-                  className="w-full p-2 rounded border"
-                />
-              </div>
-              <button
-                onClick={handleSubmit}
-                className="w-full bg-[#E2725B] text-white py-2 rounded shadow font-semibold"
-              >
-                Submit
-              </button>
-            </div>
-
-            {/* Wishes List */}
-            <div className="pt-4">
-              <h4 className="text-md font-bold text-[#E2725B]">Wishes</h4>
-              <ul className="space-y-2 max-h-40 overflow-y-auto">
-                {wishes.map((w, idx) => (
-                  <li
-                    key={idx}
-                    className="bg-white border p-2 rounded shadow-sm"
-                  >
-                    <p className="text-sm text-gray-700 italic">"{w.wish}"</p>
-                    <p className="text-xs text-gray-500 text-right">
-                      — {w.name}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-
           {/* Gallery */}
           <GallerySection />
         </div>
@@ -377,7 +471,6 @@ export default function ScrollSections() {
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [currentSection, setCurrentSection] = useState(0);
-  const [hasOpened, setHasOpened] = useState(false);
 
   const isLockedRef = useRef(false);
   const [scrollTop, setScrollTop] = useState(0);
@@ -388,11 +481,11 @@ export default function ScrollSections() {
   const [form, setForm] = useState<FormData>({
     name: "",
     wish: "",
-    attending: "yes",
-    guests: 1,
+    is_attending: true,
+    num_attendees_confirmed: 2,
   });
 
-  // Get Recipient from URL
+  // Get Recipient Data
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const param = urlParams.get("to");
@@ -407,6 +500,7 @@ export default function ScrollSections() {
           return res.json();
         })
         .then((data) => {
+          console.log(data.data);
           setRecipient(data?.data); // assuming your API wraps data under `data`
         })
         .catch((err) => {
@@ -555,7 +649,6 @@ export default function ScrollSections() {
 
   // Handle opening the invitation
   const handleOpen = () => {
-    setHasOpened(true);
     scrollContainerRef.current?.scrollTo({
       top: window.innerHeight * 1,
       behavior: "smooth",
@@ -568,9 +661,20 @@ export default function ScrollSections() {
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    console.log("Form change:", e.target.name, e.target.value);
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    if (name == "is_attending") {
+      setForm((prev) => ({
+        ...prev,
+        is_attending: value == "yes" ? true : false,
+      }));
+    } else if (name == "num_attendees_confirmed") {
+      setForm((prev) => ({
+        ...prev,
+        num_attendees_confirmed: Number(value),
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   //  Handle form submission
@@ -585,228 +689,238 @@ export default function ScrollSections() {
       return;
     }
 
-    if (form.guests !== 1 && form.guests !== 2) {
+    if (
+      form.num_attendees_confirmed != 1 &&
+      form.num_attendees_confirmed != 2 &&
+      form.num_attendees_confirmed != 3 &&
+      form.num_attendees_confirmed != 4 &&
+      form.num_attendees_confirmed != 5
+    ) {
       alert("Number of guests must be 1 or 2.");
       return;
     }
-
+    console.log(form);
+    setRecipient({ ...recipient, is_attending: true } as Guest);
     alert("RSVP Submitted!");
   };
 
   // Render sections based on currentSection
   const renderSection = (index: number) => {
-    if (index === 0) {
-      return (
-        <AnimatePresence>
-          {!hasOpened || currentSection === 0 ? (
-            <motion.div
-              key="cover"
-              data-section="0"
-              className="absolute inset-0 z-50 w-full h-dvh bg-cover bg-center"
-              style={{
-                backgroundImage: `url('/assets/couple2.jpg')`,
-                backgroundSize: "180%", // Zoom in (100% is default)
-                backgroundPosition: "45% 100%", // Adjust to focus (e.g. shift upward)
-              }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 2 }}
-            >
-              <div className="absolute inset-0 z-10 bg-gradient-to-t from-white/100 via-white/30 to-transparent" />
-
-              {!isLoaded && (
-                <div>
-                  {/* Dark Blur Blue Overlay */}
-                  <div className="absolute inset-0 z-50 bg-[#E2725B]/60 backdrop-blur-sm" />
-
-                  {/* Centered U character */}
-                  <div className="absolute inset-0 flex items-center justify-center z-50">
-                    <div className="w-24 h-24 bg-white/70 rounded-full flex items-center justify-center shadow-lg">
-                      <span className="text-5xl font-bold text-[#E2725B] animate-pulse">
-                        U
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="absolute inset-x-0 bottom-0 z-20 w-full text-center px-6 pb-12 flex flex-col items-center justify-end h-1/2">
-                <motion.p
-                  className="text-lg font-light mb-1"
-                  style={{ fontFamily: fonts.subheading }}
-                  initial={{ scale: 0.6 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  The Wedding of
-                </motion.p>
-                <motion.h1
-                  className="text-5xl mb-1"
-                  style={{ fontFamily: fonts.heading }}
-                  initial={{ scale: 0.6 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  Hary & Finna
-                </motion.h1>
-                <motion.p
-                  className="text-md font-light mb-2"
-                  style={{ fontFamily: fonts.subheading }}
-                  initial={{ scale: 0.6 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.6 }}
-                >
-                  Saturday, 07 February 2026
-                </motion.p>
-
-                <motion.div
-                  initial={{ y: 100, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.9 }}
-                  className="w-full"
-                >
-                  <p
-                    className="text-sm mb-1"
-                    style={{ fontFamily: fonts.recipient }}
-                  >
-                    Kepada Yth. Bapak/Ibu/Saudara/i
-                  </p>
-                  <p
-                    className="text-lg font-semibold mb-6"
-                    style={{ fontFamily: fonts.recipient }}
-                  >
-                    {(recipient?.full_name ||
-                      recipient?.nickname ||
-                      "Nama Undangan") +
-                      (recipient?.additional_names?.length
-                        ? " & " + recipient.additional_names.join(" & ")
-                        : "")}
-                  </p>
-                  <motion.button
-                    onClick={handleOpen}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="px-8 py-3 bg-[#E2725B] text-white rounded-full shadow-lg text-base tracking-wide transition-all duration-300 hover:shadow-2xl hover:bg-[#d0654f] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E2725B] flex items-center justify-center mx-auto"
-                    style={{
-                      fontFamily: fonts.button,
-                      letterSpacing: "0.03em",
-                    }}
-                  >
-                    <span className="text-xl mr-2 leading-none">💌</span>
-                    <span className="leading-none">Open Invitation</span>
-                  </motion.button>
-                </motion.div>
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-      );
-    } else if (index >= 1 && index <= 5) {
+    if (index >= 0 && index <= 5) {
       return (
         <div
           data-section="1"
           className="relative w-full h-full overflow-hidden"
         >
+          <AnimatePresence mode="wait">
+            {index === 0 && (
+              <motion.div
+                key="cover"
+                data-section="0"
+                className="absolute inset-0 z-50 w-full h-dvh bg-cover bg-center"
+                style={{
+                  backgroundImage: `url('/assets/couple2.jpg')`,
+                  backgroundSize: "180%",
+                  backgroundPosition: "45% 100%",
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.5 }}
+              >
+                {/* gradient */}
+                <div className="absolute inset-0 z-10 bg-gradient-to-t from-white/100 via-white/30 to-transparent" />
+
+                {!isLoaded && (
+                  <div>
+                    <div className="absolute inset-0 z-50 bg-[#E2725B]/60 backdrop-blur-sm" />
+                    <div className="absolute inset-0 flex items-center justify-center z-50">
+                      <div className="w-24 h-24 bg-white/70 rounded-full flex items-center justify-center shadow-lg">
+                        <span className="text-5xl font-bold text-[#E2725B] animate-pulse">
+                          U
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="absolute inset-x-0 bottom-0 z-20 w-full text-center px-6 pb-12 flex flex-col items-center justify-end h-1/2">
+                  {/* Texts + Button */}
+                  <motion.p
+                    className="text-lg font-light mb-1"
+                    style={{ fontFamily: fonts.subheading }}
+                    initial={{ scale: 0.6 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    The Wedding of
+                  </motion.p>
+                  <motion.h1
+                    className="text-5xl mb-1"
+                    style={{ fontFamily: fonts.heading }}
+                    initial={{ scale: 0.6 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    Hary & Finna
+                  </motion.h1>
+                  <motion.p
+                    className="text-md font-light mb-2"
+                    style={{ fontFamily: fonts.subheading }}
+                    initial={{ scale: 0.6 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.6 }}
+                  >
+                    Saturday, 07 February 2026
+                  </motion.p>
+
+                  <motion.div
+                    initial={{ y: 100, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.9 }}
+                    className="w-full"
+                  >
+                    <p
+                      className="text-sm mb-1"
+                      style={{ fontFamily: fonts.recipient }}
+                    >
+                      Kepada Yth. Bapak/Ibu/Saudara/i
+                    </p>
+                    <p
+                      className="text-lg font-semibold mb-6"
+                      style={{ fontFamily: fonts.recipient }}
+                    >
+                      {(recipient?.full_name ||
+                        recipient?.nickname ||
+                        "Nama Undangan") +
+                        (recipient?.additional_names?.length
+                          ? " & " + recipient.additional_names.join(" & ")
+                          : "")}
+                    </p>
+                    <motion.button
+                      onClick={handleOpen}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="px-8 py-3 bg-[#E2725B] text-white rounded-full shadow-lg text-base tracking-wide transition-all duration-300 hover:shadow-2xl hover:bg-[#d0654f] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E2725B] flex items-center justify-center mx-auto"
+                      style={{
+                        fontFamily: fonts.button,
+                        letterSpacing: "0.03em",
+                      }}
+                    >
+                      <span className="text-xl mr-2 leading-none">💌</span>
+                      <span className="leading-none">Open Invitation</span>
+                    </motion.button>
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Background stays constant */}
-          <motion.img
-            src="/assets/background.jpeg"
-            alt="Background"
-            initial={{ scale: 1 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 2 }}
-            className="absolute inset-0 w-full h-full object-cover z-0"
-          />
+          {index > 0 && (
+            <motion.img
+              src="/assets/background.jpeg"
+              alt="Background"
+              initial={{ scale: 1 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 1 }}
+              className="absolute inset-0 w-full h-full object-cover z-0"
+            />
+          )}
 
           {/* Stage */}
-          <motion.img
-            src="/assets/stage.png"
-            alt="Stage"
-            initial={{ opacity: 0, scale: 1.8, x: 0 }}
-            animate={{
-              opacity: 1,
-              scale:
-                currentSection === 1
-                  ? 1.8
-                  : currentSection === 2
-                  ? 7
-                  : currentSection === 3
-                  ? 7
-                  : currentSection === 4
-                  ? 3.5
-                  : 1.8,
-              x:
-                currentSection === 1
-                  ? "0%"
-                  : currentSection === 2
-                  ? "-21%"
-                  : currentSection === 3
-                  ? "20%"
-                  : currentSection === 4
-                  ? "0%"
-                  : "0%",
-              y:
-                currentSection === 1
-                  ? "0%"
-                  : currentSection === 2
-                  ? "115%"
-                  : currentSection === 3
-                  ? "115%"
-                  : currentSection === 4
-                  ? "120%"
-                  : "0%",
-            }}
-            transition={{ duration: 2 }}
-            className="absolute z-1"
-            style={{ bottom: "15%", left: "0%", width: "150%" }}
-          />
+          {index > 0 && (
+            <motion.img
+              src="/assets/stage.png"
+              alt="Stage"
+              initial={{ opacity: 0, scale: 1.8, x: 0 }}
+              animate={{
+                opacity: 1,
+                scale:
+                  currentSection === 1
+                    ? 1.8
+                    : currentSection === 2
+                    ? 7
+                    : currentSection === 3
+                    ? 7
+                    : currentSection === 4
+                    ? 3.5
+                    : 1.8,
+                x:
+                  currentSection === 1
+                    ? "0%"
+                    : currentSection === 2
+                    ? "-21%"
+                    : currentSection === 3
+                    ? "20%"
+                    : currentSection === 4
+                    ? "0%"
+                    : "0%",
+                y:
+                  currentSection === 1
+                    ? "0%"
+                    : currentSection === 2
+                    ? "115%"
+                    : currentSection === 3
+                    ? "115%"
+                    : currentSection === 4
+                    ? "120%"
+                    : "0%",
+              }}
+              transition={{ duration: 2 }}
+              className="absolute z-1"
+              style={{ bottom: "15%", left: "0%", width: "150%" }}
+            />
+          )}
 
           {/* Couple */}
-          <motion.img
-            src="/assets/couple.png"
-            alt="Couple"
-            initial={{ opacity: 1, scale: 4, x: 0 }}
-            animate={{
-              opacity: currentSection === 1 ? 1 : 1,
-              scale:
-                currentSection === 1
-                  ? 0.9
-                  : currentSection === 2
-                  ? 3.5
-                  : currentSection === 3
-                  ? 3.5
-                  : currentSection === 4
-                  ? 1.5
-                  : 0.9,
-              x:
-                currentSection === 1
-                  ? "0%"
-                  : currentSection === 2
-                  ? "-60%"
-                  : currentSection === 3
-                  ? "95%"
-                  : currentSection === 4
-                  ? "0%"
-                  : "0%",
-              y:
-                currentSection === 1
-                  ? "0%"
-                  : currentSection === 2
-                  ? "15%"
-                  : currentSection === 3
-                  ? "15%"
-                  : currentSection === 4
-                  ? "200%"
-                  : "0%",
-            }}
-            transition={{ duration: 2 }}
-            className="absolute z-14"
-            style={{
-              bottom: "42%",
-              left: "33%",
-              width: "32%",
-            }}
-          />
+          {index > 0 && (
+            <motion.img
+              src="/assets/couple.png"
+              alt="Couple"
+              initial={{ opacity: 1, scale: 4, x: 0 }}
+              animate={{
+                opacity: currentSection === 1 ? 1 : 1,
+                scale:
+                  currentSection === 1
+                    ? 0.9
+                    : currentSection === 2
+                    ? 3.5
+                    : currentSection === 3
+                    ? 3.5
+                    : currentSection === 4
+                    ? 1.5
+                    : 0.9,
+                x:
+                  currentSection === 1
+                    ? "0%"
+                    : currentSection === 2
+                    ? "-60%"
+                    : currentSection === 3
+                    ? "95%"
+                    : currentSection === 4
+                    ? "0%"
+                    : "0%",
+                y:
+                  currentSection === 1
+                    ? "0%"
+                    : currentSection === 2
+                    ? "15%"
+                    : currentSection === 3
+                    ? "15%"
+                    : currentSection === 4
+                    ? "200%"
+                    : "0%",
+              }}
+              transition={{ duration: 2 }}
+              className="absolute z-14 image-sharp"
+              style={{
+                bottom: "42%",
+                left: "33%",
+                width: "32%",
+              }}
+            />
+          )}
 
           {/* Bride Details */}
           <motion.img
@@ -1151,7 +1265,7 @@ export default function ScrollSections() {
           <motion.img
             src="/assets/arch.png"
             alt="Arch"
-            initial={{ scale: 4 }}
+            initial={{ scale: 4, opacity: 0 }}
             animate={{
               scale: currentSection === 1 || currentSection === 5 ? 1.2 : 7,
               opacity: currentSection === 1 || currentSection === 5 ? 1 : 0,
@@ -1169,6 +1283,8 @@ export default function ScrollSections() {
             handleChange={handleChange}
             handleSubmit={handleSubmit}
             form={form}
+            numberOfGuests={4}
+            recipient={recipient}
           />
         </div>
       );
