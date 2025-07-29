@@ -1260,7 +1260,6 @@ Finna & Hary`;
           </div>
         </div>
       )}
-
       <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
         <div
           className="ag-theme-alpine"
@@ -1326,7 +1325,6 @@ Finna & Hary`;
           )}
         </div>
       </div>
-
       {showScanner && (
         <QRScanner
           onResult={(result) => {
@@ -1335,11 +1333,9 @@ Finna & Hary`;
           setShowScanner={setShowScanner}
         />
       )}
-
       {showQR && qrId && (
         <QRCodeModal id={qrId} onClose={() => setShowQR(false)} />
       )}
-
       {/* Invalid QR Modal */}
       {showInvalidQRModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
@@ -1355,7 +1351,6 @@ Finna & Hary`;
           </div>
         </div>
       )}
-
       {/* Success QR Modal */}
       {successGuest && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
@@ -1402,7 +1397,6 @@ Finna & Hary`;
           </div>
         </div>
       )}
-
       {showPhoneModal && (
         <div className="fixed inset-0 bg-black/10 border bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-[90%] max-w-sm border border-black">
@@ -1446,52 +1440,51 @@ Finna & Hary`;
         </div>
       )}
 
-      {!showPhoneModal && (
-        <dialog
-          ref={dialogRef}
-          className="fixed inset-0 m-auto rounded-lg p-6  shadow-lg border bg-white"
-          onDoubleClick={(e) => {
-            if (e.target === e.currentTarget) {
-              dialogRef.current?.close();
-              setFormData({});
-              setEditingId(null);
-              setAdditionalNamesInput("");
-            }
+      <dialog
+        ref={dialogRef}
+        className="fixed inset-0 m-auto rounded-lg p-6  shadow-lg border bg-white"
+        onDoubleClick={(e) => {
+          if (e.target === e.currentTarget) {
+            dialogRef.current?.close();
+            setFormData({});
+            setEditingId(null);
+            setAdditionalNamesInput("");
+          }
+        }}
+      >
+        <form
+          method="dialog"
+          className="flex flex-col gap-3"
+          onClick={(e) => e.stopPropagation()} // Prevent form clicks from bubbling to dialog
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
           }}
         >
-          <form
-            method="dialog"
-            className="flex flex-col gap-3"
-            onClick={(e) => e.stopPropagation()} // Prevent form clicks from bubbling to dialog
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSubmit();
-            }}
-          >
-            <h3 className="text-xl font-semibold mb-2">
-              {editingId ? "Edit Guest" : "Add Guest"}
-            </h3>
-            <div className="flex gap-6 items-center mb-2">
-              <span className="text-gray-700 w-40">
-                Attendees: <span className="text-red-500">*</span>
-              </span>
-              {[1, 2, 3, 4].map((num) => (
-                <label key={num} className="flex items-center gap-1">
-                  <input
-                    type="radio"
-                    name="num_attendees"
-                    value={num}
-                    checked={formData.num_attendees === num}
-                    onChange={() =>
-                      setFormData({ ...formData, num_attendees: num })
-                    }
-                  />
-                  {num}
-                </label>
-              ))}
-            </div>
-            {/* Tag (radio) */}
-            {/* <div className="flex gap-6 items-center mb-2 justify-start">
+          <h3 className="text-xl font-semibold mb-2">
+            {editingId ? "Edit Guest" : "Add Guest"}
+          </h3>
+          <div className="flex gap-6 items-center mb-2">
+            <span className="text-gray-700 w-40">
+              Attendees: <span className="text-red-500">*</span>
+            </span>
+            {[1, 2, 3, 4].map((num) => (
+              <label key={num} className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="num_attendees"
+                  value={num}
+                  checked={formData.num_attendees === num}
+                  onChange={() =>
+                    setFormData({ ...formData, num_attendees: num })
+                  }
+                />
+                {num}
+              </label>
+            ))}
+          </div>
+          {/* Tag (radio) */}
+          {/* <div className="flex gap-6 items-center mb-2 justify-start">
             <span className="text-gray-700 w-40">
               Tag: <span className="text-red-500">*</span>
             </span>
@@ -1508,284 +1501,267 @@ Finna & Hary`;
               </label>
             ))}
           </div> */}
-            <div className="flex flex-col relative">
-              <label className="mb-1 font-medium">Invited By</label>
-              <select
-                className={`p-2 rounded h-12 w-full border border-black ${
-                  !formData.invited_by ? "text-gray-500" : "text-black"
-                }`}
-                value={formData.invited_by || ""}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({
-                    ...formData,
-                    invited_by: value,
-                  });
-                }}
-              >
-                <option value="" disabled>
-                  Invited By *
-                </option>
-                <option value="Finna">Finna</option>
-                <option value="Finna - Papa">Finna - Papa</option>
-                <option value="Finna - Mama">Finna - Mama</option>
-                <option value="Hary">Hary</option>
-                <option value="Hary - Mama">Hary - Mama</option>
-                <option value="Hary - Koko">Hary - Koko</option>
-              </select>
-            </div>
+          <div className="flex flex-col relative">
+            <label className="mb-1 font-medium">Invited By</label>
+            <select
+              className={`p-2 rounded h-12 w-full border border-black ${
+                !formData.invited_by ? "text-gray-500" : "text-black"
+              }`}
+              value={formData.invited_by || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData({
+                  ...formData,
+                  invited_by: value,
+                });
+              }}
+            >
+              <option value="" disabled>
+                Invited By *
+              </option>
+              <option value="Finna">Finna</option>
+              <option value="Finna - Papa">Finna - Papa</option>
+              <option value="Finna - Mama">Finna - Mama</option>
+              <option value="Hary">Hary</option>
+              <option value="Hary - Mama">Hary - Mama</option>
+              <option value="Hary - Koko">Hary - Koko</option>
+            </select>
+          </div>
 
-            <div className="flex flex-col relative">
-              {editingId && (
-                <label className="mb-1 font-medium">Nickname</label>
-              )}
-              <input
-                className="border p-2 rounded pr-10"
-                placeholder="Nickname *"
-                value={formData.nickname || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, nickname: e.target.value })
-                }
-                required
-              />
-              {formData.nickname && (
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, nickname: "" })}
-                  className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <div className="flex flex-col relative">
-              {editingId && (
-                <label className="mb-1 font-medium">Full Name</label>
-              )}
-              <input
-                className="border p-2 rounded pr-10"
-                placeholder="Full Name"
-                value={formData.full_name || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, full_name: e.target.value })
-                }
-              />
-              {formData.full_name && (
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, full_name: "" })}
-                  className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <div className="flex flex-col relative">
-              {editingId && (
-                <label className="mb-1 font-medium">Additional Names</label>
-              )}
-              <input
-                className="border p-2 rounded pr-10"
-                placeholder="Additional Names (comma separated)"
-                value={additionalNamesInput}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setAdditionalNamesInput(value);
-                  setFormData({
-                    ...formData,
-                    additional_names: value
-                      .split(",")
-                      .map((name) => name.trim())
-                      .filter(Boolean),
-                  });
-                }}
-              />
-              {additionalNamesInput && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData({ ...formData, additional_names: [] });
-                    setAdditionalNamesInput("");
-                  }}
-                  className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <div className="flex flex-col relative">
-              {editingId && <label className="mb-1 font-medium">Address</label>}
-              <input
-                className="border p-2 rounded pr-10"
-                placeholder="Address"
-                value={formData.address || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
-              />
-              {formData.address && (
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, address: "" })}
-                  className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <div className="flex flex-col relative">
-              {editingId && <label className="mb-1 font-medium">Notes</label>}
-              <input
-                className="border p-2 rounded pr-10"
-                placeholder="Notes"
-                value={formData.notes || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
-                }
-              />
-              {formData.notes && (
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, notes: "" })}
-                  className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <div className="flex items-end gap-2">
-              <div className="flex flex-col flex-1 relative">
-                {editingId && (
-                  <label className="mb-1 font-medium">Phone Number</label>
-                )}
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  className="border p-2 rounded w-full pr-10"
-                  placeholder="Phone Number"
-                  value={formData.phone_number || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone_number: e.target.value })
-                  }
-                />
-
-                {formData.phone_number && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormData({ ...formData, phone_number: "" })
-                    }
-                    className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-
+          <div className="flex flex-col relative">
+            {editingId && <label className="mb-1 font-medium">Nickname</label>}
+            <input
+              className="border p-2 rounded pr-10"
+              placeholder="Nickname *"
+              value={formData.nickname || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, nickname: e.target.value })
+              }
+              required
+            />
+            {formData.nickname && (
               <button
                 type="button"
-                onClick={() => handleImportOpen(editingId)}
-                className="flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 active:scale-95 transition-transform duration-100 my-1"
+                onClick={() => setFormData({ ...formData, nickname: "" })}
+                className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
               >
-                <ImportIcon className="h-5 w-5" />
+                ✕
               </button>
-            </div>
-
-            {editingId && (
-              <>
-                <div className="flex flex-col">
-                  <label className="mb-1 font-medium">RSVP Status</label>
-                  <select
-                    className="border p-2 rounded h-12"
-                    value={
-                      formData.is_attending === true
-                        ? "yes"
-                        : formData.is_attending === false
-                        ? "no"
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFormData({
-                        ...formData,
-                        is_attending:
-                          value === "yes"
-                            ? true
-                            : value === "no"
-                            ? false
-                            : null,
-                      });
-                    }}
-                  >
-                    <option value="">Waiting for the response</option>
-                    <option value="yes">✅ Yes</option>
-                    <option value="no">❌ No</option>
-                  </select>
-                </div>
-                <div className="flex flex-col">
-                  <label className="mb-1 font-medium">
-                    Attendance Confirmed
-                  </label>
-                  <select
-                    className="border p-2 rounded h-12"
-                    value={
-                      formData.attendance_confirmed === true
-                        ? "yes"
-                        : formData.attendance_confirmed === false
-                        ? "no"
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFormData({
-                        ...formData,
-                        attendance_confirmed:
-                          value === "yes"
-                            ? true
-                            : value === "no"
-                            ? false
-                            : null,
-                      });
-                    }}
-                  >
-                    <option value="">Waiting for the response</option>
-                    <option value="yes">✅ Yes</option>
-                    <option value="no">❌ No</option>
-                  </select>
-                </div>
-              </>
             )}
-            <div className="flex justify-end gap-3 pt-3 mt-2">
+          </div>
+          <div className="flex flex-col relative">
+            {editingId && <label className="mb-1 font-medium">Full Name</label>}
+            <input
+              className="border p-2 rounded pr-10"
+              placeholder="Full Name"
+              value={formData.full_name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, full_name: e.target.value })
+              }
+            />
+            {formData.full_name && (
               <button
                 type="button"
-                onClick={() => dialogRef.current?.close()}
-                className="px-4 py-2 rounded border"
+                onClick={() => setFormData({ ...formData, full_name: "" })}
+                className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
               >
-                Cancel
+                ✕
               </button>
+            )}
+          </div>
+          <div className="flex flex-col relative">
+            {editingId && (
+              <label className="mb-1 font-medium">Additional Names</label>
+            )}
+            <input
+              className="border p-2 rounded pr-10"
+              placeholder="Additional Names (comma separated)"
+              value={additionalNamesInput}
+              onChange={(e) => {
+                const value = e.target.value;
+                setAdditionalNamesInput(value);
+                setFormData({
+                  ...formData,
+                  additional_names: value
+                    .split(",")
+                    .map((name) => name.trim())
+                    .filter(Boolean),
+                });
+              }}
+            />
+            {additionalNamesInput && (
               <button
-                type="submit"
-                className={`px-4 py-2 rounded ${
-                  !formData.nickname ||
-                  formData.nickname.trim() === "" ||
-                  !formData.invited_by ||
-                  !formData.num_attendees
-                    ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-                disabled={
-                  !formData.nickname ||
-                  formData.nickname.trim() === "" ||
-                  !formData.num_attendees
-                }
+                type="button"
+                onClick={() => {
+                  setFormData({ ...formData, additional_names: [] });
+                  setAdditionalNamesInput("");
+                }}
+                className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
               >
-                {editingId ? "Update" : "Create"}
+                ✕
               </button>
+            )}
+          </div>
+          <div className="flex flex-col relative">
+            {editingId && <label className="mb-1 font-medium">Address</label>}
+            <input
+              className="border p-2 rounded pr-10"
+              placeholder="Address"
+              value={formData.address || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
+            />
+            {formData.address && (
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, address: "" })}
+                className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col relative">
+            {editingId && <label className="mb-1 font-medium">Notes</label>}
+            <input
+              className="border p-2 rounded pr-10"
+              placeholder="Notes"
+              value={formData.notes || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+            />
+            {formData.notes && (
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, notes: "" })}
+                className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <div className="flex items-end gap-2">
+            <div className="flex flex-col flex-1 relative">
+              {editingId && (
+                <label className="mb-1 font-medium">Phone Number</label>
+              )}
+              <input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="border p-2 rounded w-full pr-10"
+                placeholder="Phone Number"
+                value={formData.phone_number || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone_number: e.target.value })
+                }
+              />
+
+              {formData.phone_number && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, phone_number: "" })}
+                  className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                >
+                  ✕
+                </button>
+              )}
             </div>
-          </form>
-        </dialog>
-      )}
+
+            <button
+              type="button"
+              onClick={() => handleImportOpen(editingId)}
+              className="flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 active:scale-95 transition-transform duration-100 my-1"
+            >
+              <ImportIcon className="h-5 w-5" />
+            </button>
+          </div>
+
+          {editingId && (
+            <>
+              <div className="flex flex-col">
+                <label className="mb-1 font-medium">RSVP Status</label>
+                <select
+                  className="border p-2 rounded h-12"
+                  value={
+                    formData.is_attending === true
+                      ? "yes"
+                      : formData.is_attending === false
+                      ? "no"
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({
+                      ...formData,
+                      is_attending:
+                        value === "yes" ? true : value === "no" ? false : null,
+                    });
+                  }}
+                >
+                  <option value="">Waiting for the response</option>
+                  <option value="yes">✅ Yes</option>
+                  <option value="no">❌ No</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="mb-1 font-medium">Attendance Confirmed</label>
+                <select
+                  className="border p-2 rounded h-12"
+                  value={
+                    formData.attendance_confirmed === true
+                      ? "yes"
+                      : formData.attendance_confirmed === false
+                      ? "no"
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({
+                      ...formData,
+                      attendance_confirmed:
+                        value === "yes" ? true : value === "no" ? false : null,
+                    });
+                  }}
+                >
+                  <option value="">Waiting for the response</option>
+                  <option value="yes">✅ Yes</option>
+                  <option value="no">❌ No</option>
+                </select>
+              </div>
+            </>
+          )}
+          <div className="flex justify-end gap-3 pt-3 mt-2">
+            <button
+              type="button"
+              onClick={() => dialogRef.current?.close()}
+              className="px-4 py-2 rounded border"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className={`px-4 py-2 rounded ${
+                !formData.nickname ||
+                formData.nickname.trim() === "" ||
+                !formData.invited_by ||
+                !formData.num_attendees
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+              disabled={
+                !formData.nickname ||
+                formData.nickname.trim() === "" ||
+                !formData.num_attendees
+              }
+            >
+              {editingId ? "Update" : "Create"}
+            </button>
+          </div>
+        </form>
+      </dialog>
     </div>
   );
 }
