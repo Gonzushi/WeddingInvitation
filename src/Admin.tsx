@@ -1555,7 +1555,7 @@ Finna & Hary`;
           <div className="flex flex-col relative">
             {editingId && <label className="mb-1 font-medium">Address</label>}
             <input
-              className="border px-2 rounded pr-10 h-10"
+              className="border p-2 rounded pr-10"
               placeholder="Address"
               value={formData.address || ""}
               onChange={(e) =>
