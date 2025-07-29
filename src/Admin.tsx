@@ -1598,6 +1598,9 @@ Finna & Hary`;
                 <label className="mb-1 font-medium">Phone Number</label>
               )}
               <input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 className="border p-2 rounded w-full pr-8"
                 placeholder="Phone Number"
                 value={formData.phone_number || ""}
@@ -1605,12 +1608,13 @@ Finna & Hary`;
                   setFormData({ ...formData, phone_number: e.target.value })
                 }
               />
+
               {formData.phone_number && (
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, phone_number: "" })}
                   className="absolute right-3 bottom-2 text-gray-500 hover:text-black text-xl"
-                  >
+                >
                   ✕
                 </button>
               )}
