@@ -229,7 +229,7 @@ function ScrollSection({
         ease: "easeInOut",
       }}
       data-section="5"
-      className="h-dvh w-full overflow-y-auto relative z-30"
+      className="h-dvh w-full overflow-y-auto overflow-x-hidden relative z-30"
     >
       {/* Full Overlay */}
       <div className="absolute left-0 top-0 w-full bg-white/90 backdrop-blur-sxs z-0">
