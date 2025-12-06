@@ -9,6 +9,9 @@ const MIN_LOADING_DURATION_MS = 3000;
 // Keep the pulsing animation in sync between circle, HF text, and line
 export const LOADER_PULSE_DURATION = 1.8;
 
+// Frame duration for scroll 4 dance animation
+const FRAME_DURATION = 200; // ms per frame
+
 // =========================
 // Music
 // =========================
@@ -48,6 +51,10 @@ type RsvpForm = {
   numAttendeesConfirmed: number;
 };
 
+type Scroll4DanceAnimationProps = {
+  hasOpened: boolean;
+};
+
 // =========================
 // Wedding Constants
 // =========================
@@ -58,11 +65,11 @@ const COUPLE = {
     shortName: "Finna",
     fatherName: "Mr. Peng Cheong",
     motherName: "Mrs. Marijani",
-    instagram: "finnawidy", // without @
+    instagram: "finnawidy",
   },
   groom: {
     fullName: "Haryanto Kartawijaya",
-    shortName: "Hary",
+    shortName: "Haryanto",
     fatherName: "Mr. Liauw Sui Kian",
     motherName: "Mrs. Tan Siok Mei",
     instagram: "haryantokartawijaya",
@@ -118,6 +125,17 @@ const IMAGE_URLS = [
   "/assets/scroll3-groom.png",
 ];
 
+const SCROLL4_FRAMES = [
+  "/assets/scroll4-dance1.png",
+  "/assets/scroll4-dance2.png",
+  "/assets/scroll4-dance3.png",
+  "/assets/scroll4-dance4.png",
+  "/assets/scroll4-dance5.png",
+  "/assets/scroll4-dance6.png",
+  "/assets/scroll4-dance7.png",
+  "/assets/scroll4-dance8.png",
+];
+
 // =========================
 // Helpers
 // =========================
@@ -140,6 +158,69 @@ function capitalizeWords(text: string): string {
     .join(" ")
     .trim();
 }
+
+const Scroll4DanceAnimation: React.FC<Scroll4DanceAnimationProps> = ({
+  hasOpened,
+}) => {
+  const [frameIndex, setFrameIndex] = React.useState(0);
+  const [direction, setDirection] = React.useState<1 | -1>(1);
+
+  React.useEffect(() => {
+    if (!hasOpened) return;
+
+    const last = SCROLL4_FRAMES.length - 1;
+
+    const interval = window.setInterval(() => {
+      setFrameIndex((prev) => {
+        // right edge → go backward
+        if (direction === 1 && prev === last) {
+          setDirection(-1);
+          return last - 1;
+        }
+
+        // left edge → go forward
+        if (direction === -1 && prev === 0) {
+          setDirection(1);
+          return 1;
+        }
+
+        return prev + direction;
+      });
+    }, FRAME_DURATION);
+
+    return () => window.clearInterval(interval);
+  }, [hasOpened, direction]);
+
+  return (
+    <div className="absolute inset-0 flex items-end justify-center z-20 pb-6">
+      {/* 1) Subject entrance motion (from your scroll4SubjectVariants) */}
+      <motion.div
+        variants={scroll4SubjectVariants}
+        initial="initial"
+        animate={hasOpened ? "enter" : "initial"}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+      >
+        {/* 2) Looping float / sway motion */}
+        <motion.div
+          animate={{ y: [0, 0, 0] }} // up/down
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            repeatType: "mirror",
+            ease: "easeInOut",
+          }}
+        >
+          {/* 3) Actual frame animation (no motion here, just image swap) */}
+          <img
+            src={SCROLL4_FRAMES[frameIndex]}
+            alt="Dancing couple"
+            className="h-[70vh] w-auto object-contain" // ← SIZE HERE
+          />
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+};
 
 /**
  * Transform custom `to` param like:
@@ -327,7 +408,7 @@ const scroll4BgVariants = {
 
 const scroll4SubjectVariants = {
   initial: { opacity: 1, x: -200, y: 80, scale: 2 },
-  enter: { opacity: 1, x: -80, y: -110, scale: 2 },
+  enter: { opacity: 1, x: -35, y: -190, scale: 2 },
 };
 
 // =========================
@@ -341,10 +422,10 @@ const scroll5BgVariants = {
 };
 
 // Couple photo: comes from RIGHT, ends slightly to the left
-// const scroll5SubjectVariants = {
-//   initial: { opacity: 0, x: 220, y: 80, scale: 2 },
-//   enter: { opacity: 1, x: 80, y: -110, scale: 2 },
-// };
+const scroll5SubjectVariants = {
+  initial: { opacity: 0, x: 220, y: 80, scale: 2 },
+  enter: { opacity: 1, x: 80, y: -110, scale: 2 },
+};
 
 // =========================
 // Main Component
@@ -1194,26 +1275,13 @@ export default function Invitation() {
                       transition={{ duration: 1.5, ease: "easeOut" }}
                     />
 
-                    {/* Gradient overlay for readability (lighter) */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/60 z-10 pointer-events-none" />
+                    {/* Light gradient overlay for readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/0 via-black/10 to-black/20 z-10 pointer-events-none" />
 
-                    {/* Couple photo – centered, not cropped */}
-                    <div className="absolute inset-0 flex justify-center items-center z-20">
-                      <motion.img
-                        src="/assets/scroll4-couple.png"
-                        alt="Wedding Reception"
-                        className="max-h-[75%] w-auto object-contain"
-                        variants={scroll4SubjectVariants}
-                        initial="initial"
-                        animate={hasOpened ? "enter" : "initial"}
-                        transition={{
-                          duration: 1.5,
-                          ease: "easeOut",
-                        }}
-                      />
-                    </div>
+                    {/* Couple “GIF” – centered */}
+                    <Scroll4DanceAnimation hasOpened={hasOpened} />
 
-                    {/* Reception text – top left */}
+                    {/* Reception text – top left, DARK text */}
                     <motion.div
                       className="absolute top-10 left-6 right-10 z-30 text-left"
                       initial={{ opacity: 0, y: -20 }}
@@ -1228,10 +1296,8 @@ export default function Invitation() {
                         delay: 0.15,
                       }}
                     >
-                      {/* Removed small 'Reception' label */}
-
                       <p
-                        className="text-2xl md:text-3xl text-white mb-2"
+                        className="text-2xl md:text-3xl text-slate-900 mb-2"
                         style={{ fontFamily: fonts.heading }}
                       >
                         Wedding Reception
@@ -1239,14 +1305,14 @@ export default function Invitation() {
 
                       <div className="space-y-1 mb-3">
                         <p
-                          className="text-sm md:text-base text-white/85"
+                          className="text-sm md:text-base text-slate-800"
                           style={{ fontFamily: fonts.subheading }}
                         >
                           {EVENTS.reception.dateText}
                         </p>
                         {EVENTS.reception.timeText && (
                           <p
-                            className="text-sm md:text-base text-white/80"
+                            className="text-sm md:text-base text-slate-700"
                             style={{ fontFamily: fonts.subheading }}
                           >
                             {EVENTS.reception.timeText}
@@ -1256,25 +1322,25 @@ export default function Invitation() {
 
                       <div className="space-y-1 mb-4">
                         <p
-                          className="text-sm md:text-base text-white font-semibold"
+                          className="text-sm md:text-base text-slate-900 font-semibold"
                           style={{ fontFamily: fonts.subheading }}
                         >
                           {EVENTS.reception.venueName}
                         </p>
                         <p
-                          className="text-xs md:text-sm text-white/80"
+                          className="text-xs md:text-sm text-slate-700"
                           style={{ fontFamily: fonts.body }}
                         >
                           {EVENTS.reception.locationText}
                         </p>
                       </div>
 
-                      {/* Elegant Google Maps button */}
+                      {/* Google Maps button – light/outlined */}
                       <a
                         href={EVENTS.reception.mapsUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/70 text-white text-xs md:text-sm font-semibold shadow-md backdrop-blur-sm hover:bg-white/20 hover:border-white transition-colors"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/80 border border-slate-900/60 text-slate-900 text-xs md:text-sm font-semibold shadow-md backdrop-blur-sm hover:bg-white hover:border-slate-900 transition-colors"
                         style={{ fontFamily: fonts.button }}
                       >
                         <svg
@@ -1301,18 +1367,18 @@ export default function Invitation() {
                     ========================= */}
                 {currentSection === 4 && (
                   <motion.section
-                    key="section-4"
+                    key="section-5"
                     className="absolute inset-0 h-dvh overflow-hidden"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.4, ease: "easeInOut" }}
                   >
-                    {/* Background – from right */}
+                    {/* Background image with scroll5 animation */}
                     <motion.div
-                      className="absolute inset-0 bg-cover bg-center z-0"
+                      className="absolute inset-0 bg-cover bg-center"
                       style={{
-                        backgroundImage: "url('/assets/scroll5-bg.jpg')",
+                        backgroundImage: "url('/assets/scroll1-bg.jpg')",
                       }}
                       variants={scroll5BgVariants}
                       initial="initial"
@@ -1320,28 +1386,12 @@ export default function Invitation() {
                       transition={{ duration: 1.5, ease: "easeOut" }}
                     />
 
-                    {/* Gradient overlay for readability (lighter) */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/60 z-10 pointer-events-none" />
+                    {/* Soft gradient overlay for readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-black/20 to-black/80" />
 
-                    {/* Couple photo – from right */}
-                    {/* <div className="absolute inset-0 flex justify-center items-center z-20">
-                      <motion.img
-                        src="/assets/scroll5-couple.png"
-                        alt="Wedding Reception"
-                        className="max-h-[75%] w-auto object-contain"
-                        variants={scroll5SubjectVariants}
-                        initial="initial"
-                        animate={hasOpened ? "enter" : "initial"}
-                        transition={{
-                          duration: 1.5,
-                          ease: "easeOut",
-                        }}
-                      />
-                    </div> */}
-
-                    {/* Verse + Reception text – top left */}
+                    {/* Verse at top center */}
                     <motion.div
-                      className="absolute top-10 left-6 right-10 z-30 text-left"
+                      className="absolute top-10 inset-x-0 px-6 text-center"
                       initial={{ opacity: 0, y: -20 }}
                       animate={
                         hasOpened
@@ -1349,92 +1399,39 @@ export default function Invitation() {
                           : { opacity: 0, y: -20 }
                       }
                       transition={{
-                        duration: 0.6,
+                        duration: 1.1,
                         ease: "easeOut",
-                        delay: 0.15,
+                        delay: 0.3,
                       }}
                     >
-                      {/* Verse block – same style as 'Our Journey' */}
-                      <div className="mb-5">
-                        <p
-                          className="text-xs tracking-[0.25em] uppercase text-white/70 mb-2"
-                          style={{ fontFamily: fonts.subheading }}
-                        >
-                          Our Verse
-                        </p>
-                        <p
-                          className="text-sm md:text-[15px] leading-snug text-white/90"
-                          style={{ fontFamily: fonts.subheading }}
-                        >
-                          “You can put another verse here,
-                          <br />
-                          just like the one in Our Journey.”
-                        </p>
-                      </div>
-
                       <p
-                        className="text-2xl md:text-3xl text-white mb-2"
-                        style={{ fontFamily: fonts.heading }}
+                        className="text-xs tracking-[0.25em] uppercase text-white/70 mb-3"
+                        style={{ fontFamily: fonts.subheading }}
                       >
-                        Wedding Reception
+                        Our Journey
                       </p>
-
-                      <div className="space-y-1 mb-3">
-                        <p
-                          className="text-sm md:text-base text-white/85"
-                          style={{ fontFamily: fonts.subheading }}
-                        >
-                          {EVENTS.reception.dateText}
-                        </p>
-                        {EVENTS.reception.timeText && (
-                          <p
-                            className="text-sm md:text-base text-white/80"
-                            style={{ fontFamily: fonts.subheading }}
-                          >
-                            {EVENTS.reception.timeText}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-1 mb-4">
-                        <p
-                          className="text-sm md:text-base text-white font-semibold"
-                          style={{ fontFamily: fonts.subheading }}
-                        >
-                          {EVENTS.reception.venueName}
-                        </p>
-                        <p
-                          className="text-xs md:text-sm text-white/80"
-                          style={{ fontFamily: fonts.body }}
-                        >
-                          {EVENTS.reception.locationText}
-                        </p>
-                      </div>
-
-                      {/* Elegant Google Maps button */}
-                      <a
-                        href={EVENTS.reception.mapsUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/70 text-white text-xs md:text-sm font-semibold shadow-md backdrop-blur-sm hover:bg-white/20 hover:border-white transition-colors"
-                        style={{ fontFamily: fonts.button }}
+                      <p
+                        className="text-sm md:text-[17px] leading-snug text-white/90"
+                        style={{ fontFamily: fonts.subheading }}
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="w-4 h-4"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.7"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z" />
-                          <circle cx="12" cy="10" r="2.5" />
-                        </svg>
-                        <span>Open in Google Maps</span>
-                      </a>
+                        “When two souls find home in each other,
+                        <br />
+                        they become inseparable.”
+                      </p>
                     </motion.div>
+
+                    {/* Couple with scroll5 subject animation */}
+                    <div className="absolute inset-0 flex justify-center">
+                      <motion.img
+                        src="/assets/scroll1-couple.png"
+                        alt="Bride and Groom"
+                        className="w-full max-w-xs object-cover"
+                        variants={scroll5SubjectVariants}
+                        initial="initial"
+                        animate={hasOpened ? "enter" : "initial"}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                      />
+                    </div>
                   </motion.section>
                 )}
 
