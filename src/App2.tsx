@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import QRCode from "react-qr-code";
 
 const API_URL = "https://rest.trip-nus.com"; // adjust if needed
 
@@ -27,8 +28,10 @@ type GuestApi = {
   full_name: string;
   nickname?: string;
   additional_names?: string[];
-  num_attendees?: number;
-  is_attending?: boolean;
+  num_attendees?: number; // maximum
+  num_attendees_confirmed?: number; // confirmed after RSVP
+  is_attending?: boolean | null; // coming? yes/no/null (no RSVP yet)
+  attendance_confirmed?: boolean | null; // not used in FE logic anymore
   wish?: string;
 };
 
@@ -39,20 +42,26 @@ type Recipient = {
   id?: string;
   displayName: string;
   maxGuests: number;
-  isAttending?: boolean;
-  numAttendeesConfirmed?: number;
+
+  // RSVP state (using only isAttending for coming/not coming)
+  isAttending?: boolean | null; // null = no RSVP; true/false = yes/no
+  numAttendeesConfirmed?: number; // confirmed guests
   wish?: string;
 };
 
 type RsvpForm = {
   name: string;
   wish: string;
-  isAttending: boolean | null;
+  isAttending: boolean | null; // yes/no
   numAttendeesConfirmed: number;
 };
 
 type Scroll4DanceAnimationProps = {
   hasOpened: boolean;
+};
+
+type OurMomentsGalleryProps = {
+  onModalChange?: (open: boolean) => void; // to hide music + arrows
 };
 
 // =========================
@@ -77,15 +86,6 @@ const COUPLE = {
 };
 
 const EVENTS = {
-  blessing: {
-    label: "Blessing",
-    dateText: "Saturday, 07 February 2026",
-    timeText: "",
-    venueName: "Novotel Bogor Golf Resort",
-    locationText: "Bogor, Jawa Barat",
-    mapsUrl:
-      "https://www.google.com/maps/place/Novotel+Bogor+Golf+Resort+and+Convention+Center/@-6.6044585,106.8385092,17z",
-  },
   reception: {
     label: "Reception",
     dateText: "Saturday, 07 February 2026",
@@ -119,8 +119,15 @@ const IMAGE_URLS = [
   "/assets/scroll1-couple.png",
   "/assets/scroll23-bg.jpg",
   "/assets/scroll23-couple.png",
-  "/assets/scroll4-bg.jpg",
-  "/assets/scroll4-couple.png",
+  "/assets/scroll5-bg.jpg",
+  "/assets/scroll5-couple.png",
+  "/assets/scroll6-bg.jpg",
+  "/assets/gal1.jpg",
+  "/assets/gal2.jpg",
+  "/assets/gal3.jpg",
+  "/assets/gal4.jpg",
+  "/assets/gal5.jpg",
+  "/assets/gal6.jpg",
 ];
 
 const SCROLL4_FRAMES = [
@@ -132,6 +139,15 @@ const SCROLL4_FRAMES = [
   "/assets/scroll4-dance6.png",
   "/assets/scroll4-dance7.png",
   "/assets/scroll4-dance8.png",
+];
+
+const ourMomentsImages = [
+  { src: "/assets/gal1.jpg", span: 8, animation: "left" },
+  { src: "/assets/gal2.jpg", span: 3, animation: "left" },
+  { src: "/assets/gal3.jpg", span: 5, animation: "right" },
+  { src: "/assets/gal4.jpg", span: 8, animation: "left" },
+  { src: "/assets/gal5.jpg", span: 4, animation: "left" },
+  { src: "/assets/gal6.jpg", span: 4, animation: "right" },
 ];
 
 const PRELOAD_URLS = [...IMAGE_URLS, ...SCROLL4_FRAMES];
@@ -202,7 +218,7 @@ const Scroll4DanceAnimation: React.FC<Scroll4DanceAnimationProps> = ({
       >
         {/* 2) Looping float / sway motion */}
         <motion.div
-          animate={{ y: [0, 0, 0] }} // up/down
+          animate={{ y: [0, 0, 0] }} // subtle float
           transition={{
             duration: 3,
             repeat: Infinity,
@@ -214,13 +230,239 @@ const Scroll4DanceAnimation: React.FC<Scroll4DanceAnimationProps> = ({
           <img
             src={SCROLL4_FRAMES[frameIndex]}
             alt="Dancing couple"
-            className="h-[70vh] w-auto object-contain" // ← SIZE HERE
+            className="h-[70vh] w-auto object-contain"
           />
         </motion.div>
       </motion.div>
     </div>
   );
 };
+
+function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  const openModal = (idx: number) => {
+    setActiveIndex(idx);
+    onModalChange?.(true);
+  };
+
+  const closeModal = () => {
+    setActiveIndex(null);
+    onModalChange?.(false);
+  };
+
+  const prev = () =>
+    setActiveIndex((i) =>
+      i === null
+        ? 0
+        : (i - 1 + ourMomentsImages.length) % ourMomentsImages.length
+    );
+
+  const next = () =>
+    setActiveIndex((i) => (i === null ? 0 : (i + 1) % ourMomentsImages.length));
+
+  const getSpanClass = (span: number = 8) => `col-span-${span}`;
+
+  return (
+    <>
+      {/* grid only, no second "Our Moments" title */}
+      <section className="space-y-4">
+        <div className="grid grid-cols-8 gap-2">
+          {ourMomentsImages.map((img, idx) => {
+            const spanClass = getSpanClass(img.span);
+            const fromX = img.animation === "left" ? -80 : 80;
+
+            return (
+              <div
+                key={img.src}
+                className={`${spanClass} overflow-hidden rounded-xl`}
+              >
+                <motion.div
+                  initial={{ opacity: 0, x: fromX }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  whileHover={{ scale: 1.04 }}
+                  transition={{ duration: 0.4 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  className="cursor-pointer"
+                  onClick={() => openModal(idx)}
+                >
+                  <img
+                    src={img.src}
+                    alt={`Our moment ${idx + 1}`}
+                    className="w-full h-32 sm:h-40 object-cover grayscale-[20%]"
+                  />
+                </motion.div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Fullscreen Modal */}
+      <AnimatePresence>
+        {activeIndex !== null && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center touch-none w-screen h-screen"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* Close Button */}
+            <button
+              onClick={closeModal}
+              className="absolute top-5 right-5 text-white text-3xl z-50"
+            >
+              ✕
+            </button>
+
+            {/* DESKTOP: left / right side arrows (middle vertically) */}
+            <button
+              onClick={prev}
+              className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 cursor-pointer items-center justify-center px-2 py-2"
+            >
+              <svg
+                className="w-7 h-7"
+                viewBox="0 0 24 24"
+                style={{
+                  filter: "drop-shadow(0 0 4px rgba(0,0,0,0.9))",
+                }}
+              >
+                <path
+                  d="M16 4L8 12l8 8"
+                  stroke="white"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </svg>
+            </button>
+
+            <button
+              onClick={next}
+              className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer items-center justify-center px-2 py-2"
+            >
+              <svg
+                className="w-7 h-7"
+                viewBox="0 0 24 24"
+                style={{
+                  filter: "drop-shadow(0 0 4px rgba(0,0,0,0.9))",
+                }}
+              >
+                <path
+                  d="M8 4l8 8-8 8"
+                  stroke="white"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </svg>
+            </button>
+
+            {/* Centered Image */}
+            <div className="flex justify-center items-center w-full h-dvh px-4">
+              <motion.img
+                key={ourMomentsImages[activeIndex].src}
+                src={ourMomentsImages[activeIndex].src}
+                alt="Fullscreen"
+                className="max-w-full max-h-[80vh] rounded-2xl shadow-2xl mx-auto object-contain"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(_, info) => {
+                  if (info.offset.x < -100) next();
+                  else if (info.offset.x > 100) prev();
+                }}
+                onDrag={(_, info) => {
+                  if (info.offset.y > 100) closeModal();
+                }}
+              />
+            </div>
+
+            {/* MOBILE: bottom arrows only (no circle, double arrow style) */}
+            <div className="absolute inset-x-0 bottom-16 flex flex-col items-center md:hidden">
+              {/* optional text */}
+              {/* <p className="text-[11px] text-white/90 mb-2 tracking-[0.18em] uppercase">
+                Swipe or tap arrows
+              </p> */}
+              <div className="flex items-center gap-10">
+                {/* Left side (tap to previous) */}
+                <button
+                  type="button"
+                  onClick={prev}
+                  className="flex items-center gap-1 active:scale-95"
+                >
+                  {[0, 1].map((i) => (
+                    <div
+                      key={`mobile-left-${i}`}
+                      className={i === 0 ? "" : "-ml-2"}
+                    >
+                      <svg
+                        className="w-7 h-7 animate-bounce"
+                        style={{
+                          animationDelay: `${i * 120}ms`,
+                          filter: "drop-shadow(0 0 4px rgba(0,0,0,0.9))",
+                        }}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M16 4L8 12l8 8"
+                          stroke="white"
+                          strokeWidth="2.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          fill="none"
+                        />
+                      </svg>
+                    </div>
+                  ))}
+                </button>
+
+                {/* Right side (tap to next) */}
+                <button
+                  type="button"
+                  onClick={next}
+                  className="flex items-center gap-1 active:scale-95"
+                >
+                  {[0, 1].map((i) => (
+                    <div
+                      key={`mobile-right-${i}`}
+                      className={i === 0 ? "" : "-ml-2"}
+                    >
+                      <svg
+                        className="w-7 h-7 animate-bounce"
+                        style={{
+                          animationDelay: `${i * 120}ms`,
+                          filter: "drop-shadow(0 0 4px rgba(0,0,0,0.9))",
+                        }}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M8 4l8 8-8 8"
+                          stroke="white"
+                          strokeWidth="2.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          fill="none"
+                        />
+                      </svg>
+                    </div>
+                  ))}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
 
 /**
  * Transform custom `to` param like:
@@ -372,9 +614,6 @@ const scroll2BgVariants = {
 // Shared couple variants – Sections 2 & 3
 // =========================
 
-// hidden: start from bottom-left (when entering from section 1)
-// bride:  final position on the right
-// groom:  final position on the left
 const couple23Variants = {
   hidden: {
     opacity: 1,
@@ -400,7 +639,6 @@ const couple23Variants = {
 // Motion variants – Scroll 4 (Reception)
 // =========================
 
-// Similar to Bride: bg & couple from LEFT
 const scroll4BgVariants = {
   initial: { scale: 2, x: -120, y: 80, opacity: 1 },
   enter: { scale: 1.5, x: 0, y: -160, opacity: 1 },
@@ -415,16 +653,23 @@ const scroll4SubjectVariants = {
 // Motion variants – Scroll 5 (Reception)
 // =========================
 
-// BG: slide/zoom in from RIGHT
 const scroll5BgVariants = {
   initial: { scale: 2, x: 120, y: 80, opacity: 1 },
   enter: { scale: 1, x: 0, y: 0, opacity: 1 },
 };
 
-// Couple photo: comes from RIGHT, ends slightly to the left
 const scroll5SubjectVariants = {
   initial: { opacity: 0, x: 220, y: 80, scale: 2 },
   enter: { opacity: 1, x: 0, y: 0, scale: 1.35 },
+};
+
+// =========================
+// Motion variants – Scroll 6 (Save the Date / Countdown)
+// =========================
+
+const scroll6BgVariants = {
+  initial: { scale: 2, x: -40, y: 120, opacity: 1 },
+  enter: { scale: 1.5, x: -40, y: -180, opacity: 1 },
 };
 
 // =========================
@@ -438,18 +683,25 @@ export default function Invitation() {
   // cover / open state
   const [hasOpened, setHasOpened] = useState(false);
 
+  // QR popup on cover
+  const [showCoverQr, setShowCoverQr] = useState(false);
+
   // scrolling / snapping state
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [currentSection, setCurrentSection] = useState(0);
   const isLockedRef = useRef(false);
-  const totalSections = 5;
+  const totalSections = 8;
+
+  // Modal
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
 
   // recipient & RSVP state
+  const [isEditingRsvp, setIsEditingRsvp] = useState(false);
   const [recipient, setRecipient] = useState<Recipient>({
     mode: "default",
     displayName: "Nama Undangan",
     maxGuests: RSVP_CONFIG.defaultMaxGuests,
-    isAttending: undefined,
+    isAttending: null,
     numAttendeesConfirmed: 1,
     wish: "",
   });
@@ -461,16 +713,25 @@ export default function Invitation() {
     numAttendeesConfirmed: 1,
   });
 
-  const [wishes, setWishes] = useState<{ name: string; wish: string }[]>([
-    {
-      name: "Alice",
-      wish: "Wishing you a lifetime of love and happiness!",
-    },
-    {
-      name: "Bob",
-      wish: "So excited for your big day. Congrats!",
-    },
-  ]);
+  const [wishes, setWishes] = useState<
+    { id: string; name: string; wish: string }[]
+  >([]);
+
+  const startEditRsvp = () => {
+    setForm({
+      name: recipient.displayName,
+      wish: recipient.wish || "",
+      isAttending:
+        typeof recipient.isAttending === "boolean"
+          ? recipient.isAttending
+          : null,
+      numAttendeesConfirmed:
+        recipient.numAttendeesConfirmed && recipient.numAttendeesConfirmed > 0
+          ? recipient.numAttendeesConfirmed
+          : 1,
+    });
+    setIsEditingRsvp(true);
+  };
 
   const [isLoadingGuest, setIsLoadingGuest] = useState(false);
   const [guestError, setGuestError] = useState<string | null>(null);
@@ -541,6 +802,14 @@ export default function Invitation() {
     }
   };
 
+  // countdown to reception
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+
   // -------------------------
   // Preload images + minimum loader duration
   // -------------------------
@@ -600,13 +869,39 @@ export default function Invitation() {
     const params = new URLSearchParams(window.location.search);
     const to = params.get("to");
 
+    // helper: load wishes for this guest id
+    const loadWishesForGuest = (id: string, displayName: string) => {
+      fetch(`${API_URL}/guests/${id}/wishes`)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Failed to fetch wishes");
+          }
+          return res.json();
+        })
+        .then((data) => {
+          const list: GuestApi[] = data?.data || [];
+          const mapped = list
+            .filter((g) => g.wish && g.wish.trim().length > 0)
+            .map((g) => ({
+              id: g.id,
+              name: buildBackendDisplayName(g),
+              wish: g.wish!.trim(),
+            }));
+          setWishes(mapped);
+        })
+        .catch((err) => {
+          console.error("Failed to load wishes", err);
+          setWishes([]);
+        });
+    };
+
     // CASE 1: no `to` -> default mode
     if (!to) {
       const defaultRecipient: Recipient = {
         mode: "default",
         displayName: "Nama Undangan",
         maxGuests: RSVP_CONFIG.defaultMaxGuests,
-        isAttending: undefined,
+        isAttending: null,
         numAttendeesConfirmed: 1,
         wish: "",
       };
@@ -615,7 +910,9 @@ export default function Invitation() {
         ...prev,
         name: defaultRecipient.displayName,
         numAttendeesConfirmed: 1,
+        isAttending: null,
       }));
+      setWishes([]);
       return;
     }
 
@@ -634,19 +931,26 @@ export default function Invitation() {
         .then((data) => {
           const guest: GuestApi = data?.data;
           const displayName = buildBackendDisplayName(guest);
+
           const maxGuests = guest.num_attendees || RSVP_CONFIG.defaultMaxGuests;
+          const confirmedGuests = guest.num_attendees_confirmed;
 
           const backendRecipient: Recipient = {
             mode: "backend",
             id: guest.id,
             displayName,
             maxGuests,
-            isAttending: guest.is_attending,
-            numAttendeesConfirmed: guest.num_attendees || 1,
+            isAttending:
+              typeof guest.is_attending === "boolean"
+                ? guest.is_attending
+                : null,
+            numAttendeesConfirmed:
+              typeof confirmedGuests === "number" ? confirmedGuests : undefined,
             wish: guest.wish || "",
           };
 
           setRecipient(backendRecipient);
+
           setForm({
             name: displayName,
             wish: guest.wish || "",
@@ -655,16 +959,16 @@ export default function Invitation() {
                 ? guest.is_attending
                 : null,
             numAttendeesConfirmed:
-              guest.num_attendees && guest.num_attendees > 0
-                ? guest.num_attendees
+              typeof confirmedGuests === "number" && confirmedGuests > 0
+                ? confirmedGuests
                 : 1,
           });
 
-          if (guest.wish) {
-            setWishes((prev) => [
-              { name: displayName, wish: guest.wish! },
-              ...prev,
-            ]);
+          // Load wishes list for this guest (this guest prioritized by backend)
+          if (guest.id) {
+            loadWishesForGuest(guest.id, displayName);
+          } else {
+            setWishes([]);
           }
         })
         .catch((err: unknown) => {
@@ -674,7 +978,7 @@ export default function Invitation() {
             mode: "default",
             displayName: "Nama Undangan",
             maxGuests: RSVP_CONFIG.defaultMaxGuests,
-            isAttending: undefined,
+            isAttending: null,
             numAttendeesConfirmed: 1,
             wish: "",
           };
@@ -683,7 +987,9 @@ export default function Invitation() {
             ...prev,
             name: fallbackRecipient.displayName,
             numAttendeesConfirmed: 1,
+            isAttending: null,
           }));
+          setWishes([]);
         })
         .finally(() => {
           setIsLoadingGuest(false);
@@ -698,7 +1004,7 @@ export default function Invitation() {
       mode: "custom",
       displayName,
       maxGuests: RSVP_CONFIG.defaultMaxGuests,
-      isAttending: undefined,
+      isAttending: null,
       numAttendeesConfirmed: 1,
       wish: "",
     };
@@ -707,7 +1013,9 @@ export default function Invitation() {
       ...prev,
       name: displayName,
       numAttendeesConfirmed: 1,
+      isAttending: null,
     }));
+    setWishes([]);
   }, []);
 
   // -------------------------
@@ -797,11 +1105,39 @@ export default function Invitation() {
   }, [hasOpened, currentSection, totalSections]);
 
   // -------------------------
+  // Countdown to reception (Save the Date)
+  // -------------------------
+  useEffect(() => {
+    // Using the reception date/time from the const
+    const target = new Date("2026-02-07T18:00:00+07:00").getTime();
+
+    const update = () => {
+      const now = Date.now();
+      let diff = target - now;
+
+      if (diff < 0) diff = 0;
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+
+      setTimeLeft({ days, hours, minutes, seconds });
+    };
+
+    update(); // initial
+    const id = window.setInterval(update, 1000);
+
+    return () => window.clearInterval(id);
+  }, []);
+
+  // -------------------------
   // Handlers: open cover
   // -------------------------
 
   const handleOpen = () => {
     setHasOpened(true);
+    setShowCoverQr(false); // ensure popup closed when leaving cover
 
     const container = scrollContainerRef.current;
     if (container) {
@@ -869,35 +1205,68 @@ export default function Invitation() {
       return;
     }
 
-    if (
-      form.numAttendeesConfirmed < 1 ||
-      form.numAttendeesConfirmed > recipient.maxGuests
-    ) {
-      alert(`Number of guests must be between 1 and ${recipient.maxGuests}.`);
-      return;
+    // Only validate guest count when attending
+    if (form.isAttending === true) {
+      if (
+        form.numAttendeesConfirmed < 1 ||
+        form.numAttendeesConfirmed > recipient.maxGuests
+      ) {
+        alert(`Number of guests must be between 1 and ${recipient.maxGuests}.`);
+        return;
+      }
     }
 
-    setWishes((prev) => [
-      { name: form.name.trim(), wish: form.wish.trim() },
-      ...prev,
-    ]);
+    const numAttendeesForSubmit =
+      form.isAttending === true ? form.numAttendeesConfirmed : 0;
 
+    // Update wishes list locally:
+    // - For backend guests: remove old wish for this guest.id, then prepend new wish
+    // - For non-backend: just prepend with a local id
+    if (form.wish.trim()) {
+      if (recipient.mode === "backend" && recipient.id) {
+        const guestId = recipient.id;
+        setWishes((prev) => {
+          const filtered = prev.filter((w) => w.id !== guestId);
+          return [
+            {
+              id: guestId,
+              name: form.name.trim(),
+              wish: form.wish.trim(),
+            },
+            ...filtered,
+          ];
+        });
+      } else {
+        const localId = `local-${Date.now()}`;
+        setWishes((prev) => [
+          {
+            id: localId,
+            name: form.name.trim(),
+            wish: form.wish.trim(),
+          },
+          ...prev,
+        ]);
+      }
+    }
+
+    // Update local recipient state
     setRecipient((prev) => ({
       ...prev,
-      isAttending: form.isAttending ?? undefined,
-      numAttendeesConfirmed: form.numAttendeesConfirmed,
+      isAttending: form.isAttending,
+      numAttendeesConfirmed: numAttendeesForSubmit,
       wish: form.wish.trim(),
     }));
 
+    // Send to backend if backend guest
     if (recipient.mode === "backend" && recipient.id) {
-      fetch(`${API_URL}/guests/${recipient.id}/rsvp`, {
-        method: "POST",
+      fetch(`${API_URL}/guests/${recipient.id}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          is_attending: form.isAttending,
-          num_attendees: form.numAttendeesConfirmed,
+          is_attending: form.isAttending, // yes/no/null
+          num_attendees_confirmed: numAttendeesForSubmit,
           wish: form.wish.trim(),
           name: form.name.trim(),
         }),
@@ -907,6 +1276,7 @@ export default function Invitation() {
     }
 
     alert("Thank you! Your RSVP has been recorded.");
+    setIsEditingRsvp(false);
   };
 
   // -------------------------
@@ -917,6 +1287,15 @@ export default function Invitation() {
     { length: recipient.maxGuests },
     (_, i) => i + 1
   );
+
+  // show QR only if backend guest + isAttending === true
+  const canShowQr =
+    recipient.mode === "backend" &&
+    !!recipient.id &&
+    recipient.isAttending === true;
+
+  const qrValue =
+    recipient.mode === "backend" && recipient.id ? recipient.id : "";
 
   return (
     <div className="w-full h-dvh flex items-center justify-center bg-black/5 relative">
@@ -1113,10 +1492,7 @@ export default function Invitation() {
                     {/* Soft gradient overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/80 z-10 pointer-events-none" />
 
-                    {/* Shared couple photo – 
-                        1 -> 2: hidden (bottom-left) -> bride (right)
-                        2 -> 3: bride (right) -> groom (left)
-                    */}
+                    {/* Shared couple photo */}
                     <div className="absolute inset-0 flex items-center justify-center z-20">
                       <motion.img
                         src="/assets/scroll23-couple.png"
@@ -1404,7 +1780,6 @@ export default function Invitation() {
                         delay: 0.3,
                       }}
                     >
-                      {/* NEW label */}
                       <p
                         className="text-xs tracking-[0.25em] uppercase text-white/70 mb-3"
                         style={{ fontFamily: fonts.subheading }}
@@ -1412,7 +1787,6 @@ export default function Invitation() {
                         With Love &amp; Gratitude
                       </p>
 
-                      {/* NEW quote */}
                       <p
                         className="text-sm md:text-[17px] leading-snug text-white/90"
                         style={{ fontFamily: fonts.subheading }}
@@ -1428,7 +1802,7 @@ export default function Invitation() {
                       <motion.img
                         src="/assets/scroll5-couple.png"
                         alt="Bride and Groom"
-                        className="max-h-[75vh] w-auto object-contain" // no cropping
+                        className="max-h-[75vh] w-auto object-contain"
                         variants={scroll5SubjectVariants}
                         initial="initial"
                         animate={hasOpened ? "enter" : "initial"}
@@ -1439,182 +1813,489 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                    SECTION 6 – RSVP
+                    SECTION 6 – SAVE THE DATE + COUNTDOWN
                    ========================= */}
                 {currentSection === 5 && (
                   <motion.section
-                    key="section-4"
-                    className="absolute inset-0 h-dvh flex items-center justify-center bg-purple-200 px-4"
+                    key="section-6"
+                    className="absolute inset-0 h-dvh overflow-hidden"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.4, ease: "easeInOut" }}
                   >
-                    <div className="bg-white/90 rounded-xl p-4 shadow max-w-md w-full">
-                      <h3
-                        className="text-xl font-bold text-center mb-2"
+                    {/* Background from bottom */}
+                    <motion.div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{
+                        backgroundImage: "url('/assets/scroll6-bg.jpg')",
+                      }}
+                      variants={scroll6BgVariants}
+                      initial="initial"
+                      animate={hasOpened ? "enter" : "initial"}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                    />
+
+                    {/* Soft dark gradient for readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/0 via-black/20 to-black/40" />
+
+                    {/* Text + countdown at top */}
+                    <motion.div
+                      className="absolute top-10 inset-x-0 px-6 text-center z-20"
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={
+                        hasOpened
+                          ? { opacity: 1, y: 0 }
+                          : { opacity: 0, y: -20 }
+                      }
+                      transition={{
+                        duration: 0.8,
+                        ease: "easeOut",
+                        delay: 0.2,
+                      }}
+                    >
+                      <p
+                        className="text-xs tracking-[0.25em] uppercase text-white/70 mb-2"
                         style={{ fontFamily: fonts.subheading }}
                       >
-                        RSVP
-                      </h3>
-
-                      {isLoadingGuest && (
-                        <p
-                          className="text-sm text-gray-500 mb-2"
-                          style={{ fontFamily: fonts.body }}
-                        >
-                          Loading guest info...
-                        </p>
-                      )}
-
-                      {guestError && (
-                        <p
-                          className="text-xs text-red-600 mb-2"
-                          style={{ fontFamily: fonts.body }}
-                        >
-                          {guestError}
-                        </p>
-                      )}
-
-                      <p
-                        className="text-sm mb-2"
-                        style={{ fontFamily: fonts.body }}
-                      >
-                        Invitee:{" "}
-                        <span className="font-semibold">
-                          {recipient.displayName}
-                        </span>
-                      </p>
-                      <p
-                        className="text-xs mb-4 text-gray-600"
-                        style={{ fontFamily: fonts.body }}
-                      >
-                        Mode: {recipient.mode.toUpperCase()} • Max guests:{" "}
-                        {recipient.maxGuests}
+                        Save the Date
                       </p>
 
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          name="name"
-                          placeholder="Your Name"
-                          className="w-full p-2 rounded border border-gray-300 text-sm"
-                          style={{ fontFamily: fonts.body }}
-                          value={form.name}
-                          onChange={handleChange}
-                        />
+                      <p
+                        className="text-sm md:text-[16px] text-white/90 mb-2"
+                        style={{ fontFamily: fonts.subheading }}
+                      >
+                        Countdown to our wedding reception
+                      </p>
 
-                        <textarea
-                          name="wish"
-                          placeholder="Write your best wishes"
-                          className="w-full p-2 rounded border border-gray-300 text-sm"
-                          style={{ fontFamily: fonts.body }}
-                          rows={3}
-                          value={form.wish}
-                          onChange={handleChange}
-                        />
+                      <p
+                        className="text-xs md:text-sm text-white/70 mb-5"
+                        style={{ fontFamily: fonts.subheading }}
+                      >
+                        {EVENTS.reception.dateText} ·{" "}
+                        {EVENTS.reception.timeText}
+                      </p>
 
-                        <div className="flex items-center gap-4 mb-1 text-sm">
-                          <span
-                            className="min-w-[120px]"
-                            style={{ fontFamily: fonts.body }}
+                      {/* Countdown timer */}
+                      <div className="flex justify-center gap-3 md:gap-4">
+                        {[
+                          { label: "Days", value: timeLeft.days },
+                          { label: "Hours", value: timeLeft.hours },
+                          { label: "Minutes", value: timeLeft.minutes },
+                          { label: "Seconds", value: timeLeft.seconds },
+                        ].map((item) => (
+                          <div
+                            key={item.label}
+                            className="w-16 md:w-18 bg-white/10 border border-white/30 rounded-xl py-2"
                           >
-                            Will you attend?
-                          </span>
-                          <div className="flex gap-4">
-                            <label
-                              className="flex items-center gap-1"
-                              style={{ fontFamily: fonts.body }}
+                            <div
+                              className="text-lg md:text-xl font-semibold text-white"
+                              style={{ fontFamily: fonts.subheading }}
                             >
-                              <input
-                                type="radio"
-                                name="isAttending"
-                                value="yes"
-                                checked={form.isAttending === true}
-                                onChange={handleChange}
-                              />
-                              Yes
-                            </label>
-                            <label
-                              className="flex items-center gap-1"
-                              style={{ fontFamily: fonts.body }}
+                              {String(item.value).padStart(2, "0")}
+                            </div>
+                            <div
+                              className="text-[10px] md:text-xs uppercase tracking-[0.15em] text-white/70 mt-1"
+                              style={{ fontFamily: fonts.subheading }}
                             >
-                              <input
-                                type="radio"
-                                name="isAttending"
-                                value="no"
-                                checked={form.isAttending === false}
-                                onChange={handleChange}
-                              />
-                              No
-                            </label>
+                              {item.label}
+                            </div>
                           </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 flex-wrap mb-2 text-sm">
-                          <span
-                            className="min-w-[120px]"
-                            style={{ fontFamily: fonts.body }}
-                          >
-                            Number of Guests
-                          </span>
-                          <div className="flex gap-3 flex-wrap">
-                            {maxGuestsOptions.map((num) => (
-                              <label
-                                key={num}
-                                className="flex items-center gap-1"
-                                style={{ fontFamily: fonts.body }}
-                              >
-                                <input
-                                  type="radio"
-                                  name="numAttendeesConfirmed"
-                                  value={num}
-                                  checked={form.numAttendeesConfirmed === num}
-                                  onChange={handleChange}
-                                />
-                                {num}
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={handleSubmit}
-                          className="w-full bg-[#E2725B] text-white py-2 rounded text-sm font-semibold"
-                          style={{ fontFamily: fonts.button }}
-                        >
-                          Submit
-                        </button>
+                        ))}
                       </div>
+                    </motion.div>
+                  </motion.section>
+                )}
 
-                      <div className="mt-4">
-                        <h4
-                          className="text-sm font-bold mb-1"
+                {/* =========================
+                    SECTION 7 – RSVP
+                   ========================= */}
+                {currentSection === 6 && (
+                  <motion.section
+                    key="section-7"
+                    className="absolute inset-0 h-dvh overflow-hidden bg-black"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                  >
+                    {/* Dynamic black & white moving background */}
+                    <motion.div
+                      className="absolute inset-0"
+                      style={{
+                        backgroundImage:
+                          "radial-gradient(circle at 15% 0%, rgba(255,255,255,0.16), transparent 55%), radial-gradient(circle at 85% 100%, rgba(255,255,255,0.10), transparent 60%), linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(0,0,0,0.85))",
+                        backgroundSize: "140% 140%, 140% 140%, 100% 100%",
+                      }}
+                      initial={{
+                        backgroundPosition: "0% 0%, 100% 100%, 50% 0%",
+                      }}
+                      animate={{
+                        backgroundPosition: [
+                          "0% 0%, 100% 100%, 50% 0%",
+                          "100% 100%, 0% 0%, 50% 100%",
+                        ],
+                      }}
+                      transition={{
+                        duration: 18,
+                        repeat: Infinity,
+                        repeatType: "reverse",
+                        ease: "easeInOut",
+                      }}
+                    />
+
+                    <div className="relative z-10 flex items-center justify-center h-full px-4">
+                      <div className="bg-white/96 backdrop-blur-sm border border-black/10 rounded-2xl p-4 md:p-5 max-w-md w-full shadow-2xl">
+                        <h3
+                          className="text-[22px] font-bold text-center mb-3 tracking-[0.18em] uppercase text-black"
                           style={{ fontFamily: fonts.subheading }}
                         >
-                          Wishes
-                        </h4>
-                        <ul className="space-y-1 max-h-32 overflow-y-auto">
-                          {wishes.map((w, idx) => (
-                            <li
-                              key={`${w.name}-${idx}`}
-                              className="bg-white border border-gray-200 p-2 rounded"
+                          RSVP
+                        </h3>
+
+                        {/* Loading / error */}
+                        {isLoadingGuest && (
+                          <p
+                            className="text-[12px] text-neutral-500 mb-2 text-center"
+                            style={{ fontFamily: fonts.body }}
+                          >
+                            Loading guest info...
+                          </p>
+                        )}
+
+                        {guestError && (
+                          <p
+                            className="text-[12px] text-red-600 mb-3 text-center"
+                            style={{ fontFamily: fonts.body }}
+                          >
+                            {guestError}
+                          </p>
+                        )}
+
+                        {/* Invitee info */}
+                        <div className="mb-3 text-center">
+                          <p
+                            className="text-[14px]"
+                            style={{ fontFamily: fonts.body }}
+                          >
+                            Invitee:{" "}
+                            <span className="font-semibold">
+                              {recipient.displayName}
+                            </span>
+                          </p>
+                          {recipient.isAttending === true &&
+                          recipient.numAttendeesConfirmed !== undefined ? (
+                            <p
+                              className="text-[11px] text-neutral-500 mt-1"
+                              style={{ fontFamily: fonts.body }}
                             >
-                              <p
-                                className="text-xs italic"
+                              Confirmed guests:{" "}
+                              {recipient.numAttendeesConfirmed}
+                            </p>
+                          ) : (
+                            <p
+                              className="text-[11px] text-neutral-500 mt-1"
+                              style={{ fontFamily: fonts.body }}
+                            >
+                              Maximum guests: {recipient.maxGuests}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* IF RSVP FILLED OR EDITING */}
+                        {!isEditingRsvp && recipient.isAttending === true ? (
+                          // CASE 1: Confirmed attending → QR / pass + Edit button
+                          <div className="mb-4">
+                            <p
+                              className="text-[13px] text-center text-neutral-700 leading-snug"
+                              style={{ fontFamily: fonts.body }}
+                            >
+                              Thank you for confirming your attendance.
+                              <br />
+                              {canShowQr
+                                ? "Please show this QR code at the reception."
+                                : "We look forward to celebrating with you."}
+                            </p>
+
+                            {canShowQr && qrValue && (
+                              <div className="mt-3 flex justify-center">
+                                <div className="bg-white border border-black/60 rounded-xl px-4 py-3 inline-flex flex-col items-center gap-1.5">
+                                  <p
+                                    className="text-[11px] tracking-[0.18em] uppercase text-neutral-500"
+                                    style={{ fontFamily: fonts.subheading }}
+                                  >
+                                    Admission Pass
+                                  </p>
+
+                                  {/* QR Code based on id (same as admin app) */}
+                                  <div className="bg-white p-2 rounded-md">
+                                    <QRCode value={qrValue} size={160} />
+                                  </div>
+
+                                  <p
+                                    className="text-[10px] text-neutral-500 mt-1"
+                                    style={{ fontFamily: fonts.body }}
+                                  >
+                                    {recipient.displayName}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Edit button */}
+                            <div className="mt-4 flex justify-center">
+                              <button
+                                onClick={startEditRsvp}
+                                className="px-4 py-1.5 rounded-full border border-neutral-400 text-[12px] text-neutral-700 hover:bg-neutral-100 transition-colors"
                                 style={{ fontFamily: fonts.body }}
                               >
-                                "{w.wish}"
-                              </p>
-                              <p
-                                className="text-[10px] text-right text-gray-500"
+                                Edit RSVP
+                              </button>
+                            </div>
+                          </div>
+                        ) : !isEditingRsvp &&
+                          recipient.isAttending === false ? (
+                          // CASE 2: RSVP filled but not attending + Edit button
+                          <div className="mb-4">
+                            <p
+                              className="text-[13px] text-center text-neutral-700 leading-snug"
+                              style={{ fontFamily: fonts.body }}
+                            >
+                              Thank you for letting us know.
+                              <br />
+                              We understand you cannot attend, and we truly
+                              appreciate your wishes and prayers.
+                            </p>
+
+                            {/* Edit button */}
+                            <div className="mt-4 flex justify-center">
+                              <button
+                                onClick={startEditRsvp}
+                                className="px-4 py-1.5 rounded-full border border-neutral-400 text-[12px] text-neutral-700 hover:bg-neutral-100 transition-colors"
                                 style={{ fontFamily: fonts.body }}
                               >
-                                — {w.name}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
+                                Edit RSVP
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          // CASE 3: RSVP not filled OR editing → show form
+                          <div className="space-y-3 mb-4">
+                            <div className="space-y-1.5">
+                              <label
+                                className="text-[12px] text-neutral-700"
+                                style={{ fontFamily: fonts.body }}
+                              >
+                                Your Name
+                              </label>
+                              <input
+                                type="text"
+                                name="name"
+                                placeholder="Your Name"
+                                className="w-full px-3 py-2 rounded-md border border-neutral-300 text-[14px] focus:outline-none focus:ring-1 focus:ring-black/70"
+                                style={{ fontFamily: fonts.body }}
+                                value={form.name}
+                                onChange={handleChange}
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label
+                                className="text-[12px] text-neutral-700"
+                                style={{ fontFamily: fonts.body }}
+                              >
+                                Your Best Wishes
+                              </label>
+                              <textarea
+                                name="wish"
+                                placeholder="Write your best wishes"
+                                className="w-full px-3 py-2 rounded-md border border-neutral-300 text-[13px] focus:outline-none focus:ring-1 focus:ring-black/70"
+                                style={{ fontFamily: fonts.body }}
+                                rows={3}
+                                value={form.wish}
+                                onChange={handleChange}
+                              />
+                            </div>
+
+                            {/* Will you attend? – inline radio */}
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <span
+                                className="text-[12px] text-neutral-700"
+                                style={{ fontFamily: fonts.body }}
+                              >
+                                Will you attend?
+                              </span>
+                              <div className="flex gap-4 text-[13px]">
+                                <label
+                                  className="flex items-center gap-1.5"
+                                  style={{ fontFamily: fonts.body }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="isAttending"
+                                    value="yes"
+                                    checked={form.isAttending === true}
+                                    onChange={handleChange}
+                                  />
+                                  Yes
+                                </label>
+                                <label
+                                  className="flex items-center gap-1.5"
+                                  style={{ fontFamily: fonts.body }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="isAttending"
+                                    value="no"
+                                    checked={form.isAttending === false}
+                                    onChange={handleChange}
+                                  />
+                                  No
+                                </label>
+                              </div>
+                            </div>
+
+                            {/* Number of guests – inline options */}
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <span
+                                className="text-[12px] text-neutral-700"
+                                style={{ fontFamily: fonts.body }}
+                              >
+                                Number of Guests
+                              </span>
+                              <div className="flex flex-wrap gap-3 text-[13px]">
+                                {maxGuestsOptions.map((num) => (
+                                  <label
+                                    key={num}
+                                    className="flex items-center gap-1.5"
+                                    style={{ fontFamily: fonts.body }}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name="numAttendeesConfirmed"
+                                      value={num}
+                                      checked={
+                                        form.numAttendeesConfirmed === num
+                                      }
+                                      onChange={handleChange}
+                                      disabled={form.isAttending === false}
+                                    />
+                                    {num}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={handleSubmit}
+                              className="w-full bg-black text-white py-2.5 rounded-full text-[13px] font-semibold tracking-[0.08em] uppercase hover:bg-neutral-900 transition-colors"
+                              style={{ fontFamily: fonts.button }}
+                            >
+                              Submit RSVP
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Wishes (always visible) */}
+                        <div className="mt-3">
+                          <h4
+                            className="text-[14px] font-bold mb-2 text-neutral-900"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            Wishes
+                          </h4>
+                          {wishes.length === 0 ? (
+                            <p
+                              className="text-[12px] text-neutral-500 italic"
+                              style={{ fontFamily: fonts.body }}
+                            >
+                              Be the first to leave a wish. 💌
+                            </p>
+                          ) : (
+                            <ul className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                              {wishes.map((w) => (
+                                <li
+                                  key={w.id}
+                                  className="bg-white border border-neutral-200 p-2 rounded-md"
+                                >
+                                  <p
+                                    className="text-[12px] italic text-neutral-800"
+                                    style={{ fontFamily: fonts.body }}
+                                  >
+                                    "{w.wish}"
+                                  </p>
+                                  <p
+                                    className="text-[10px] text-right text-neutral-500 mt-1"
+                                    style={{ fontFamily: fonts.body }}
+                                  >
+                                    — {w.name}
+                                  </p>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.section>
+                )}
+
+                {/* =========================
+                    SECTION 8 – Gallery
+                   ========================= */}
+                {currentSection === 7 && (
+                  <motion.section
+                    key="section-7"
+                    className="absolute inset-0 h-dvh overflow-hidden bg-black"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                  >
+                    <div className="relative flex flex-col h-full">
+                      {/* Dynamic black & white moving background */}
+                      <motion.div
+                        className="absolute inset-0"
+                        style={{
+                          backgroundImage:
+                            "radial-gradient(circle at 15% 0%, rgba(255,255,255,0.16), transparent 55%), radial-gradient(circle at 85% 100%, rgba(255,255,255,0.10), transparent 60%), linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(0,0,0,0.85))",
+                          backgroundSize: "140% 140%, 140% 140%, 100% 100%",
+                        }}
+                        initial={{
+                          backgroundPosition: "0% 0%, 100% 100%, 50% 0%",
+                        }}
+                        animate={{
+                          backgroundPosition: [
+                            "0% 0%, 100% 100%, 50% 0%",
+                            "100% 100%, 0% 0%, 50% 100%",
+                          ],
+                        }}
+                        transition={{
+                          duration: 18,
+                          repeat: Infinity,
+                          repeatType: "reverse",
+                          ease: "easeInOut",
+                        }}
+                      />
+                      {/* title area */}
+                      <div className="pt-8 pb-8 flex flex-col items-center">
+                        {/* small label changed, no 'Section 8' */}
+
+                        <h2
+                          className="text-3xl text-white"
+                          style={{ fontFamily: "'Dancing Script', cursive" }}
+                        >
+                          Our Moments
+                        </h2>
+                      </div>
+
+                      {/* gallery body */}
+                      <div className="flex-1 overflow-y-auto px-4 pb-6">
+                        <div className="max-w-md mx-auto">
+                          <OurMomentsGallery
+                            onModalChange={setIsGalleryModalOpen}
+                          />
+                        </div>
                       </div>
                     </div>
                   </motion.section>
@@ -1634,6 +2315,7 @@ export default function Invitation() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 1.2, ease: "easeInOut" }}
               >
+                {/* Background */}
                 <div
                   className="absolute inset-0 bg-cover bg-center"
                   style={{
@@ -1643,8 +2325,111 @@ export default function Invitation() {
                   }}
                 />
 
+                {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
 
+                {/* QR shortcut button – ONLY on cover, top-right */}
+                {canShowQr && qrValue && (
+                  <>
+                    <button
+                      onClick={() => setShowCoverQr(true)}
+                      className="absolute top-6 right-6 z-50 rounded-full bg-black/70 backdrop-blur-sm border border-white/40 shadow-lg p-2.5 flex items-center justify-center active:scale-95 transition-transform"
+                      aria-label="Show RSVP QR code"
+                    >
+                      <div className="w-9 h-9 rounded-full border border-white/40 flex items-center justify-center">
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="white"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                          <path d="M14 14h3v3h-3z" />
+                          <path d="M18 18h3v3" />
+                          <path d="M14 21v-2" />
+                        </svg>
+                      </div>
+                    </button>
+
+                    {/* QR Modal on cover */}
+                    <AnimatePresence>
+                      {showCoverQr && (
+                        <motion.div
+                          className="absolute inset-0 z-50 flex items-center justify-center bg-black/60"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.25, ease: "easeInOut" }}
+                          onClick={() => setShowCoverQr(false)}
+                        >
+                          <motion.div
+                            className="bg-white rounded-2xl px-5 py-4 max-w-xs w-[85%] shadow-2xl relative"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: "easeOut" }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => setShowCoverQr(false)}
+                              className="absolute top-2 right-2 text-neutral-400 hover:text-neutral-700"
+                              aria-label="Close"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            </button>
+
+                            <p
+                              className="text-[13px] text-center text-neutral-700 mb-3 leading-snug"
+                              style={{ fontFamily: fonts.body }}
+                            >
+                              Please show this QR code at the reception.
+                            </p>
+
+                            <div className="flex justify-center">
+                              <div className="bg-white border border-black/60 rounded-xl px-4 py-3 inline-flex flex-col items-center gap-1.5">
+                                <p
+                                  className="text-[11px] tracking-[0.18em] uppercase text-neutral-500"
+                                  style={{ fontFamily: fonts.subheading }}
+                                >
+                                  Admission Pass
+                                </p>
+
+                                <div className="bg-white p-2 rounded-md">
+                                  <QRCode value={qrValue} size={160} />
+                                </div>
+
+                                <p
+                                  className="text-[10px] text-neutral-500 mt-1"
+                                  style={{ fontFamily: fonts.body }}
+                                >
+                                  {recipient.displayName}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
+
+                {/* Main cover content */}
                 <div className="relative z-10 w-full px-6 pb-12 text-center">
                   <p
                     className="text-lg font-light mb-1"
@@ -1698,9 +2483,10 @@ export default function Invitation() {
       </motion.div>
 
       {/* Global overlay for music button + scroll-down arrows aligned to phone */}
-      {isLoaded && hasOpened && (
+      {isLoaded && hasOpened && !isGalleryModalOpen && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="relative max-w-[480px] w-full h-dvh pointer-events-none">
+            {/* Music button (always visible once opened, including last section) */}
             <div className="absolute inset-x-0 bottom-2.5 flex justify-center pointer-events-none">
               <div className="pointer-events-auto">
                 <MusicToggle
@@ -1710,26 +2496,29 @@ export default function Invitation() {
               </div>
             </div>
 
-            <div className="absolute inset-x-0 bottom-6 flex flex-col items-center pointer-events-none">
-              {[0, 1].map((i) => (
-                <div key={i} className={i === 0 ? "" : "-mt-3"}>
-                  <svg
-                    className="w-8 h-8 animate-bounce"
-                    style={{ animationDelay: `${i * 120}ms` }}
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M4 16l8-8 8 8"
-                      stroke="white"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      fill="none"
-                    />
-                  </svg>
-                </div>
-              ))}
-            </div>
+            {/* Scroll-down arrows (hidden on last section) */}
+            {currentSection !== totalSections - 1 && (
+              <div className="absolute inset-x-0 bottom-6 flex flex-col items-center pointer-events-none">
+                {[0, 1].map((i) => (
+                  <div key={i} className={i === 0 ? "" : "-mt-3"}>
+                    <svg
+                      className="w-8 h-8 animate-bounce"
+                      style={{ animationDelay: `${i * 120}ms` }}
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M4 16l8-8 8 8"
+                        stroke="white"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fill="none"
+                      />
+                    </svg>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
