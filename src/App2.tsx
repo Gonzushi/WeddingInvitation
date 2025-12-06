@@ -136,6 +136,8 @@ const SCROLL4_FRAMES = [
   "/assets/scroll4-dance8.png",
 ];
 
+const PRELOAD_URLS = [...IMAGE_URLS, ...SCROLL4_FRAMES];
+
 // =========================
 // Helpers
 // =========================
@@ -418,13 +420,13 @@ const scroll4SubjectVariants = {
 // BG: slide/zoom in from RIGHT
 const scroll5BgVariants = {
   initial: { scale: 2, x: 120, y: 80, opacity: 1 },
-  enter: { scale: 1.5, x: 0, y: -160, opacity: 1 },
+  enter: { scale: 1, x: 0, y: 0, opacity: 1 },
 };
 
 // Couple photo: comes from RIGHT, ends slightly to the left
 const scroll5SubjectVariants = {
   initial: { opacity: 0, x: 220, y: 80, scale: 2 },
-  enter: { opacity: 1, x: 80, y: -110, scale: 2 },
+  enter: { opacity: 1, x: 0, y: 0, scale: 1.35 },
 };
 
 // =========================
@@ -561,7 +563,7 @@ export default function Invitation() {
       }, delay);
     };
 
-    if (IMAGE_URLS.length === 0) {
+    if (PRELOAD_URLS.length === 0) {
       markLoadedWhenReady();
       return () => {
         if (timeoutId) window.clearTimeout(timeoutId);
@@ -573,12 +575,12 @@ export default function Invitation() {
     const onImgDone = () => {
       if (isCancelled) return;
       loadedCount += 1;
-      if (loadedCount === IMAGE_URLS.length) {
+      if (loadedCount === PRELOAD_URLS.length) {
         markLoadedWhenReady();
       }
     };
 
-    IMAGE_URLS.forEach((src) => {
+    PRELOAD_URLS.forEach((src) => {
       const img = new Image();
       img.src = src;
       img.onload = onImgDone;
@@ -1378,7 +1380,7 @@ export default function Invitation() {
                     <motion.div
                       className="absolute inset-0 bg-cover bg-center"
                       style={{
-                        backgroundImage: "url('/assets/scroll1-bg.jpg')",
+                        backgroundImage: "url('/assets/scroll5-bg.jpg')",
                       }}
                       variants={scroll5BgVariants}
                       initial="initial"
@@ -1404,28 +1406,31 @@ export default function Invitation() {
                         delay: 0.3,
                       }}
                     >
+                      {/* NEW label */}
                       <p
                         className="text-xs tracking-[0.25em] uppercase text-white/70 mb-3"
                         style={{ fontFamily: fonts.subheading }}
                       >
-                        Our Journey
+                        With Love &amp; Gratitude
                       </p>
+
+                      {/* NEW quote */}
                       <p
                         className="text-sm md:text-[17px] leading-snug text-white/90"
                         style={{ fontFamily: fonts.subheading }}
                       >
-                        “When two souls find home in each other,
+                        “Your presence is our greatest gift,
                         <br />
-                        they become inseparable.”
+                        and your prayers our greatest blessing.”
                       </p>
                     </motion.div>
 
                     {/* Couple with scroll5 subject animation */}
-                    <div className="absolute inset-0 flex justify-center">
+                    <div className="absolute inset-0 flex justify-center items-center">
                       <motion.img
-                        src="/assets/scroll1-couple.png"
+                        src="/assets/scroll5-couple.png"
                         alt="Bride and Groom"
-                        className="w-full max-w-xs object-cover"
+                        className="max-h-[75vh] w-auto object-contain" // no cropping
                         variants={scroll5SubjectVariants}
                         initial="initial"
                         animate={hasOpened ? "enter" : "initial"}
