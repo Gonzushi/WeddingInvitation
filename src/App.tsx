@@ -392,7 +392,7 @@ function ScrollSection({
                 className="relative bg-white p-6 rounded-lg  flex flex-col items-center"
                 onDoubleClick={(e) => e.stopPropagation()} // Prevent double-click inside from closing
               >
-                <QRCode value={recipient.id} size={256} />
+                <QRCode value={recipient.id ? recipient.id : "542a4062-bece-4d6b-b6d8-c5011ef55667"} size={256} />
                 <p className="text-center text-sm max-w-xs text-[#E2725B] mt-8">
                   Please present this QR code when attending the wedding. It
                   helps us confirm your attendance quickly at the venue.
