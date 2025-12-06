@@ -1189,7 +1189,7 @@ export default function Invitation() {
                       className="text-6xl font-bold"
                       style={{ fontFamily: fonts.heading }}
                     >
-                      4
+                      BELOM BERES
                     </span>
                   </motion.section>
                 )}
