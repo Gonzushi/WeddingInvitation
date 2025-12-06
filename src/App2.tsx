@@ -119,10 +119,8 @@ const IMAGE_URLS = [
   "/assets/scroll1-couple.png",
   "/assets/scroll23-bg.jpg",
   "/assets/scroll23-couple.png",
-  "/assets/scroll2-bg.jpg",
-  "/assets/scroll2-bride.png",
-  "/assets/scroll3-bg.jpg",
-  "/assets/scroll3-groom.png",
+  "/assets/scroll4-bg.jpg",
+  "/assets/scroll4-couple.png",
 ];
 
 const SCROLL4_FRAMES = [
