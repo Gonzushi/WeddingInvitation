@@ -341,10 +341,10 @@ const scroll5BgVariants = {
 };
 
 // Couple photo: comes from RIGHT, ends slightly to the left
-const scroll5SubjectVariants = {
-  initial: { opacity: 0, x: 220, y: 80, scale: 2 },
-  enter: { opacity: 1, x: 80, y: -110, scale: 2 },
-};
+// const scroll5SubjectVariants = {
+//   initial: { opacity: 0, x: 220, y: 80, scale: 2 },
+//   enter: { opacity: 1, x: 80, y: -110, scale: 2 },
+// };
 
 // =========================
 // Main Component
