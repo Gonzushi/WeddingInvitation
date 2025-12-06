@@ -323,11 +323,6 @@ export default function Invitation() {
   const isLockedRef = useRef(false);
   const totalSections = 5;
 
-  // scroll direction (kept for potential logic, not used in anim now)
-  const [scrollDirection, setScrollDirection] = useState<"up" | "down" | null>(
-    null
-  );
-
   // recipient & RSVP state
   const [recipient, setRecipient] = useState<Recipient>({
     mode: "default",
@@ -614,8 +609,6 @@ export default function Invitation() {
       const newSection = Math.round(newScrollTop / sectionHeight);
 
       if (newSection !== currentSection) {
-        setScrollDirection(newSection > currentSection ? "down" : "up");
-
         isLockedRef.current = true;
         const clampedSection = Math.max(
           0,
@@ -638,7 +631,6 @@ export default function Invitation() {
       isLockedRef.current = false;
       setHasOpened(false);
       setCurrentSection(0);
-      setScrollDirection(null);
       container.scrollTo({ top: 0, behavior: "auto" });
     };
 
@@ -689,7 +681,6 @@ export default function Invitation() {
 
   const handleOpen = () => {
     setHasOpened(true);
-    setScrollDirection("down");
 
     const container = scrollContainerRef.current;
     if (container) {
@@ -1484,7 +1475,7 @@ export default function Invitation() {
                     viewBox="0 0 24 24"
                   >
                     <path
-                      d="M4 8l8 8 8-8"
+                      d="M4 16l8-8 8 8"
                       stroke="white"
                       strokeWidth="2.5"
                       strokeLinecap="round"
