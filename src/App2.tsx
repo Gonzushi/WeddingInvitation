@@ -82,11 +82,11 @@ const EVENTS = {
   reception: {
     label: "Reception",
     dateText: "Saturday, 07 February 2026",
-    timeText: "",
+    timeText: "18.00 WIB",
     venueName: "Aston Bogor Hotel & Resort",
     locationText: "Bogor, Jawa Barat",
     mapsUrl:
-      "https://www.google.com/maps/place/Aston+Bogor+Hotel+%26+Resort/@-6.6363804,106.7929638,17z",
+      "https://www.google.com/maps/place/Aston+Bogor+Hotel+%26+Resort/@-6.6385245,106.7945357,16.61z/data=!4m9!3m8!1s0x2e69c5ee5f871091:0xc58549234bdf7d7c!5m2!4m1!1i2!8m2!3d-6.6363857!4d106.7955387!16s%2Fg%2F1jkwh91z1?entry=ttu&g_ep=EgoyMDI1MTIwMi4wIKXMDSoASAFQAw%3D%3D",
   },
 };
 
@@ -114,6 +114,8 @@ const IMAGE_URLS = [
   "/assets/scroll2-bride.png",
   "/assets/scroll3-bg.jpg",
   "/assets/scroll3-groom.png",
+  "/assets/scroll4-bg.jpg",
+  "/assets/scroll4-couple.png",
 ];
 
 // =========================
@@ -304,6 +306,21 @@ const scroll3BgVariants = {
 const scroll3SubjectVariants = {
   initial: { opacity: 1, x: 200, y: 80, scale: 1.1 },
   enter: { opacity: 1, x: 0, y: 0, scale: 1 },
+};
+
+// =========================
+// Motion variants – Scroll 4 (Reception)
+// =========================
+
+// Similar to Bride: bg & couple from LEFT
+const scroll4BgVariants = {
+  initial: { scale: 2, x: -120, y: 80, opacity: 1 },
+  enter: { scale: 1.5, x: 0, y: -160, opacity: 1 },
+};
+
+const scroll4SubjectVariants = {
+  initial: { opacity: 1, x: -200, y: 80, scale: 2 },
+  enter: { opacity: 1, x: -80, y: -110, scale: 2 },
 };
 
 // =========================
@@ -1174,23 +1191,128 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                    SECTION 4 – placeholder
+                    SECTION 4 – RECEPTION INFO
                    ========================= */}
                 {currentSection === 3 && (
                   <motion.section
                     key="section-3"
-                    className="absolute inset-0 h-dvh flex items-center justify-center bg-pink-200"
+                    className="absolute inset-0 h-dvh overflow-hidden"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.4, ease: "easeInOut" }}
                   >
-                    <span
-                      className="text-6xl font-bold"
-                      style={{ fontFamily: fonts.heading }}
+                    {/* Background – from left */}
+                    <motion.div
+                      className="absolute inset-0 bg-cover bg-center z-0"
+                      style={{
+                        backgroundImage: "url('/assets/scroll4-bg.jpg')",
+                      }}
+                      variants={scroll4BgVariants}
+                      initial="initial"
+                      animate={hasOpened ? "enter" : "initial"}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                    />
+
+                    {/* Gradient overlay for readability (lighter) */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/60 z-10 pointer-events-none" />
+
+                    {/* Couple photo – centered, not cropped */}
+                    <div className="absolute inset-0 flex justify-center items-center z-20">
+                      <motion.img
+                        src="/assets/scroll4-couple.png"
+                        alt="Wedding Reception"
+                        className="max-h-[75%] w-auto object-contain"
+                        variants={scroll4SubjectVariants}
+                        initial="initial"
+                        animate={hasOpened ? "enter" : "initial"}
+                        transition={{
+                          duration: 1.5,
+                          ease: "easeOut",
+                        }}
+                      />
+                    </div>
+
+                    {/* Reception text – top left */}
+                    <motion.div
+                      className="absolute top-10 left-6 right-10 z-30 text-left"
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={
+                        hasOpened
+                          ? { opacity: 1, y: 0 }
+                          : { opacity: 0, y: -20 }
+                      }
+                      transition={{
+                        duration: 0.6,
+                        ease: "easeOut",
+                        delay: 0.15,
+                      }}
                     >
-                      BELOM BERES
-                    </span>
+                      {/* Removed small 'Reception' label */}
+
+                      <p
+                        className="text-2xl md:text-3xl text-white mb-2"
+                        style={{ fontFamily: fonts.heading }}
+                      >
+                        Wedding Reception
+                      </p>
+
+                      <div className="space-y-1 mb-3">
+                        <p
+                          className="text-sm md:text-base text-white/85"
+                          style={{ fontFamily: fonts.subheading }}
+                        >
+                          {EVENTS.reception.dateText}
+                        </p>
+                        {EVENTS.reception.timeText && (
+                          <p
+                            className="text-sm md:text-base text-white/80"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            {EVENTS.reception.timeText}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1 mb-4">
+                        <p
+                          className="text-sm md:text-base text-white font-semibold"
+                          style={{ fontFamily: fonts.subheading }}
+                        >
+                          {EVENTS.reception.venueName}
+                        </p>
+                        <p
+                          className="text-xs md:text-sm text-white/80"
+                          style={{ fontFamily: fonts.body }}
+                        >
+                          {EVENTS.reception.locationText}
+                        </p>
+                      </div>
+
+                      {/* Elegant Google Maps button */}
+                      <a
+                        href={EVENTS.reception.mapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/70 text-white text-xs md:text-sm font-semibold shadow-md backdrop-blur-sm hover:bg-white/20 hover:border-white transition-colors"
+                        style={{ fontFamily: fonts.button }}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.7"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z" />
+                          <circle cx="12" cy="10" r="2.5" />
+                        </svg>
+                        <span>Open in Google Maps</span>
+                      </a>
+                    </motion.div>
                   </motion.section>
                 )}
 
