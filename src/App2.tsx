@@ -870,7 +870,7 @@ export default function Invitation() {
     const to = params.get("to");
 
     // helper: load wishes for this guest id
-    const loadWishesForGuest = (id: string, displayName: string) => {
+    const loadWishesForGuest = (id: string) => {
       fetch(`${API_URL}/guests/${id}/wishes`)
         .then((res) => {
           if (!res.ok) {
@@ -966,7 +966,7 @@ export default function Invitation() {
 
           // Load wishes list for this guest (this guest prioritized by backend)
           if (guest.id) {
-            loadWishesForGuest(guest.id, displayName);
+            loadWishesForGuest(guest.id);
           } else {
             setWishes([]);
           }
