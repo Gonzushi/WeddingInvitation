@@ -63,8 +63,8 @@ const COUPLE = {
   groom: {
     fullName: "Haryanto Kartawijaya",
     shortName: "Hary",
-    fatherName: "Mr. Peng Cheong",
-    motherName: "Mrs. Marijani",
+    fatherName: "Mr. Liauw Sui Kian",
+    motherName: "Mrs. Tan Siok Mei",
     instagram: "haryantokartawijaya",
   },
 };
@@ -110,12 +110,12 @@ const IMAGE_URLS = [
   "/assets/main.jpg",
   "/assets/scroll1-bg.jpg",
   "/assets/scroll1-couple.png",
+  "/assets/scroll23-bg.jpg",
+  "/assets/scroll23-couple.png",
   "/assets/scroll2-bg.jpg",
   "/assets/scroll2-bride.png",
   "/assets/scroll3-bg.jpg",
   "/assets/scroll3-groom.png",
-  "/assets/scroll4-bg.jpg",
-  "/assets/scroll4-couple.png",
 ];
 
 // =========================
@@ -284,28 +284,35 @@ const scroll1SubjectVariants = {
 // BG: smooth, slight zoom + slide in, but NO fade from black
 const scroll2BgVariants = {
   initial: { scale: 2, x: -120, y: 80, opacity: 1 },
-  enter: { scale: 1, x: 0, y: 0, opacity: 1 },
-};
-
-// Bride photo: pops in from LEFT to center
-const scroll2SubjectVariants = {
-  initial: { opacity: 1, x: -200, y: 80, scale: 1.1 },
-  enter: { opacity: 1, x: 0, y: 0, scale: 1 },
+  enter: { scale: 1.5, x: 0, y: -160, opacity: 1 },
 };
 
 // =========================
-// Motion variants – Scroll 3 (Groom)
+// Shared couple variants – Sections 2 & 3
 // =========================
 
-const scroll3BgVariants = {
-  initial: { scale: 2, x: 120, y: 80, opacity: 1 },
-  enter: { scale: 1, x: 0, y: 0, opacity: 1 },
-};
-
-// Groom photo: pops in from RIGHT to center
-const scroll3SubjectVariants = {
-  initial: { opacity: 1, x: 200, y: 80, scale: 1.1 },
-  enter: { opacity: 1, x: 0, y: 0, scale: 1 },
+// hidden: start from bottom-left (when entering from section 1)
+// bride:  final position on the right
+// groom:  final position on the left
+const couple23Variants = {
+  hidden: {
+    opacity: 1,
+    x: -300, // left
+    y: 200, // bottom
+    scale: 2,
+  },
+  bride: {
+    opacity: 1,
+    x: -70, // right side
+    y: -150,
+    scale: 2,
+  },
+  groom: {
+    opacity: 1,
+    x: -250, // left side
+    y: -150,
+    scale: 2,
+  },
 };
 
 // =========================
@@ -321,6 +328,22 @@ const scroll4BgVariants = {
 const scroll4SubjectVariants = {
   initial: { opacity: 1, x: -200, y: 80, scale: 2 },
   enter: { opacity: 1, x: -80, y: -110, scale: 2 },
+};
+
+// =========================
+// Motion variants – Scroll 5 (Reception)
+// =========================
+
+// BG: slide/zoom in from RIGHT
+const scroll5BgVariants = {
+  initial: { scale: 2, x: 120, y: 80, opacity: 1 },
+  enter: { scale: 1.5, x: 0, y: -160, opacity: 1 },
+};
+
+// Couple photo: comes from RIGHT, ends slightly to the left
+const scroll5SubjectVariants = {
+  initial: { opacity: 0, x: 220, y: 80, scale: 2 },
+  enter: { opacity: 1, x: 80, y: -110, scale: 2 },
 };
 
 // =========================
@@ -931,7 +954,7 @@ export default function Invitation() {
                     />
 
                     {/* Soft gradient overlay for readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/80" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-black/20 to-black/80" />
 
                     {/* Verse at top center */}
                     <motion.div
@@ -983,22 +1006,22 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                    SECTION 2 – BRIDE PROFILE
-                   ========================= */}
-                {currentSection === 1 && (
+                    SECTION 2 & 3 – BRIDE & GROOM SHARED SCENE
+                  ========================= */}
+                {(currentSection === 1 || currentSection === 2) && (
                   <motion.section
-                    key="section-1"
+                    key="section-1-2"
                     className="absolute inset-0 h-dvh overflow-hidden"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.4, ease: "easeInOut" }}
                   >
-                    {/* Background image – smooth, zoom/slide from left-ish */}
+                    {/* Background image – same for both Bride & Groom */}
                     <motion.div
                       className="absolute inset-0 bg-cover bg-center z-0"
                       style={{
-                        backgroundImage: "url('/assets/scroll2-bg.jpg')",
+                        backgroundImage: "url('/assets/scroll23-bg.jpg')",
                       }}
                       variants={scroll2BgVariants}
                       initial="initial"
@@ -1009,184 +1032,141 @@ export default function Invitation() {
                     {/* Soft gradient overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/80 z-10 pointer-events-none" />
 
-                    {/* Bride photo */}
-                    <div className="absolute inset-0 flex justify-center z-20">
+                    {/* Shared couple photo – 
+                        1 -> 2: hidden (bottom-left) -> bride (right)
+                        2 -> 3: bride (right) -> groom (left)
+                    */}
+                    <div className="absolute inset-0 flex items-center justify-center z-20">
                       <motion.img
-                        src="/assets/scroll2-bride.png"
-                        alt={COUPLE.bride.fullName}
-                        className="w-full max-w-xs object-cover"
-                        variants={scroll2SubjectVariants}
-                        initial="initial"
-                        animate={hasOpened ? "enter" : "initial"}
+                        src="/assets/scroll23-couple.png"
+                        alt="Bride and Groom"
+                        className="max-h-[80%] w-auto object-contain"
+                        variants={couple23Variants}
+                        initial="hidden"
+                        animate={currentSection === 1 ? "bride" : "groom"}
                         transition={{
                           duration: 1.5,
-                          ease: "easeOut",
+                          ease: "easeInOut",
                         }}
                       />
                     </div>
 
-                    {/* Bride text */}
-                    <motion.div
-                      className="absolute top-10 inset-x-0 px-6 text-center z-30"
-                      initial={{ opacity: 0, y: -20 }}
-                      animate={
-                        hasOpened
-                          ? { opacity: 1, y: 0 }
-                          : { opacity: 0, y: -20 }
-                      }
-                      transition={{
-                        duration: 0.6,
-                        ease: "easeOut",
-                        delay: 0.1,
-                      }}
-                    >
-                      <p
-                        className="text-xs tracking-[0.25em] uppercase text-white/70 mb-2"
-                        style={{ fontFamily: fonts.subheading }}
-                      >
-                        The Bride
-                      </p>
-
-                      <p
-                        className="text-3xl md:text-4xl text-white mb-2"
-                        style={{ fontFamily: fonts.heading }}
-                      >
-                        {COUPLE.bride.fullName}
-                      </p>
-
-                      <p
-                        className="text-sm md:text-base text-white/80 mb-2"
-                        style={{ fontFamily: fonts.subheading }}
-                      >
-                        Daughter of{" "}
-                        <span className="font-semibold">
-                          {COUPLE.bride.fatherName}
-                        </span>{" "}
-                        &amp;{" "}
-                        <span className="font-semibold">
-                          {COUPLE.bride.motherName}
-                        </span>
-                      </p>
-
-                      <p
-                        className="text-sm md:text-base text-white/70"
-                        style={{ fontFamily: fonts.subheading }}
-                      >
-                        Instagram:{" "}
-                        <a
-                          href={`https://instagram.com/${COUPLE.bride.instagram}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline underline-offset-2"
+                    {/* Text blocks – Bride (left) fades out, Groom (right) fades in */}
+                    <AnimatePresence mode="wait">
+                      {currentSection === 1 && (
+                        <motion.div
+                          key="bride-text"
+                          className="absolute top-10 left-6 right-28 z-30 text-left"
+                          initial={{ opacity: 0, y: -20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{
+                            duration: 0.4,
+                            ease: "easeOut",
+                          }}
                         >
-                          @{COUPLE.bride.instagram}
-                        </a>
-                      </p>
-                    </motion.div>
-                  </motion.section>
-                )}
+                          <p
+                            className="text-xs tracking-[0.25em] uppercase text-white/70 mb-2"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            The Bride
+                          </p>
 
-                {/* =========================
-                    SECTION 3 – GROOM PROFILE
-                   ========================= */}
-                {currentSection === 2 && (
-                  <motion.section
-                    key="section-2"
-                    className="absolute inset-0 h-dvh overflow-hidden"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, ease: "easeInOut" }}
-                  >
-                    {/* Background image – smooth, zoom/slide from right-ish */}
-                    <motion.div
-                      className="absolute inset-0 bg-cover bg-center z-0"
-                      style={{
-                        backgroundImage: "url('/assets/scroll3-bg.jpg')",
-                      }}
-                      variants={scroll3BgVariants}
-                      initial="initial"
-                      animate={hasOpened ? "enter" : "initial"}
-                      transition={{ duration: 1.5, ease: "easeOut" }}
-                    />
+                          <p
+                            className="text-3xl md:text-4xl text-white mb-2"
+                            style={{ fontFamily: fonts.heading }}
+                          >
+                            {COUPLE.bride.fullName}
+                          </p>
 
-                    {/* Soft gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/80 z-10 pointer-events-none" />
+                          <p
+                            className="text-sm md:text-base text-white/80 mb-2"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            Daughter of{" "}
+                            <span className="font-semibold">
+                              {COUPLE.bride.fatherName}
+                            </span>{" "}
+                            &amp;{" "}
+                            <span className="font-semibold">
+                              {COUPLE.bride.motherName}
+                            </span>
+                          </p>
 
-                    {/* Groom photo */}
-                    <div className="absolute inset-0 flex justify-center z-20">
-                      <motion.img
-                        src="/assets/scroll3-groom.png"
-                        alt={COUPLE.groom.fullName}
-                        className="w-full max-w-xs object-cover"
-                        variants={scroll3SubjectVariants}
-                        initial="initial"
-                        animate={hasOpened ? "enter" : "initial"}
-                        transition={{
-                          duration: 1.5,
-                          ease: "easeOut",
-                        }}
-                      />
-                    </div>
+                          <p
+                            className="text-sm md:text-base text-white/70"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            Instagram:{" "}
+                            <a
+                              href={`https://instagram.com/${COUPLE.bride.instagram}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="underline underline-offset-2"
+                            >
+                              @{COUPLE.bride.instagram}
+                            </a>
+                          </p>
+                        </motion.div>
+                      )}
 
-                    {/* Groom text */}
-                    <motion.div
-                      className="absolute top-10 inset-x-0 px-6 text-center z-30"
-                      initial={{ opacity: 0, y: -20 }}
-                      animate={
-                        hasOpened
-                          ? { opacity: 1, y: 0 }
-                          : { opacity: 0, y: -20 }
-                      }
-                      transition={{
-                        duration: 0.6,
-                        ease: "easeOut",
-                        delay: 0.1,
-                      }}
-                    >
-                      <p
-                        className="text-xs tracking-[0.25em] uppercase text-white/70 mb-2"
-                        style={{ fontFamily: fonts.subheading }}
-                      >
-                        The Groom
-                      </p>
-
-                      <p
-                        className="text-3xl md:text-4xl text-white mb-2"
-                        style={{ fontFamily: fonts.heading }}
-                      >
-                        {COUPLE.groom.fullName}
-                      </p>
-
-                      <p
-                        className="text-sm md:text-base text-white/80 mb-2"
-                        style={{ fontFamily: fonts.subheading }}
-                      >
-                        Son of{" "}
-                        <span className="font-semibold">
-                          {COUPLE.groom.fatherName}
-                        </span>{" "}
-                        &amp;{" "}
-                        <span className="font-semibold">
-                          {COUPLE.groom.motherName}
-                        </span>
-                      </p>
-
-                      <p
-                        className="text-sm md:text-base text-white/70"
-                        style={{ fontFamily: fonts.subheading }}
-                      >
-                        Instagram:{" "}
-                        <a
-                          href={`https://instagram.com/${COUPLE.groom.instagram}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline underline-offset-2"
+                      {currentSection === 2 && (
+                        <motion.div
+                          key="groom-text"
+                          className="absolute top-10 left-28 right-6 z-30 text-right"
+                          initial={{ opacity: 0, y: -20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{
+                            duration: 0.4,
+                            ease: "easeOut",
+                          }}
                         >
-                          @{COUPLE.groom.instagram}
-                        </a>
-                      </p>
-                    </motion.div>
+                          <p
+                            className="text-xs tracking-[0.25em] uppercase text-white/70 mb-2"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            The Groom
+                          </p>
+
+                          <p
+                            className="text-3xl md:text-4xl text-white mb-2"
+                            style={{ fontFamily: fonts.heading }}
+                          >
+                            {COUPLE.groom.fullName}
+                          </p>
+
+                          <p
+                            className="text-sm md:text-base text-white/80 mb-2"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            Son of{" "}
+                            <span className="font-semibold">
+                              {COUPLE.groom.fatherName}
+                            </span>{" "}
+                            &amp;{" "}
+                            <span className="font-semibold">
+                              {COUPLE.groom.motherName}
+                            </span>
+                          </p>
+
+                          <p
+                            className="text-sm md:text-base text-white/70"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            Instagram:{" "}
+                            <a
+                              href={`https://instagram.com/${COUPLE.groom.instagram}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="underline underline-offset-2"
+                            >
+                              @{COUPLE.groom.instagram}
+                            </a>
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.section>
                 )}
 
@@ -1317,9 +1297,151 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                    SECTION 5 – RSVP
-                   ========================= */}
+                    SECTION 5 – RECEPTION INFO
+                    ========================= */}
                 {currentSection === 4 && (
+                  <motion.section
+                    key="section-4"
+                    className="absolute inset-0 h-dvh overflow-hidden"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                  >
+                    {/* Background – from right */}
+                    <motion.div
+                      className="absolute inset-0 bg-cover bg-center z-0"
+                      style={{
+                        backgroundImage: "url('/assets/scroll5-bg.jpg')",
+                      }}
+                      variants={scroll5BgVariants}
+                      initial="initial"
+                      animate={hasOpened ? "enter" : "initial"}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                    />
+
+                    {/* Gradient overlay for readability (lighter) */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/60 z-10 pointer-events-none" />
+
+                    {/* Couple photo – from right */}
+                    {/* <div className="absolute inset-0 flex justify-center items-center z-20">
+                      <motion.img
+                        src="/assets/scroll5-couple.png"
+                        alt="Wedding Reception"
+                        className="max-h-[75%] w-auto object-contain"
+                        variants={scroll5SubjectVariants}
+                        initial="initial"
+                        animate={hasOpened ? "enter" : "initial"}
+                        transition={{
+                          duration: 1.5,
+                          ease: "easeOut",
+                        }}
+                      />
+                    </div> */}
+
+                    {/* Verse + Reception text – top left */}
+                    <motion.div
+                      className="absolute top-10 left-6 right-10 z-30 text-left"
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={
+                        hasOpened
+                          ? { opacity: 1, y: 0 }
+                          : { opacity: 0, y: -20 }
+                      }
+                      transition={{
+                        duration: 0.6,
+                        ease: "easeOut",
+                        delay: 0.15,
+                      }}
+                    >
+                      {/* Verse block – same style as 'Our Journey' */}
+                      <div className="mb-5">
+                        <p
+                          className="text-xs tracking-[0.25em] uppercase text-white/70 mb-2"
+                          style={{ fontFamily: fonts.subheading }}
+                        >
+                          Our Verse
+                        </p>
+                        <p
+                          className="text-sm md:text-[15px] leading-snug text-white/90"
+                          style={{ fontFamily: fonts.subheading }}
+                        >
+                          “You can put another verse here,
+                          <br />
+                          just like the one in Our Journey.”
+                        </p>
+                      </div>
+
+                      <p
+                        className="text-2xl md:text-3xl text-white mb-2"
+                        style={{ fontFamily: fonts.heading }}
+                      >
+                        Wedding Reception
+                      </p>
+
+                      <div className="space-y-1 mb-3">
+                        <p
+                          className="text-sm md:text-base text-white/85"
+                          style={{ fontFamily: fonts.subheading }}
+                        >
+                          {EVENTS.reception.dateText}
+                        </p>
+                        {EVENTS.reception.timeText && (
+                          <p
+                            className="text-sm md:text-base text-white/80"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            {EVENTS.reception.timeText}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1 mb-4">
+                        <p
+                          className="text-sm md:text-base text-white font-semibold"
+                          style={{ fontFamily: fonts.subheading }}
+                        >
+                          {EVENTS.reception.venueName}
+                        </p>
+                        <p
+                          className="text-xs md:text-sm text-white/80"
+                          style={{ fontFamily: fonts.body }}
+                        >
+                          {EVENTS.reception.locationText}
+                        </p>
+                      </div>
+
+                      {/* Elegant Google Maps button */}
+                      <a
+                        href={EVENTS.reception.mapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/70 text-white text-xs md:text-sm font-semibold shadow-md backdrop-blur-sm hover:bg-white/20 hover:border-white transition-colors"
+                        style={{ fontFamily: fonts.button }}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.7"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z" />
+                          <circle cx="12" cy="10" r="2.5" />
+                        </svg>
+                        <span>Open in Google Maps</span>
+                      </a>
+                    </motion.div>
+                  </motion.section>
+                )}
+
+                {/* =========================
+                    SECTION 6 – RSVP
+                   ========================= */}
+                {currentSection === 5 && (
                   <motion.section
                     key="section-4"
                     className="absolute inset-0 h-dvh flex items-center justify-center bg-purple-200 px-4"
