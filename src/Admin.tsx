@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
@@ -21,6 +21,7 @@ import {
   ChartBarIcon,
   QrCodeIcon,
   UserPlusIcon,
+  PrinterIcon,
 } from "@heroicons/react/24/outline";
 import { ImportIcon } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -90,6 +91,19 @@ function QRScanner({ onResult, setShowScanner }: QRScannerProps) {
       const html5QrCode = new Html5Qrcode(scannerId);
       scannerRef.current = html5QrCode;
 
+      const handleClose = async () => {
+        if (scannerRef.current) {
+          try {
+            await scannerRef.current.stop();
+            await scannerRef.current.clear();
+            scannerRef.current = null;
+          } catch (err) {
+            console.error("Scanner stop failed", err);
+          }
+        }
+        setShowScanner(false);
+      };
+
       try {
         await html5QrCode.start(
           { facingMode: "environment" },
@@ -120,11 +134,6 @@ function QRScanner({ onResult, setShowScanner }: QRScannerProps) {
           console.error("Scanner stop failed", err);
         }
       }
-    };
-
-    const handleClose = async () => {
-      await stopScanner();
-      setShowScanner(false);
     };
 
     startScanner();
@@ -161,11 +170,11 @@ function QRScanner({ onResult, setShowScanner }: QRScannerProps) {
       <div
         id="qr-scanner-element"
         className="
-    w-full
-    sm:w-[600px] sm:h-auto sm:aspect-video
-    sm:rounded-lg sm:shadow-lg bg-black
-    sm:mirror-video
-  "
+          w-full
+          sm:w-[600px] sm:h-auto sm:aspect-video
+          sm:rounded-lg sm:shadow-lg bg-black
+          sm:mirror-video
+        "
       />
     </div>
   );
@@ -179,7 +188,7 @@ function QRCodeModal({ id, onClose }: { id: string; onClose: () => void }) {
     >
       <div
         className="relative bg-white p-6 rounded-lg shadow-lg flex flex-col items-center"
-        onDoubleClick={(e) => e.stopPropagation()} // Prevent double-click inside from closing
+        onDoubleClick={(e) => e.stopPropagation()}
       >
         <button
           className="absolute top-2 right-4 text-xl text-gray-600 hover:text-red-600"
@@ -233,6 +242,27 @@ export default function GuestAdmin() {
 
   const [phoneOptions, setPhoneOptions] = useState<string[]>([]);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
+
+  // Desktop detection (for showing checkbox column & print button)
+  const [isDesktop, setIsDesktop] = useState<boolean>(
+    typeof window !== "undefined" ? window.innerWidth >= 768 : true
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Guests selected for *ticket printing*
+  const [selectedForPrint, setSelectedForPrint] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [printGuests, setPrintGuests] = useState<Guest[]>([]);
+  const [printMode, setPrintMode] = useState<"ticket" | "label">("ticket");
 
   useEffect(() => {
     if (!gridApiRef.current) return;
@@ -289,7 +319,6 @@ export default function GuestAdmin() {
 
     setSelectedId(null); // Clear selection first
 
-    // Wait a moment to allow UI update before fetch
     setTimeout(async () => {
       try {
         await fetch(`${API_URL}/guests/${id}`, {
@@ -318,7 +347,7 @@ export default function GuestAdmin() {
       } catch (err) {
         console.error("Delete failed", err);
       }
-    }, 100); // Delay 100ms (tweak if needed)
+    }, 100);
   };
 
   const handleEdit = (data: Guest) => {
@@ -348,20 +377,11 @@ export default function GuestAdmin() {
 
   const getTagFromInvitedBy = (invitedBy: string | null | undefined) => {
     if (!invitedBy) return null;
-    const base = invitedBy.trim().split(" - ")[0]; // e.g., "Finna - Mama" → "Finna"
+    const base = invitedBy.trim().split(" - ")[0];
     return INVITERS.includes(base) ? base : null;
   };
 
   const handleSubmit = async () => {
-    // Title case helper
-    function toTitleCase(str: string): string {
-      return str
-        .toLowerCase()
-        .split(" ")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
-    }
-
     const payload = {
       ...formData,
       full_name: formData.full_name ? toTitleCase(formData.full_name) : null,
@@ -435,9 +455,7 @@ export default function GuestAdmin() {
         return;
       }
 
-      // Find the guest locally in rowData
       const guest = rowData.find((g) => g.id === result);
-      console.log(guest);
       if (guest) {
         setSuccessGuest({
           full_name: guest.full_name,
@@ -446,7 +464,7 @@ export default function GuestAdmin() {
         });
       }
 
-      fetchGuests(); // Refresh data
+      fetchGuests();
     } catch (error) {
       console.error("Error handling QR result:", error);
       setShowInvalidQRModal(true);
@@ -494,7 +512,7 @@ export default function GuestAdmin() {
           address: contact.address?.[0]?.streetAddress ?? "",
           num_attendees: 2,
         }));
-        setShowPhoneModal(true); // Show selection modal
+        setShowPhoneModal(true);
       } else {
         const cleanedPhone =
           phones[0]?.replace(/[\s()+-]/g, "").replace(/^62/, "0") ?? "";
@@ -541,7 +559,7 @@ export default function GuestAdmin() {
         setEditingId(id || null);
         setAdditionalNamesInput(formData.additional_names?.join(", ") || "");
         dialogRef.current?.close();
-        setShowPhoneModal(true); // 👉 open phone selection modal
+        setShowPhoneModal(true);
       } else {
         const cleanedPhone =
           phones[0]?.replace(/[\s()+-]/g, "").replace(/^62/, "0") ?? "";
@@ -583,15 +601,40 @@ export default function GuestAdmin() {
     );
   };
 
-  const columnDefs: ColDef<Guest>[] = [
-    {
-      headerName: "Actions",
-      width: 160,
-      minWidth: 130,
-      cellRenderer: (params: ICellRendererParams<Guest>) => {
-        if (!params.data) return null;
+  // ---- PRINT HANDLER (tickets OR labels, same button) ----
+  const handlePrint = () => {
+    if (!isDesktop) {
+      alert("Printing is only available on desktop view.");
+      return;
+    }
 
-        const waMessage = `Halo Bapak/Ibu ${params.data.full_name} 👋
+    if (!gridApiRef.current) return;
+
+    const selectedRows = gridApiRef.current.getSelectedRows() as Guest[];
+    if (!selectedRows.length) {
+      alert("Please select at least one guest (checkbox) to print.");
+      return;
+    }
+
+    setPrintGuests(selectedRows);
+
+    // Let React render print layout first
+    setTimeout(() => {
+      window.print();
+    }, 0);
+  };
+
+  // ---- COLUMN DEFS (with optional desktop-only checkbox column) ----
+  const columnDefs: ColDef<Guest>[] = useMemo(() => {
+    const base: ColDef<Guest>[] = [
+      {
+        headerName: "Actions",
+        width: 160,
+        minWidth: 130,
+        cellRenderer: (params: ICellRendererParams<Guest>) => {
+          if (!params.data) return null;
+
+          const waMessage = `Halo Bapak/Ibu ${params.data.full_name} 👋
 
 Kami mengundang dengan hormat ke acara pernikahan kami:
 
@@ -612,371 +655,403 @@ Terima kasih banyak 🙏
 Salam hangat,  
 Finna & Hary`;
 
-        let phoneNumber = params.data.phone_number?.replace(/\D/g, "") || "";
-        if (phoneNumber.startsWith("0")) {
-          phoneNumber = "62" + phoneNumber.slice(1);
-        }
-        const waUrl = phoneNumber
-          ? `https://wa.me/${phoneNumber}?text=${encodeURIComponent(waMessage)}`
-          : `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
+          let phoneNumber = params.data.phone_number?.replace(/\D/g, "") || "";
+          if (phoneNumber.startsWith("0")) {
+            phoneNumber = "62" + phoneNumber.slice(1);
+          }
+          const waUrl = phoneNumber
+            ? `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
+                waMessage
+              )}`
+            : `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
 
-        return (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              height: "100%",
-            }}
-          >
-            {/* Edit button */}
-            <button
-              className="btn-edit"
-              data-id={params.data.id}
-              title="Edit"
+          return (
+            <div
               style={{
-                background: "#3b82f6",
-                color: "white",
-                border: "none",
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                cursor: "pointer",
-                transition: "background 0.2s",
+                gap: 8,
+                height: "100%",
               }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.background = "#2563eb")
-              }
-              onMouseOut={(e) => (e.currentTarget.style.background = "#3b82f6")}
-              onClick={() => params.data && handleEdit(params.data)}
             >
-              <FiEdit2 size={18} />
-            </button>
+              {/* Edit button */}
+              <button
+                className="btn-edit"
+                data-id={params.data.id}
+                title="Edit"
+                style={{
+                  background: "#3b82f6",
+                  color: "white",
+                  border: "none",
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "background 0.2s",
+                }}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "#2563eb")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "#3b82f6")
+                }
+                onClick={() => params.data && handleEdit(params.data)}
+              >
+                <FiEdit2 size={18} />
+              </button>
 
-            {/* Delete button */}
-            <button
-              className="btn-delete"
-              data-id={params.data.id}
-              title="Delete"
-              style={{
-                background: "#ef4444",
-                color: "white",
-                border: "none",
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "background 0.2s",
-              }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.background = "#b91c1c")
-              }
-              onMouseOut={(e) => (e.currentTarget.style.background = "#ef4444")}
-              onClick={() => params.data?.id && handleDelete(params.data.id)}
-            >
-              <FiTrash2 size={18} />
-            </button>
+              {/* Delete button */}
+              <button
+                className="btn-delete"
+                data-id={params.data.id}
+                title="Delete"
+                style={{
+                  background: "#ef4444",
+                  color: "white",
+                  border: "none",
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "background 0.2s",
+                }}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "#b91c1c")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "#ef4444")
+                }
+                onClick={() => params.data?.id && handleDelete(params.data.id)}
+              >
+                <FiTrash2 size={18} />
+              </button>
 
-            {/* WhatsApp send button */}
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Send WhatsApp"
-              style={{
-                background: "#22c55e",
-                color: "white",
-                border: "none",
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "background 0.2s",
-                textDecoration: "none",
-              }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.background = "#15803d")
-              }
-              onMouseOut={(e) => (e.currentTarget.style.background = "#22c55e")}
-            >
-              <FiSend size={18} />
-            </a>
-          </div>
-        );
+              {/* WhatsApp send button */}
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Send WhatsApp"
+                style={{
+                  background: "#22c55e",
+                  color: "white",
+                  border: "none",
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "background 0.2s",
+                  textDecoration: "none",
+                }}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "#15803d")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "#22c55e")
+                }
+              >
+                <FiSend size={18} />
+              </a>
+            </div>
+          );
+        },
       },
-    },
-    { field: "nickname", headerName: "Nickname", width: 180, minWidth: 150 },
-    {
-      field: "full_name",
-      headerName: "Full Name",
-      width: 150,
-      minWidth: 180,
-      valueFormatter: (params) => {
-        if (!params.value) return "—";
-        return params.value;
+      {
+        field: "nickname",
+        headerName: "Nickname",
+        width: 180,
+        minWidth: 150,
       },
-    },
-    {
-      field: "additional_names",
-      headerName: "Additional Names",
-      width: 180,
-      minWidth: 150,
-      valueFormatter: (params) => {
-        if (
-          !params.value ||
-          (Array.isArray(params.value) && params.value.length === 0)
-        )
+      {
+        field: "full_name",
+        headerName: "Full Name",
+        width: 150,
+        minWidth: 180,
+        valueFormatter: (params) => {
+          if (!params.value) return "—";
+          return params.value;
+        },
+      },
+      {
+        field: "additional_names",
+        headerName: "Additional Names",
+        width: 180,
+        minWidth: 150,
+        valueFormatter: (params) => {
+          if (
+            !params.value ||
+            (Array.isArray(params.value) && params.value.length === 0)
+          )
+            return "—";
+
+          let value = params.value;
+
+          try {
+            if (typeof value === "string") {
+              value = JSON.parse(value);
+            }
+
+            if (Array.isArray(value) && value.length > 0) {
+              const names = value.map((name) => toTitleCase(String(name)));
+              return names.join(", ");
+            }
+          } catch {
+            return "Invalid data";
+          }
+
           return "—";
-
-        let value = params.value;
-
-        try {
-          if (typeof value === "string") {
-            value = JSON.parse(value);
-          }
-
-          if (Array.isArray(value) && value.length > 0) {
-            const names = value.map((name) => toTitleCase(String(name)));
-            return names.join(", ");
-          }
-        } catch {
-          return "Invalid data";
-        }
-
-        return "—";
+        },
       },
-    },
-    {
-      field: "is_attending",
-      headerName: "RSVP Status",
-      width: 120,
-      minWidth: 100,
-      cellRenderer: "agTextCellRenderer",
-      valueFormatter: (params) =>
-        params.value === true
-          ? "✅ Yes"
-          : params.value === false
-          ? "❌ No"
-          : "—",
-    },
-    {
-      field: "attendance_confirmed",
-      headerName: "Attendance Confirmed",
-      width: 120,
-      minWidth: 100,
-      cellRenderer: "agTextCellRenderer",
-      valueFormatter: (params) =>
-        params.value === true
-          ? "✅ Yes"
-          : params.value === false
-          ? "❌ No"
-          : "—",
-    },
-    {
-      field: "num_attendees",
-      headerName: "#",
-      width: 100,
-      minWidth: 80,
-      valueFormatter: (params) =>
-        params.value == null || params.value === "" ? "—" : params.value,
-    },
-    {
-      field: "num_attendees_confirmed",
-      headerName: "# Confirmed",
-      width: 100,
-      minWidth: 80,
-      valueFormatter: (params) =>
-        params.value == null || params.value === "" ? "—" : params.value,
-    },
-    {
-      field: "address",
-      headerName: "Address",
-      width: 200,
-      minWidth: 180,
-      valueFormatter: (params) => (!params.value ? "—" : params.value),
-    },
-    {
-      field: "notes",
-      headerName: "Notes",
-      width: 200,
-      minWidth: 180,
-      valueFormatter: (params) => (!params.value ? "—" : params.value),
-    },
-    {
-      field: "phone_number",
-      headerName: "Phone",
-      width: 130,
-      minWidth: 180,
-      valueFormatter: (params) => (!params.value ? "—" : params.value),
-    },
-    {
-      field: "wish",
-      headerName: "Wish",
-      width: 250,
-      minWidth: 200,
-      valueFormatter: (params) => (!params.value ? "—" : params.value),
-    },
-    {
-      field: "invitation_link", // You can keep this or change it to "id"
-      headerName: "Invitation Link",
-      width: 100,
-      minWidth: 100,
-      cellRenderer: (params: ICellRendererParams<Guest>) => {
-        const id = params.data?.id;
-        if (!id) return "—";
+      {
+        field: "is_attending",
+        headerName: "RSVP Status",
+        width: 120,
+        minWidth: 100,
+        cellRenderer: "agTextCellRenderer",
+        valueFormatter: (params) =>
+          params.value === true
+            ? "✅ Yes"
+            : params.value === false
+            ? "❌ No"
+            : "—",
+      },
+      {
+        field: "attendance_confirmed",
+        headerName: "Attendance Confirmed",
+        width: 120,
+        minWidth: 100,
+        cellRenderer: "agTextCellRenderer",
+        valueFormatter: (params) =>
+          params.value === true
+            ? "✅ Yes"
+            : params.value === false
+            ? "❌ No"
+            : "—",
+      },
+      {
+        field: "num_attendees",
+        headerName: "#",
+        width: 100,
+        minWidth: 80,
+        valueFormatter: (params) =>
+          params.value == null || params.value === "" ? "—" : params.value,
+      },
+      {
+        field: "num_attendees_confirmed",
+        headerName: "# Confirmed",
+        width: 100,
+        minWidth: 80,
+        valueFormatter: (params) =>
+          params.value == null || params.value === "" ? "—" : params.value,
+      },
+      {
+        field: "address",
+        headerName: "Address",
+        width: 200,
+        minWidth: 180,
+        valueFormatter: (params) => (!params.value ? "—" : params.value),
+      },
+      {
+        field: "notes",
+        headerName: "Notes",
+        width: 200,
+        minWidth: 180,
+        valueFormatter: (params) => (!params.value ? "—" : params.value),
+      },
+      {
+        field: "phone_number",
+        headerName: "Phone",
+        width: 130,
+        minWidth: 180,
+        valueFormatter: (params) => (!params.value ? "—" : params.value),
+      },
+      {
+        field: "wish",
+        headerName: "Wish",
+        width: 250,
+        minWidth: 200,
+        valueFormatter: (params) => (!params.value ? "—" : params.value),
+      },
+      {
+        field: "invitation_link",
+        headerName: "Invitation Link",
+        width: 100,
+        minWidth: 100,
+        cellRenderer: (params: ICellRendererParams<Guest>) => {
+          const id = params.data?.id;
+          if (!id) return "—";
 
-        const url = `http://hary-finna.trip-nus.com/?to=${id}`;
+          const url = `http://hary-finna.trip-nus.com/?to=${id}`;
 
-        return (
-          <div style={{ display: "flex", gap: 6 }}>
-            {/* QR Button */}
-            <button
-              title="Show QR Code"
-              style={{
-                color: "black",
-                border: "none",
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-              }}
-              onClick={() => {
-                setQrId(id);
-                setShowQR(true);
-              }}
-            >
-              <MdQrCode size={18} />
-            </button>
+          return (
+            <div style={{ display: "flex", gap: 6 }}>
+              {/* QR Button */}
+              <button
+                title="Show QR Code"
+                style={{
+                  color: "black",
+                  border: "none",
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  setQrId(id);
+                  setShowQR(true);
+                }}
+              >
+                <MdQrCode size={18} />
+              </button>
 
-            {/* Open Link Button */}
-            <button
-              title="Open Invitation URL"
-              style={{
-                color: "black",
-                border: "none",
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-              }}
-              onClick={() => window.open(url, "_blank")}
-            >
-              <HiOutlineExternalLink size={18} />
-            </button>
-          </div>
-        );
+              {/* Open Link Button */}
+              <button
+                title="Open Invitation URL"
+                style={{
+                  color: "black",
+                  border: "none",
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+                onClick={() => window.open(url, "_blank")}
+              >
+                <HiOutlineExternalLink size={18} />
+              </button>
+            </div>
+          );
+        },
       },
-    },
-    {
-      field: "tag",
-      headerName: "Tag",
-      width: 100,
-      minWidth: 100,
-      valueFormatter: (params) => {
-        if (!params.value) return "—";
-        return params.value;
+      {
+        field: "tag",
+        headerName: "Tag",
+        width: 100,
+        minWidth: 100,
+        valueFormatter: (params) => {
+          if (!params.value) return "—";
+          return params.value;
+        },
       },
-    },
-    {
-      field: "invited_by",
-      headerName: "Invited By",
-      width: 130,
-      minWidth: 80,
-      valueFormatter: (params) =>
-        params.value == null || params.value === "" ? "—" : params.value,
-    },
-    {
-      field: "rsvp_at",
-      headerName: "RSVP Date",
-      width: 180,
-      minWidth: 160,
-      valueFormatter: (params) => {
-        if (!params.value) return "—";
-        return new Date(params.value).toLocaleString("en-US", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        });
+      {
+        field: "invited_by",
+        headerName: "Invited By",
+        width: 130,
+        minWidth: 80,
+        valueFormatter: (params) =>
+          params.value == null || params.value === "" ? "—" : params.value,
       },
-    },
-    {
-      field: "created_at",
-      headerName: "Created",
-      width: 180,
-      minWidth: 160,
-      valueFormatter: (params) => {
-        if (!params.value) return "—";
-        return new Date(params.value).toLocaleString("en-US", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        });
+      {
+        field: "rsvp_at",
+        headerName: "RSVP Date",
+        width: 180,
+        minWidth: 160,
+        valueFormatter: (params) => {
+          if (!params.value) return "—";
+          return new Date(params.value).toLocaleString("en-US", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          });
+        },
       },
-    },
-    {
-      field: "updated_at",
-      headerName: "Updated",
-      width: 180,
-      minWidth: 160,
-      valueFormatter: (params) => {
-        if (!params.value) return "—";
-        return new Date(params.value).toLocaleString("en-US", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        });
+      {
+        field: "created_at",
+        headerName: "Created",
+        width: 180,
+        minWidth: 160,
+        valueFormatter: (params) => {
+          if (!params.value) return "—";
+          return new Date(params.value).toLocaleString("en-US", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          });
+        },
       },
-    },
-  ];
+      {
+        field: "updated_at",
+        headerName: "Updated",
+        width: 180,
+        minWidth: 160,
+        valueFormatter: (params) => {
+          if (!params.value) return "—";
+          return new Date(params.value).toLocaleString("en-US", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          });
+        },
+      },
+    ];
+
+    if (!isDesktop) {
+      return base;
+    }
+
+    // Desktop-only checkbox selection column on the left of Actions
+    const selectionCol: ColDef<Guest> = {
+      headerName: "",
+      width: 60,
+      minWidth: 50,
+      pinned: "left",
+      // suppressMenu: true,
+      sortable: false,
+      filter: false,
+      resizable: false,
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+      headerCheckboxSelectionFilteredOnly: true,
+      cellClass: "print-select-cell",
+    };
+
+    return [selectionCol, ...base];
+  }, [isDesktop, selectedForPrint, rowData]);
 
   const onGridReady = (params: GridReadyEvent) => {
     gridApiRef.current = params.api;
 
-    // Restore filter
     gridApiRef.current.setFilterModel(filterModel);
 
-    // Restore sort
     gridApiRef.current.applyColumnState({
       state: [{ colId: sortColumn, sort: sortKey }],
       defaultState: { sort: null },
     });
 
-    // Restore selection
     params.api.forEachNode((node) => {
       if (node.data.id == selectedId) {
         node.setSelected(true);
       }
     });
 
-    // Scroll tracking + restore
     const verticalViewport = document.querySelector(
       ".ag-body-viewport"
     ) as HTMLElement;
@@ -995,7 +1070,6 @@ Finna & Hary`;
       verticalViewport.addEventListener("scroll", handleScroll);
       horizontalViewport.addEventListener("scroll", handleScroll);
 
-      // Restore scroll position (after a short delay to ensure DOM is ready)
       requestAnimationFrame(() => {
         if (scrollPositionRef.current) {
           verticalViewport.scrollTop = scrollPositionRef.current.y;
@@ -1006,7 +1080,6 @@ Finna & Hary`;
       console.warn("AG Grid viewports not found");
     }
 
-    // Button click handling
     params.api.addEventListener("cellClicked", (event: CellClickedEvent) => {
       const target = event.event?.target as HTMLElement;
       if (!target) return;
@@ -1053,618 +1126,571 @@ Finna & Hary`;
     };
   });
 
+  // For printing tickets, paginate guests into pages of 20 (4x5)
+  // For printing tickets, paginate guests into pages of 20 (4x5)
+  const ticketPageSize = 20;
+
+  const ticketPages = useMemo(
+    () =>
+      Array.from(
+        { length: Math.ceil(printGuests.length / ticketPageSize) },
+        (_, pageIndex) =>
+          printGuests.slice(
+            pageIndex * ticketPageSize,
+            (pageIndex + 1) * ticketPageSize
+          )
+      ),
+    [printGuests]
+  );
+
+  // For labels (Tom & Jerry 102: 2 across, 5 down = 10 labels per sheet)
+  const labelPageSize = 10;
+
+  const labelPages = useMemo(
+    () =>
+      Array.from(
+        { length: Math.ceil(printGuests.length / labelPageSize) },
+        (_, pageIndex) =>
+          printGuests.slice(
+            pageIndex * labelPageSize,
+            (pageIndex + 1) * labelPageSize
+          )
+      ),
+    [printGuests]
+  );
+
+  // Format full_name + additional_names (or nickname)
+  const getDisplayName = (guest: Guest) => {
+    const base =
+      (guest.full_name && guest.full_name.trim()) || guest.nickname || "Guest";
+
+    const additionalNames = Array.isArray(guest.additional_names)
+      ? guest.additional_names.filter((n) => n && n.trim())
+      : [];
+
+    return additionalNames.length
+      ? [base, ...additionalNames].join(" & ")
+      : base;
+  };
+
   return (
-    <div
-      className="p-4"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100dvh",
-        width: "100vw",
-        minHeight: 0,
-        minWidth: 0,
-      }}
-    >
-      <div className="flex justify-between items-center mb-4 gap-2">
-        <h2 className="text-2xl font-bold hidden md:block">Guest Management</h2>
-        <div className="grid grid-cols-10 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
-          <div className="relative col-span-10 md:col-span-1">
-            <p className="block md:hidden text-sm font-semibold mb-4 text-center">
-              Guest Management
-            </p>
+    <>
+      {/* MAIN ADMIN UI (hidden in print) */}
+      <div
+        className="p-4 print:hidden"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100dvh",
+          width: "100vw",
+          minHeight: 0,
+          minWidth: 0,
+        }}
+      >
+        <div className="flex justify-between items-center mb-4 gap-2">
+          <h2 className="text-2xl font-bold hidden md:block">
+            Guest Management
+          </h2>
 
-            {/* 📋 Dropdown */}
-            <select
-              value={labelFromParam(invitedBy)}
-              onChange={(e) => handleInviterChange(e.target.value)}
-              className="border px-2 py-1 rounded pr-8 w-full h-10"
-            >
-              {INVITERS.map((label) => (
-                <option key={label} value={label}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="relative col-span-10 md:col-span-1">
-            <input
-              type="text"
-              className="border px-2 py-1 rounded pr-8 w-full h-10"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => {
-                console.log(e.target.value);
-                setSearchTerm(e.target.value);
-                const term = e.target.value.trim().toLowerCase();
-                if (!term) {
-                  setFilteredRows(null);
-                  return;
+          <div className="grid grid-cols-10 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
+            {/* Print mode + button – left of combo box, desktop only */}
+            <div className="hidden md:flex items-center gap-2">
+              <select
+                value={printMode}
+                onChange={(e) =>
+                  setPrintMode(e.target.value as "ticket" | "label")
                 }
-                setFilteredRows(
-                  rowData.filter((row) => {
-                    const fullName = row.full_name?.toLowerCase() || "";
-                    const nickname = row.nickname?.toLowerCase() || "";
-                    const address = row.address?.toLowerCase() || "";
-                    const notes = row.notes?.toLowerCase() || "";
-                    const additionalNames = Array.isArray(row.additional_names)
-                      ? row.additional_names
-                          .map((n) => n.toLowerCase())
-                          .join(" ")
-                      : "";
-                    return (
-                      fullName.includes(term) ||
-                      nickname.includes(term) ||
-                      additionalNames.includes(term) ||
-                      address.includes(term) ||
-                      notes.includes(term)
-                    );
-                  })
-                );
-              }}
-              style={{ minWidth: 120 }}
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchTerm("");
-                  setFilteredRows(null);
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-full"
-                tabIndex={-1}
-                aria-label="Clear search"
+                className="border px-2 py-1 rounded h-10 text-sm"
               >
-                &#10005;
+                <option value="ticket">Print Tiket QR</option>
+                <option value="label">Print Label Nama</option>
+              </select>
+
+              <button
+                onClick={handlePrint}
+                className="flex items-center justify-center gap-1 bg-gray-800 text-white px-4 py-2 rounded border border-gray-900 hover:bg-black w-full md:w-auto active:scale-95 transition-transform duration-100"
+              >
+                <PrinterIcon className="h-5 w-5" />
+                <span>Print</span>
               </button>
+            </div>
+
+            <div className="relative col-span-10 md:col-span-1">
+              <p className="block md:hidden text-sm font-semibold mb-4 text-center">
+                Guest Management
+              </p>
+
+              {/* Inviter Dropdown */}
+              <select
+                value={labelFromParam(invitedBy)}
+                onChange={(e) => handleInviterChange(e.target.value)}
+                className="border px-2 py-1 rounded pr-8 w-full h-10"
+              >
+                {INVITERS.map((label) => (
+                  <option key={label} value={label}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative col-span-10 md:col-span-1">
+              <input
+                type="text"
+                className="border px-2 py-1 rounded pr-8 w-full h-10"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  const term = e.target.value.trim().toLowerCase();
+                  if (!term) {
+                    setFilteredRows(null);
+                    return;
+                  }
+                  setFilteredRows(
+                    rowData.filter((row) => {
+                      const fullName = row.full_name?.toLowerCase() || "";
+                      const nickname = row.nickname?.toLowerCase() || "";
+                      const address = row.address?.toLowerCase() || "";
+                      const notes = row.notes?.toLowerCase() || "";
+                      const additionalNames = Array.isArray(
+                        row.additional_names
+                      )
+                        ? row.additional_names
+                            .map((n) => n.toLowerCase())
+                            .join(" ")
+                        : "";
+                      return (
+                        fullName.includes(term) ||
+                        nickname.includes(term) ||
+                        additionalNames.includes(term) ||
+                        address.includes(term) ||
+                        notes.includes(term)
+                      );
+                    })
+                  );
+                }}
+                style={{ minWidth: 120 }}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilteredRows(null);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-full"
+                  tabIndex={-1}
+                  aria-label="Clear search"
+                >
+                  &#10005;
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => handleLogout()}
+              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 
+                bg-red-500 hover:bg-red-600 text-white 
+                px-4 py-2 rounded border border-red-600 
+                w-full md:w-auto active:scale-95 transition-transform duration-100"
+            >
+              <ArrowLeftOnRectangleIcon className="h-5 w-5" />
+              <span className="hidden md:inline">Log Out</span>
+            </button>
+
+            <button
+              onClick={() => setShowSummary(true)}
+              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
+            >
+              <ChartBarIcon className="h-5 w-5" />
+              <span className="hidden md:inline">Summary</span>
+            </button>
+
+            <button
+              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
+              onClick={() => setShowScanner((prev) => !prev)}
+            >
+              <QrCodeIcon className="h-5 w-5" />
+              <span className="hidden md:inline">Scan QR</span>
+            </button>
+
+            <button
+              onClick={handleImport}
+              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100"
+            >
+              <ImportIcon className="h-5 w-5" />
+              <span className="hidden md:inline">Import Contact</span>
+            </button>
+
+            <button
+              onClick={handleAdd}
+              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100"
+            >
+              <UserPlusIcon className="h-5 w-5" />
+              <span className="hidden md:inline">Add Guest</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Summary Modal */}
+        {showSummary && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/10"
+            onDoubleClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowSummary(false);
+              }
+            }}
+          >
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xs mx-2 border border-black">
+              <h3 className="text-lg font-bold mb-4 text-center">Summary</h3>
+              <div className="flex flex-col gap-2 text-base font-medium">
+                {/* Guests */}
+                {summary.map((s) => (
+                  <div key={s.tag + "-guests"} className="flex justify-between">
+                    <span>{s.tag} Guests:</span>
+                    <span>{s.guestCount}</span>
+                  </div>
+                ))}
+
+                <hr className="my-2 border-gray-300" />
+
+                {/* Attendees */}
+                {summary.map((s) => (
+                  <div
+                    key={s.tag + "-attendees"}
+                    className="flex justify-between"
+                  >
+                    <span>{s.tag} Attendees:</span>
+                    <span>{s.attendeeCount}</span>
+                  </div>
+                ))}
+
+                <hr className="my-2 border-gray-300" />
+
+                {/* RSVP Confirmed */}
+                {summary.map((s) => (
+                  <div key={s.tag + "-rsvp"} className="flex justify-between">
+                    <span>{s.tag} RSVP Confirmed:</span>
+                    <span>{s.isAttendingCount}</span>
+                  </div>
+                ))}
+
+                <hr className="my-2 border-gray-300" />
+
+                {/* Attendance Confirmed */}
+                {summary.map((s) => (
+                  <div
+                    key={s.tag + "-attendance"}
+                    className="flex justify-between"
+                  >
+                    <span>{s.tag} Attendance Confirmed:</span>
+                    <span>{s.attendanceConfirmedCount}</span>
+                  </div>
+                ))}
+
+                {/* Total Row */}
+                <hr className="my-2 border-black" />
+                <div className="flex justify-between font-bold">
+                  <span>Total Attendance Confirmed:</span>
+                  <span>
+                    {summary.reduce(
+                      (total, s) => total + s.attendanceConfirmedCount,
+                      0
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                onClick={() => setShowSummary(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+          <div
+            className="ag-theme-alpine"
+            style={{
+              flex: 1,
+              width: "100%",
+              height: "100%",
+              minHeight: 0,
+            }}
+          >
+            {loading ? (
+              <div className="flex justify-center items-center h-full text-gray-600 text-lg">
+                Loading guests...
+              </div>
+            ) : (
+              <AgGridReact
+                theme="legacy"
+                rowSelection={isDesktop ? "multiple" : "single"}
+                rowData={searchTerm ? filteredRows || [] : rowData}
+                columnDefs={columnDefs}
+                defaultColDef={{
+                  resizable: true,
+                  sortable: true,
+                  filter: true,
+                }}
+                animateRows
+                onGridReady={onGridReady}
+                suppressColumnVirtualisation={false}
+                suppressRowVirtualisation={false}
+                onCellDoubleClicked={(params) => {
+                  if (params.data) {
+                    handleEdit(params.data);
+                  }
+                }}
+                onFilterChanged={() => {
+                  if (gridApiRef.current) {
+                    const model = gridApiRef.current.getFilterModel();
+                    setFilterModel(model);
+                  }
+                }}
+                onSortChanged={(e) => {
+                  if (gridApiRef.current && e.columns) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    if ((e.columns[0] as any).colId) {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      setSortColumn((e.columns[0] as any).colId);
+                    }
+
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    if ((e.columns[0] as any).sort) {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      setSortKey((e.columns[0] as any).sort);
+                    }
+                  }
+                }}
+                onSelectionChanged={() => {
+                  if (gridApiRef.current) {
+                    const newSelected = gridApiRef.current.getSelectedRows();
+                    if (newSelected[0]) {
+                      setSelectedId(newSelected[0].id);
+                    }
+                    // 👉 sync guests selected for printing
+                    const ids = newSelected.map((g: Guest) => g.id);
+                    setSelectedForPrint(new Set(ids));
+                  }
+                }}
+              />
             )}
           </div>
-          <button
-            onClick={() => handleLogout()}
-            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 
-            bg-red-500 hover:bg-red-600 text-white 
-            px-4 py-2 rounded border border-red-600 
-            w-full md:w-auto active:scale-95 transition-transform duration-100"
-          >
-            <ArrowLeftOnRectangleIcon className="h-5 w-5" />
-            <span className="hidden md:inline">Log Out</span>
-          </button>
-
-          <button
-            onClick={() => setShowSummary(true)}
-            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
-          >
-            <ChartBarIcon className="h-5 w-5" />
-            <span className="hidden md:inline">Summary</span>
-          </button>
-
-          <button
-            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
-            onClick={() => setShowScanner((prev) => !prev)}
-          >
-            <QrCodeIcon className="h-5 w-5" />
-            <span className="hidden md:inline">Scan QR</span>
-          </button>
-
-          <button
-            onClick={handleImport}
-            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100"
-          >
-            <ImportIcon className="h-5 w-5" />
-            <span className="hidden md:inline">Import Contact</span>
-          </button>
-
-          <button
-            onClick={handleAdd}
-            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100"
-          >
-            <UserPlusIcon className="h-5 w-5" />
-            <span className="hidden md:inline">Add Guest</span>
-          </button>
         </div>
-      </div>
-      {/* Summary Modal */}
-      {showSummary && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/10"
+
+        {showScanner && (
+          <QRScanner
+            onResult={(result) => {
+              handleResult(result);
+            }}
+            setShowScanner={setShowScanner}
+          />
+        )}
+        {showQR && qrId && (
+          <QRCodeModal id={qrId} onClose={() => setShowQR(false)} />
+        )}
+
+        {/* Invalid QR Modal */}
+        {showInvalidQRModal && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm text-center">
+              <h2 className="text-xl font-semibold mb-2">Invalid QR Code</h2>
+              <p className="text-gray-700 mb-4">No matching guest was found.</p>
+              <button
+                onClick={() => setShowInvalidQRModal(false)}
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Success QR Modal */}
+        {successGuest && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full text-center animate-fadeIn">
+              <div className="flex items-center justify-center mb-4">
+                <div className="bg-green-100 text-green-600 p-3 rounded-full">
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold mb-2 text-green-700">
+                Attendance Confirmed
+              </h2>
+              <p className="text-gray-800 font-medium">
+                {successGuest.full_name ?? successGuest.nickname}
+              </p>
+              {successGuest.additional_names &&
+                successGuest.additional_names.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-sm text-gray-500 mb-1">With:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 text-left inline-block">
+                      {successGuest.additional_names.map((name, index) => (
+                        <li key={index}>{name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              <button
+                onClick={() => setSuccessGuest(null)}
+                className="mt-6 bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition-colors"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showPhoneModal && (
+          <div className="fixed inset-0 bg-black/10 border bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-xl shadow-lg w-[90%] max-w-sm border border-black">
+              <h2 className="text-lg font-semibold mb-4">
+                Choose a phone number
+              </h2>
+              <ul className="flex flex-col gap-3">
+                {phoneOptions.map((phone, idx) => (
+                  <li key={idx}>
+                    <button
+                      onClick={() => {
+                        const cleaned = phone
+                          .replace(/[\s()+-]/g, "")
+                          .replace(/^62/, "0");
+                        setFormData((prev) => ({
+                          ...prev,
+                          phone_number: cleaned,
+                        }));
+                        setShowPhoneModal(false);
+                        dialogRef.current?.showModal();
+                      }}
+                      className="w-full text-left border px-4 py-2 rounded hover:bg-gray-100"
+                    >
+                      {phone}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex justify-end mt-4">
+                <button
+                  onClick={() => {
+                    setShowPhoneModal(false);
+                    dialogRef.current?.showModal();
+                  }}
+                  className="text-red-600 border border-red-600 px-3 py-1 rounded hover:bg-red-600 hover:text-white text-sm font-medium transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <dialog
+          ref={dialogRef}
+          className="fixed inset-0 m-auto rounded-lg p-6 shadow-lg border bg-white"
           onDoubleClick={(e) => {
             if (e.target === e.currentTarget) {
-              setShowSummary(false);
+              dialogRef.current?.close();
+              setFormData({});
+              setEditingId(null);
+              setAdditionalNamesInput("");
             }
           }}
         >
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xs mx-2 border border-black">
-            <h3 className="text-lg font-bold mb-4 text-center">Summary</h3>
-            <div className="flex flex-col gap-2 text-base font-medium">
-              {/* Guests */}
-              {summary.map((s) => (
-                <div key={s.tag + "-guests"} className="flex justify-between">
-                  <span>{s.tag} Guests:</span>
-                  <span>{s.guestCount}</span>
-                </div>
-              ))}
-
-              <hr className="my-2 border-gray-300" />
-
-              {/* Attendees */}
-              {summary.map((s) => (
-                <div
-                  key={s.tag + "-attendees"}
-                  className="flex justify-between"
-                >
-                  <span>{s.tag} Attendees:</span>
-                  <span>{s.attendeeCount}</span>
-                </div>
-              ))}
-
-              <hr className="my-2 border-gray-300" />
-
-              {/* Attendance Confirmed */}
-              {summary.map((s) => (
-                <div key={s.tag + "-rsvp"} className="flex justify-between">
-                  <span>{s.tag} RSVP Confirmed:</span>
-                  <span>{s.isAttendingCount}</span>
-                </div>
-              ))}
-
-              <hr className="my-2 border-gray-300" />
-
-              {/* Attendance Confirmed */}
-              {summary.map((s) => (
-                <div
-                  key={s.tag + "-attendance"}
-                  className="flex justify-between"
-                >
-                  <span>{s.tag} Attendance Confirmed:</span>
-                  <span>{s.attendanceConfirmedCount}</span>
-                </div>
-              ))}
-
-              {/* Total Row */}
-              <hr className="my-2 border-black" />
-              <div className="flex justify-between font-bold">
-                <span>Total Attendance Confirmed:</span>
-                <span>
-                  {summary.reduce(
-                    (total, s) => total + s.attendanceConfirmedCount,
-                    0
-                  )}
-                </span>
-              </div>
-            </div>
-
-            <button
-              className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-              onClick={() => setShowSummary(false)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-      <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-        <div
-          className="ag-theme-alpine"
-          style={{
-            flex: 1,
-            width: "100%",
-            height: "100%",
-            minHeight: 0,
-          }}
-        >
-          {loading ? (
-            <div className="flex justify-center items-center h-full text-gray-600 text-lg">
-              Loading guests...
-            </div>
-          ) : (
-            <AgGridReact
-              theme="legacy"
-              rowSelection="single"
-              rowData={searchTerm ? filteredRows : rowData}
-              columnDefs={columnDefs}
-              defaultColDef={{
-                resizable: true,
-                sortable: true,
-                filter: true,
-              }}
-              animateRows
-              onGridReady={onGridReady}
-              suppressColumnVirtualisation={false}
-              suppressRowVirtualisation={false}
-              onCellDoubleClicked={(params) => {
-                if (params.data) {
-                  handleEdit(params.data);
-                }
-              }}
-              onFilterChanged={() => {
-                if (gridApiRef.current) {
-                  const model = gridApiRef.current.getFilterModel();
-                  setFilterModel(model);
-                }
-              }}
-              onSortChanged={(e) => {
-                if (gridApiRef.current && e.columns) {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  if ((e.columns[0] as any).colId) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    setSortColumn((e.columns[0] as any).colId);
-                  }
-
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  if ((e.columns[0] as any).sort) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    setSortKey((e.columns[0] as any).sort);
-                  }
-                }
-              }}
-              onSelectionChanged={() => {
-                if (gridApiRef.current) {
-                  const newSelected = gridApiRef.current.getSelectedRows();
-                  setSelectedId(newSelected[0].id);
-                }
-              }}
-            />
-          )}
-        </div>
-      </div>
-      {showScanner && (
-        <QRScanner
-          onResult={(result) => {
-            handleResult(result);
-          }}
-          setShowScanner={setShowScanner}
-        />
-      )}
-      {showQR && qrId && (
-        <QRCodeModal id={qrId} onClose={() => setShowQR(false)} />
-      )}
-      {/* Invalid QR Modal */}
-      {showInvalidQRModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm text-center">
-            <h2 className="text-xl font-semibold mb-2">Invalid QR Code</h2>
-            <p className="text-gray-700 mb-4">No matching guest was found.</p>
-            <button
-              onClick={() => setShowInvalidQRModal(false)}
-              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-      {/* Success QR Modal */}
-      {successGuest && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full text-center animate-fadeIn">
-            <div className="flex items-center justify-center mb-4">
-              <div className="bg-green-100 text-green-600 p-3 rounded-full">
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
+          <form
+            method="dialog"
+            className="flex flex-col gap-3"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
+          >
+            <h3 className="text-xl font-semibold mb-2">
+              {editingId ? "Edit Guest" : "Add Guest"}
+            </h3>
+            <div className="flex gap-6 items-center mb-2">
+              <span className="text-gray-700 w-40">
+                Attendees: <span className="text-red-500">*</span>
+              </span>
+              {[1, 2, 3, 4].map((num) => (
+                <label key={num} className="flex items-center gap-1">
+                  <input
+                    type="radio"
+                    name="num_attendees"
+                    value={num}
+                    checked={formData.num_attendees === num}
+                    onChange={() =>
+                      setFormData({ ...formData, num_attendees: num })
+                    }
                   />
-                </svg>
-              </div>
-            </div>
-            <h2 className="text-2xl font-bold mb-2 text-green-700">
-              Attendance Confirmed
-            </h2>
-            <p className="text-gray-800 font-medium">
-              {successGuest.full_name ?? successGuest.nickname}
-            </p>
-            {successGuest!.additional_names!.length > 0 && (
-              <div className="mt-3">
-                <p className="text-sm text-gray-500 mb-1">With:</p>
-                <ul className="list-disc list-inside text-sm text-gray-700 text-left inline-block">
-                  {successGuest!.additional_names!.map((name, index) => (
-                    <li key={index}>{name}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <button
-              onClick={() => setSuccessGuest(null)}
-              className="mt-6 bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition-colors"
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      )}
-      {showPhoneModal && (
-        <div className="fixed inset-0 bg-black/10 border bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-[90%] max-w-sm border border-black">
-            <h2 className="text-lg font-semibold mb-4">
-              Choose a phone number
-            </h2>
-            <ul className="flex flex-col gap-3">
-              {phoneOptions.map((phone, idx) => (
-                <li key={idx}>
-                  <button
-                    onClick={() => {
-                      const cleaned = phone
-                        .replace(/[\s()+-]/g, "")
-                        .replace(/^62/, "0");
-                      setFormData((prev) => ({
-                        ...prev,
-                        phone_number: cleaned,
-                      }));
-                      setShowPhoneModal(false);
-                      dialogRef.current?.showModal();
-                    }}
-                    className="w-full text-left border px-4 py-2 rounded hover:bg-gray-100"
-                  >
-                    {phone}
-                  </button>
-                </li>
+                  {num}
+                </label>
               ))}
-            </ul>
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => {
-                  setShowPhoneModal(false);
-                  dialogRef.current?.showModal();
-                }}
-                className="text-red-600 border border-red-600 px-3 py-1 rounded hover:bg-red-600 hover:text-white text-sm font-medium transition"
-              >
-                Cancel
-              </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      <dialog
-        ref={dialogRef}
-        className="fixed inset-0 m-auto rounded-lg p-6  shadow-lg border bg-white"
-        onDoubleClick={(e) => {
-          if (e.target === e.currentTarget) {
-            dialogRef.current?.close();
-            setFormData({});
-            setEditingId(null);
-            setAdditionalNamesInput("");
-          }
-        }}
-      >
-        <form
-          method="dialog"
-          className="flex flex-col gap-3"
-          onClick={(e) => e.stopPropagation()} // Prevent form clicks from bubbling to dialog
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-        >
-          <h3 className="text-xl font-semibold mb-2">
-            {editingId ? "Edit Guest" : "Add Guest"}
-          </h3>
-          <div className="flex gap-6 items-center mb-2">
-            <span className="text-gray-700 w-40">
-              Attendees: <span className="text-red-500">*</span>
-            </span>
-            {[1, 2, 3, 4].map((num) => (
-              <label key={num} className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="num_attendees"
-                  value={num}
-                  checked={formData.num_attendees === num}
-                  onChange={() =>
-                    setFormData({ ...formData, num_attendees: num })
-                  }
-                />
-                {num}
-              </label>
-            ))}
-          </div>
-          {/* Tag (radio) */}
-          {/* <div className="flex gap-6 items-center mb-2 justify-start">
-            <span className="text-gray-700 w-40">
-              Tag: <span className="text-red-500">*</span>
-            </span>
-            {["Finna", "Hary"].map((tag) => (
-              <label key={tag} className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="tag"
-                  value={tag}
-                  checked={formData.tag === tag}
-                  onChange={() => setFormData({ ...formData, tag })}
-                />
-                {tag}
-              </label>
-            ))}
-          </div> */}
-          <div className="flex flex-col relative">
-            <label className="mb-1 font-medium">Invited By</label>
-            <select
-              className={`p-2 rounded h-12 w-full border border-black ${
-                !formData.invited_by ? "text-gray-500" : "text-black"
-              }`}
-              value={formData.invited_by || ""}
-              onChange={(e) => {
-                const value = e.target.value;
-                setFormData({
-                  ...formData,
-                  invited_by: value,
-                });
-              }}
-            >
-              <option value="" disabled>
-                Invited By *
-              </option>
-              <option value="Finna">Finna</option>
-              <option value="Finna - Papa">Finna - Papa</option>
-              <option value="Finna - Mama">Finna - Mama</option>
-              <option value="Hary">Hary</option>
-              <option value="Hary - Mama">Hary - Mama</option>
-              <option value="Hary - Koko">Hary - Koko</option>
-            </select>
-          </div>
-
-          <div className="flex flex-col relative">
-            {editingId && <label className="mb-1 font-medium">Nickname</label>}
-            <input
-              className="border p-2 rounded pr-10"
-              placeholder="Nickname *"
-              value={formData.nickname || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, nickname: e.target.value })
-              }
-              required
-            />
-            {formData.nickname && (
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, nickname: "" })}
-                className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          <div className="flex flex-col relative">
-            {editingId && <label className="mb-1 font-medium">Full Name</label>}
-            <input
-              className="border p-2 rounded pr-10"
-              placeholder="Full Name"
-              value={formData.full_name || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, full_name: e.target.value })
-              }
-            />
-            {formData.full_name && (
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, full_name: "" })}
-                className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          <div className="flex flex-col relative">
-            {editingId && (
-              <label className="mb-1 font-medium">Additional Names</label>
-            )}
-            <input
-              className="border p-2 rounded pr-10"
-              placeholder="Additional Names (comma separated)"
-              value={additionalNamesInput}
-              onChange={(e) => {
-                const value = e.target.value;
-                setAdditionalNamesInput(value);
-                setFormData({
-                  ...formData,
-                  additional_names: value
-                    .split(",")
-                    .map((name) => name.trim())
-                    .filter(Boolean),
-                });
-              }}
-            />
-            {additionalNamesInput && (
-              <button
-                type="button"
-                onClick={() => {
-                  setFormData({ ...formData, additional_names: [] });
-                  setAdditionalNamesInput("");
+            <div className="flex flex-col relative">
+              <label className="mb-1 font-medium">Invited By</label>
+              <select
+                className={`p-2 rounded h-12 w-full border border-black ${
+                  !formData.invited_by ? "text-gray-500" : "text-black"
+                }`}
+                value={formData.invited_by || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({
+                    ...formData,
+                    invited_by: value,
+                  });
                 }}
-                className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
               >
-                ✕
-              </button>
-            )}
-          </div>
-          <div className="flex flex-col relative">
-            {editingId && <label className="mb-1 font-medium">Address</label>}
-            <input
-              className="border p-2 rounded pr-10"
-              placeholder="Address"
-              value={formData.address || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, address: e.target.value })
-              }
-            />
-            {formData.address && (
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, address: "" })}
-                className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          <div className="flex flex-col relative">
-            {editingId && <label className="mb-1 font-medium">Notes</label>}
-            <input
-              className="border p-2 rounded pr-10"
-              placeholder="Notes"
-              value={formData.notes || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
-            />
-            {formData.notes && (
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, notes: "" })}
-                className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          <div className="flex items-end gap-2">
-            <div className="flex flex-col flex-1 relative">
+                <option value="" disabled>
+                  Invited By *
+                </option>
+                <option value="Finna">Finna</option>
+                <option value="Finna - Papa">Finna - Papa</option>
+                <option value="Finna - Mama">Finna - Mama</option>
+                <option value="Hary">Hary</option>
+                <option value="Hary - Mama">Hary - Mama</option>
+                <option value="Hary - Koko">Hary - Koko</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col relative">
               {editingId && (
-                <label className="mb-1 font-medium">Phone Number</label>
+                <label className="mb-1 font-medium">Nickname</label>
               )}
               <input
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                className="border p-2 rounded w-full pr-10"
-                placeholder="Phone Number"
-                value={formData.phone_number || ""}
+                className="border p-2 rounded pr-10"
+                placeholder="Nickname *"
+                value={formData.nickname || ""}
                 onChange={(e) =>
-                  setFormData({ ...formData, phone_number: e.target.value })
+                  setFormData({ ...formData, nickname: e.target.value })
                 }
+                required
               />
-
-              {formData.phone_number && (
+              {formData.nickname && (
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, phone_number: "" })}
+                  onClick={() => setFormData({ ...formData, nickname: "" })}
                   className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
                 >
                   ✕
@@ -1672,98 +1698,483 @@ Finna & Hary`;
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => handleImportOpen(editingId)}
-              className="flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 active:scale-95 transition-transform duration-100 my-1"
-            >
-              <ImportIcon className="h-5 w-5" />
-            </button>
-          </div>
+            <div className="flex flex-col relative">
+              {editingId && (
+                <label className="mb-1 font-medium">Full Name</label>
+              )}
+              <input
+                className="border p-2 rounded pr-10"
+                placeholder="Full Name"
+                value={formData.full_name || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, full_name: e.target.value })
+                }
+              />
+              {formData.full_name && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, full_name: "" })}
+                  className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
 
-          {editingId && (
-            <>
-              <div className="flex flex-col">
-                <label className="mb-1 font-medium">RSVP Status</label>
-                <select
-                  className="border p-2 rounded h-12"
-                  value={
-                    formData.is_attending === true
-                      ? "yes"
-                      : formData.is_attending === false
-                      ? "no"
-                      : ""
-                  }
-                  onChange={(e) => {
-                    const value = e.target.value;
+            <div className="flex flex-col relative">
+              {editingId && (
+                <label className="mb-1 font-medium">Additional Names</label>
+              )}
+              <input
+                className="border p-2 rounded pr-10"
+                placeholder="Additional Names (comma separated)"
+                value={additionalNamesInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setAdditionalNamesInput(value);
+                  setFormData({
+                    ...formData,
+                    additional_names: value
+                      .split(",")
+                      .map((name) => name.trim())
+                      .filter(Boolean),
+                  });
+                }}
+              />
+              {additionalNamesInput && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData({ ...formData, additional_names: [] });
+                    setAdditionalNamesInput("");
+                  }}
+                  className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-col relative">
+              {editingId && <label className="mb-1 font-medium">Address</label>}
+              <input
+                className="border p-2 rounded pr-10"
+                placeholder="Address"
+                value={formData.address || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+              />
+              {formData.address && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, address: "" })}
+                  className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-col relative">
+              {editingId && <label className="mb-1 font-medium">Notes</label>}
+              <input
+                className="border p-2 rounded pr-10"
+                placeholder="Notes"
+                value={formData.notes || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
+              />
+              {formData.notes && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, notes: "" })}
+                  className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-end gap-2">
+              <div className="flex flex-col flex-1 relative">
+                {editingId && (
+                  <label className="mb-1 font-medium">Phone Number</label>
+                )}
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className="border p-2 rounded w-full pr-10"
+                  placeholder="Phone Number"
+                  value={formData.phone_number || ""}
+                  onChange={(e) =>
                     setFormData({
                       ...formData,
-                      is_attending:
-                        value === "yes" ? true : value === "no" ? false : null,
-                    });
-                  }}
-                >
-                  <option value="">Waiting for the response</option>
-                  <option value="yes">✅ Yes</option>
-                  <option value="no">❌ No</option>
-                </select>
-              </div>
-              <div className="flex flex-col">
-                <label className="mb-1 font-medium">Attendance Confirmed</label>
-                <select
-                  className="border p-2 rounded h-12"
-                  value={
-                    formData.attendance_confirmed === true
-                      ? "yes"
-                      : formData.attendance_confirmed === false
-                      ? "no"
-                      : ""
+                      phone_number: e.target.value,
+                    })
                   }
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setFormData({
-                      ...formData,
-                      attendance_confirmed:
-                        value === "yes" ? true : value === "no" ? false : null,
-                    });
+                />
+
+                {formData.phone_number && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData({ ...formData, phone_number: "" })
+                    }
+                    className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleImportOpen(editingId)}
+                className="flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 active:scale-95 transition-transform duration-100 my-1"
+              >
+                <ImportIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            {editingId && (
+              <>
+                <div className="flex flex-col">
+                  <label className="mb-1 font-medium">RSVP Status</label>
+                  <select
+                    className="border p-2 rounded h-12"
+                    value={
+                      formData.is_attending === true
+                        ? "yes"
+                        : formData.is_attending === false
+                        ? "no"
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({
+                        ...formData,
+                        is_attending:
+                          value === "yes"
+                            ? true
+                            : value === "no"
+                            ? false
+                            : null,
+                      });
+                    }}
+                  >
+                    <option value="">Waiting for the response</option>
+                    <option value="yes">✅ Yes</option>
+                    <option value="no">❌ No</option>
+                  </select>
+                </div>
+                <div className="flex flex-col">
+                  <label className="mb-1 font-medium">
+                    Attendance Confirmed
+                  </label>
+                  <select
+                    className="border p-2 rounded h-12"
+                    value={
+                      formData.attendance_confirmed === true
+                        ? "yes"
+                        : formData.attendance_confirmed === false
+                        ? "no"
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({
+                        ...formData,
+                        attendance_confirmed:
+                          value === "yes"
+                            ? true
+                            : value === "no"
+                            ? false
+                            : null,
+                      });
+                    }}
+                  >
+                    <option value="">Waiting for the response</option>
+                    <option value="yes">✅ Yes</option>
+                    <option value="no">❌ No</option>
+                  </select>
+                </div>
+              </>
+            )}
+            <div className="flex justify-end gap-3 pt-3 mt-2">
+              <button
+                type="button"
+                onClick={() => dialogRef.current?.close()}
+                className="px-4 py-2 rounded border"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={`px-4 py-2 rounded ${
+                  !formData.nickname ||
+                  formData.nickname.trim() === "" ||
+                  !formData.invited_by ||
+                  !formData.num_attendees
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+                disabled={
+                  !formData.nickname ||
+                  formData.nickname.trim() === "" ||
+                  !formData.invited_by ||
+                  !formData.num_attendees
+                }
+              >
+                {editingId ? "Update" : "Create"}
+              </button>
+            </div>
+          </form>
+        </dialog>
+      </div>
+
+      {/* PRINT-ONLY LAYOUT: tickets OR labels */}
+      {printGuests.length > 0 && (
+        <div className="hidden print:block">
+          <style>{`
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+      * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
+      .ticket-print-card,
+      .label-print-cell {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+    `}</style>
+
+          {/* ========== TICKET MODE (existing) ========== */}
+          {printMode === "ticket" &&
+            ticketPages.map((pageGuests, pageIndex) => (
+              <div
+                key={pageIndex}
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "flex-start",
+                  pageBreakAfter:
+                    pageIndex === ticketPages.length - 1 ? "auto" : "always",
+                }}
+              >
+                {pageGuests.map((guest) => {
+                  const displayName = getDisplayName(guest);
+                  const maxGuests =
+                    typeof guest.num_attendees === "number"
+                      ? guest.num_attendees
+                      : null;
+
+                  return (
+                    <div
+                      key={guest.id}
+                      className="ticket-print-card"
+                      style={{
+                        width: "7.15cm",
+                        height: "8.35cm",
+                        boxSizing: "border-box",
+                        padding: "0.3cm",
+                        margin: "0cm",
+                        display: "inline-block",
+                        border: "1px dashed #999",
+                        borderRadius: 0,
+                      }}
+                    >
+                      <div
+                        style={{
+                          background: "white",
+                          border: "1px solid #000",
+                          borderRadius: "0.25cm",
+                          padding: "0.15cm",
+                          height: "100%",
+                          boxSizing: "border-box",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          color: "#111",
+                          fontFamily:
+                            "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+                        }}
+                      >
+                        {/* Title */}
+                        <div
+                          style={{
+                            textAlign: "center",
+                            fontSize: "1rem",
+                            fontWeight: 700,
+                            borderBottom: "1px solid #000",
+                            paddingBottom: "0.4cm",
+                            marginBottom: "0.4cm",
+                            lineHeight: 1.2,
+                          }}
+                          className="font-bold mt-2"
+                        >
+                          Wedding of
+                          <br />
+                          Haryanto &amp; Finna
+                        </div>
+
+                        {/* Message + Max guests */}
+                        <div
+                          style={{
+                            fontSize: "0.5rem",
+                            textAlign: "center",
+                            marginBottom: "0.05cm",
+                            padding: "0 0.05cm",
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          Please bring this ticket and show the QR code at the
+                          entrance for check-in.
+                          {maxGuests && (
+                            <div style={{ marginTop: "0.1cm" }}>
+                              Max guests: {maxGuests}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* QR Code */}
+                        <div
+                          style={{
+                            flexGrow: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "4cm",
+                              height: "3cm",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <QRCode value={guest.id} size={100} />
+                          </div>
+                        </div>
+
+                        {/* Name */}
+                        <div
+                          style={{
+                            fontSize: "1rem",
+                            textAlign: "center",
+                            marginTop: "0.05cm",
+                            fontWeight: 600,
+                            padding: "0 0.05cm",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {displayName}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+
+          {/* ========== LABEL MODE (Tom & Jerry 102: 37×73mm) ========== */}
+          {printMode === "label" &&
+            labelPages.map((pageGuests, pageIndex) => (
+              <div
+                key={`label-page-${pageIndex}`}
+                style={{
+                  width: "22.7cm", // 15.3 / 0.674
+                  height: "29.67cm", // 20 / 0.674
+                  boxSizing: "border-box",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "flex-start",
+                  border: "1px solid #d1d5db", // light grey border for usable paper
+                  pageBreakAfter:
+                    pageIndex === labelPages.length - 1 ? "auto" : "always",
+                }}
+              >
+                {/* Area label (scaled from 15.3cm x 20cm) */}
+                <div
+                  style={{
+                    width: "22.7cm", // 15.3 / 0.674
+                    height: "29.67cm", // 20 / 0.674
+                    boxSizing: "border-box",
+                    paddingTop: "0.3cm", // 0.2 / 0.674 ≈ 0.297
+                    paddingLeft: "0.3cm", // 0.2 / 0.674 ≈ 0.297
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 10.83cm)", // 7.3 / 0.674
+                    gridAutoRows: "5.49cm", // 3.7 / 0.674
+                    columnGap: "0.3cm", // 0.2 / 0.674
+                    rowGap: "0.3cm", // 0.2 / 0.674
                   }}
                 >
-                  <option value="">Waiting for the response</option>
-                  <option value="yes">✅ Yes</option>
-                  <option value="no">❌ No</option>
-                </select>
+                  {pageGuests.map((guest) => {
+                    const displayName = getDisplayName(guest);
+
+                    return (
+                      <div
+                        key={guest.id}
+                        className="label-print-cell"
+                        style={{
+                          width: "10.83cm", // 7.3 / 0.674
+                          height: "5.49cm", // 3.7 / 0.674
+                          boxSizing: "border-box",
+                          padding: "0.45cm", // 0.3 / 0.674
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          textAlign: "center",
+                          fontFamily:
+                            "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+                          border: "1px solid #d1d5db", // light grey border for each label
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "0.55rem",
+                            lineHeight: 1.4,
+                            letterSpacing: "0.02em",
+                          }}
+                        >
+                          Kepada Yth.
+                          <br />
+                          Bapak/Ibu/Saudara/i
+                        </div>
+                        <div
+                          style={{
+                            marginTop: "0.22cm", // 0.15 / 0.674 ≈ 0.223
+                            fontSize: "0.8rem",
+                            fontWeight: 600,
+                            lineHeight: 1.2,
+                            wordWrap: "break-word",
+                            maxWidth: "100%",
+                          }}
+                        >
+                          {displayName}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </>
-          )}
-          <div className="flex justify-end gap-3 pt-3 mt-2">
-            <button
-              type="button"
-              onClick={() => dialogRef.current?.close()}
-              className="px-4 py-2 rounded border"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className={`px-4 py-2 rounded ${
-                !formData.nickname ||
-                formData.nickname.trim() === "" ||
-                !formData.invited_by ||
-                !formData.num_attendees
-                  ? "bg-gray-400 text-white cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
-              }`}
-              disabled={
-                !formData.nickname ||
-                formData.nickname.trim() === "" ||
-                !formData.num_attendees
-              }
-            >
-              {editingId ? "Update" : "Create"}
-            </button>
-          </div>
-        </form>
-      </dialog>
-    </div>
+            ))}
+        </div>
+      )}
+    </>
   );
 }

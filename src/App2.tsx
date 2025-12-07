@@ -11,16 +11,16 @@ const MIN_LOADING_DURATION_MS = 3000;
 export const LOADER_PULSE_DURATION = 1.8;
 
 // Auto-scroll delay after opening invitation (ms)
-const AUTO_SCROLL_DELAY = 3000;
+const AUTO_SCROLL_DELAY = 5000;
 
 // Frame duration for scroll 4 dance animation
-// const FRAME_DURATION = 400; // ms per frame
+const FRAME_DURATION = 300; // ms per frame
 
 // =========================
 // Music
 // =========================
 
-const MUSIC_SRC = "/assets/you-are-the-reason.mp3";
+const MUSIC_SRC = "/assets/Lana Del Rey - Chemtrails Over The Country Club.mp3";
 
 // =========================
 // Types
@@ -59,9 +59,9 @@ type RsvpForm = {
   numAttendeesConfirmed: number;
 };
 
-// type Scroll4DanceAnimationProps = {
-//   hasOpened: boolean;
-// };
+type ScrollDanceAnimationProps = {
+  hasOpened: boolean;
+};
 
 type OurMomentsGalleryProps = {
   onModalChange?: (open: boolean) => void; // to hide music + arrows
@@ -82,7 +82,7 @@ const COUPLE = {
   groom: {
     fullName: "Haryanto Kartawijaya",
     shortName: "Haryanto",
-    fatherName: "Mr. Liauw Sui Kian",
+    fatherName: "Mr. Liauw Sui Kian †",
     motherName: "Mrs. Tan Siok Mei",
     instagram: "haryantokartawijaya",
   },
@@ -93,7 +93,7 @@ const EVENTS = {
     label: "Holy Matrimony",
     dateText: "Saturday, 07 February 2026",
     timeText: "10.00 - 11.30 WIB",
-    venueName: "THE 1O1 Bogor Suryakancana",
+    venueName: "The 101 Bogor Surya Kencana",
     locationText: "Bogor, Jawa Barat",
     mapsUrl:
       "https://www.google.com/maps/place/The+1O1+Bogor+Suryakancana/@-6.607511,106.8002938,17z/data=!3m1!4b1!4m9!3m8!1s0x2e69c5c277c0edef:0xe022fe1c5bcef5c0!5m2!4m1!1i2!8m2!3d-6.6075163!4d106.8028687!16s%2Fg%2F11bcclx5dt?entry=ttu&g_ep=EgoyMDI1MTIwMi4wIKXMDSoASAFQAw%3D%3D",
@@ -127,6 +127,8 @@ const fonts = {
 // Images to preload (add more as you use more assets)
 const IMAGE_URLS = [
   "/assets/main.jpg",
+  "/assets/scrollDance-bg.jpg",
+  "/assets/scroll1-bg.jpg",
   "/assets/scroll1-bg.jpg",
   "/assets/scroll1-couple.png",
   "/assets/scroll23-bg.jpg",
@@ -134,6 +136,7 @@ const IMAGE_URLS = [
   "/assets/scroll6-bg.jpg",
   "/assets/scroll6-couple.png",
   "/assets/scroll4-bg.jpg",
+  "/assets/scrollRSVP-bg.jpg",
   "/assets/gal1.jpg",
   "/assets/gal2.jpg",
   "/assets/gal3.jpg",
@@ -142,15 +145,15 @@ const IMAGE_URLS = [
   "/assets/gal6.jpg",
 ];
 
-const SCROLL5_FRAMES = [
-  "/assets/scroll5-dance1.png",
-  "/assets/scroll5-dance2.png",
-  "/assets/scroll5-dance3.png",
-  "/assets/scroll5-dance4.png",
-  "/assets/scroll5-dance5.png",
-  "/assets/scroll5-dance6.png",
-  "/assets/scroll5-dance7.png",
-  "/assets/scroll5-dance8.png",
+const SCROLL_DANCE_FRAMES = [
+  "/assets/scroll-dance1.png",
+  "/assets/scroll-dance2.png",
+  "/assets/scroll-dance3.png",
+  "/assets/scroll-dance4.png",
+  "/assets/scroll-dance5.png",
+  "/assets/scroll-dance6.png",
+  "/assets/scroll-dance7.png",
+  "/assets/scroll-dance8.png",
 ];
 
 const ourMomentsImages = [
@@ -162,7 +165,7 @@ const ourMomentsImages = [
   { src: "/assets/gal6.jpg", span: 4, animation: "right" },
 ];
 
-const PRELOAD_URLS = [...IMAGE_URLS, ...SCROLL5_FRAMES];
+const PRELOAD_URLS = [...IMAGE_URLS, ...SCROLL_DANCE_FRAMES];
 
 // =========================
 // Helpers
@@ -187,68 +190,124 @@ function capitalizeWords(text: string): string {
     .trim();
 }
 
-// const Scroll5DanceAnimation: React.FC<Scroll4DanceAnimationProps> = ({
-//   hasOpened,
-// }) => {
-//   const [frameIndex, setFrameIndex] = React.useState(0);
-//   const [direction, setDirection] = React.useState<1 | -1>(1);
+// Helper to format JS Date -> ICS datetime (UTC, e.g. 20250308T120000Z)
+const formatDateForICS = (date: Date) => {
+  const pad = (n: number) => String(n).padStart(2, "0");
 
-//   React.useEffect(() => {
-//     if (!hasOpened) return;
+  const year = date.getUTCFullYear();
+  const month = pad(date.getUTCMonth() + 1);
+  const day = pad(date.getUTCDate());
+  const hours = pad(date.getUTCHours());
+  const minutes = pad(date.getUTCMinutes());
+  const seconds = pad(date.getUTCSeconds());
 
-//     const last = SCROLL5_FRAMES.length - 1;
+  return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+};
 
-//     const interval = window.setInterval(() => {
-//       setFrameIndex((prev) => {
-//         // right edge → go backward
-//         if (direction === 1 && prev === last) {
-//           setDirection(-1);
-//           return last - 1;
-//         }
+const handleSaveTheDate = () => {
+  // 🔧 Change these to your real values
+  const title = "Haryanto & Finna – Wedding Reception";
+  const location = "Aston Bogor Hotel & Resort, Bogor, Jawa Barat";
+  const description =
+    "We would be honored to have you celebrate our wedding reception with us.";
 
-//         // left edge → go forward
-//         if (direction === -1 && prev === 0) {
-//           setDirection(1);
-//           return 1;
-//         }
+  // Example date/time (Jakarta, UTC+7) – change to your actual date/time
+  const startLocal = new Date("2025-03-08T18:00:00+07:00"); // reception start
+  const endLocal = new Date("2025-03-08T20:00:00+07:00"); // reception end
 
-//         return prev + direction;
-//       });
-//     }, FRAME_DURATION);
+  const dtStart = formatDateForICS(startLocal);
+  const dtEnd = formatDateForICS(endLocal);
+  const dtStamp = formatDateForICS(new Date());
 
-//     return () => window.clearInterval(interval);
-//   }, [hasOpened, direction]);
+  const icsContent = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//HF Wedding//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `DTSTAMP:${dtStamp}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${title}`,
+    `LOCATION:${location}`,
+    `DESCRIPTION:${description}`,
+    // ⏰ Reminder 1 day before
+    "BEGIN:VALARM",
+    "TRIGGER:-P1D",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:Reminder",
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
 
-//   return (
-//     <div className="absolute inset-0 flex items-end justify-center z-20 pb-6">
-//       {/* 1) Subject entrance motion (from your scroll4SubjectVariants) */}
-//       <motion.div
-//         variants={scroll5SubjectVariants}
-//         initial="initial"
-//         animate={hasOpened ? "enter" : "initial"}
-//         transition={{ duration: 1.5, ease: "easeOut" }}
-//       >
-//         {/* 2) Looping float / sway motion */}
-//         <motion.div
-//           animate={{ y: [0, 0, 0] }} // subtle float
-//           transition={{
-//             duration: 3,
-//             repeat: Infinity,
-//             repeatType: "mirror",
-//             ease: "easeInOut",
-//           }}
-//         >
-//           {/* 3) Actual frame animation (no motion here, just image swap) */}
-//           <img
-//             src={SCROLL5_FRAMES[frameIndex]}
-//             alt="Dancing couple"
-//             className="h-[70vh] w-auto object-contain"
-//           />
-//         </motion.div>
-//       </motion.div>
-//     </div>
-//   );
-// };
+  const blob = new Blob([icsContent], {
+    type: "text/calendar;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "hf-wedding-save-the-date.ics";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+const ScrollDanceAnimation: React.FC<ScrollDanceAnimationProps> = ({
+  hasOpened,
+}) => {
+  const [frameIndex, setFrameIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!hasOpened) return;
+
+    const last = SCROLL_DANCE_FRAMES.length - 1;
+
+    const interval = window.setInterval(() => {
+      setFrameIndex((prev) => {
+        // just go forward, then loop back to 0
+        if (prev === last) {
+          return 0;
+        }
+        return prev + 1;
+      });
+    }, FRAME_DURATION);
+
+    return () => window.clearInterval(interval);
+  }, [hasOpened]);
+
+  return (
+    <div className="absolute inset-0 flex items-end justify-center z-20 pb-6">
+      {/* 1) Subject entrance motion */}
+      <motion.div
+        variants={scrollDanceSubjectVariants}
+        initial="initial"
+        animate={hasOpened ? "enter" : "initial"}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+      >
+        {/* 2) Subtle float */}
+        <motion.div
+          animate={{ y: [0, 0, 0] }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            repeatType: "mirror",
+            ease: "easeInOut",
+          }}
+        >
+          {/* 3) Frame animation */}
+          <img
+            src={SCROLL_DANCE_FRAMES[frameIndex]}
+            alt="Dancing couple"
+            className="h-[70vh] w-auto object-contain"
+          />
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+};
 
 function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -613,18 +672,14 @@ const scroll1SubjectVariants = {
 };
 
 // =========================
-// Motion variants – Scroll 2 (Bride)
+// Shared couple variants – Sections 2 & 3
 // =========================
 
 // BG: smooth, slight zoom + slide in, but NO fade from black
-const scroll2BgVariants = {
+const scroll23BgVariants = {
   initial: { scale: 2, x: -120, y: 80, opacity: 1 },
   enter: { scale: 1.5, x: 0, y: -160, opacity: 1 },
 };
-
-// =========================
-// Shared couple variants – Sections 2 & 3
-// =========================
 
 const couple23Variants = {
   hidden: {
@@ -651,10 +706,10 @@ const couple23Variants = {
 // Motion variants – Scroll 4 (Save the Date / Countdown)
 // =========================
 
-// const scroll4BgVariants = {
-//   initial: { scale: 2, x: -40, y: 120, opacity: 1 },
-//   enter: { scale: 1.5, x: -40, y: -180, opacity: 1 },
-// };
+const scroll4BgVariants = {
+  initial: { scale: 2, x: -40, y: 120, opacity: 1 },
+  enter: { scale: 1, x: 0, y: 0, opacity: 1 },
+};
 
 // =========================
 // Motion variants – Scroll 5 (Reception)
@@ -662,7 +717,7 @@ const couple23Variants = {
 
 const scroll5BgVariants = {
   initial: { scale: 2, x: -120, y: 80, opacity: 1 },
-  enter: { scale: 1.5, x: -30, y: 0, opacity: 1 },
+  enter: { scale: 1.5, x: -40, y: 80, opacity: 1 },
 };
 
 // const scroll5SubjectVariants = {
@@ -671,7 +726,7 @@ const scroll5BgVariants = {
 // };
 
 // =========================
-// Motion variants – Scroll 6 (Reception)
+// Motion variants – Scroll 6 (Verse and Couple)
 // =========================
 
 const scroll6BgVariants = {
@@ -680,8 +735,24 @@ const scroll6BgVariants = {
 };
 
 const scroll6SubjectVariants = {
-  initial: { opacity: 0, x: 220, y: 80, scale: 2 },
-  enter: { opacity: 1, x: 0, y: 0, scale: 1.35 },
+  initial: { opacity: 1, x: 220, y: 80, scale: 2 },
+  enter: { opacity: 1, x: -5, y: -10, scale: 1.35 },
+};
+
+// =========================
+// Motion variants – Scroll 7 (Dance)
+// =========================
+
+const scrollDanceBgVariants = {
+  initial: { scale: 2, x: 120, y: 80, opacity: 1 },
+  enter: { scale: 1, x: 0, y: 0, opacity: 1 },
+};
+
+const scrollDanceSubjectVariants = {
+  // from bottom-left, bigger, and faded
+  initial: { opacity: 1, x: -160, y: 220, scale: 1.9 },
+  // end near center-ish
+  enter: { opacity: 1, x: -20, y: -60, scale: 1.35 },
 };
 
 // =========================
@@ -702,7 +773,7 @@ export default function Invitation() {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [currentSection, setCurrentSection] = useState(0);
   const isLockedRef = useRef(false);
-  const totalSections = 8;
+  const totalSections = 9;
 
   // Auto-scroll state
   const autoScrollTimeoutRef = useRef<number | null>(null);
@@ -732,6 +803,9 @@ export default function Invitation() {
   const [wishes, setWishes] = useState<
     { id: string; name: string; wish: string }[]
   >([]);
+
+  const [showRsvpModal, setShowRsvpModal] = useState(false);
+  const [rsvpModalMessage, setRsvpModalMessage] = useState<string>("");
 
   const startEditRsvp = () => {
     setForm({
@@ -1141,7 +1215,9 @@ export default function Invitation() {
   useEffect(() => {
     if (!hasOpened) return;
     if (autoScrollDisabledRef.current) return; // user has interacted → stop forever
-    if (currentSection >= totalSections - 1) return; // last section → no auto-scroll
+
+    // ⛔ Stop auto-scroll starting from RSVP (section 7)
+    if (currentSection >= 7) return;
 
     // clear existing timer
     if (autoScrollTimeoutRef.current !== null) {
@@ -1348,7 +1424,13 @@ export default function Invitation() {
       });
     }
 
-    alert("Thank you! Your RSVP has been recorded.");
+    // ✅ Show elegant modal instead of alert
+    setRsvpModalMessage(
+      form.isAttending === true
+        ? "Thank you! Your RSVP has been recorded. We look forward to celebrating with you."
+        : "Thank you for your response. We truly appreciate your wishes and prayers."
+    );
+    setShowRsvpModal(true);
     setIsEditingRsvp(false);
   };
 
@@ -1361,11 +1443,8 @@ export default function Invitation() {
     (_, i) => i + 1
   );
 
-  // show QR only if backend guest + isAttending === true
-  const canShowQr =
-    recipient.mode === "backend" &&
-    !!recipient.id &&
-    recipient.isAttending === true;
+  // show QR for all backend guests who have an id
+  const canShowQr = recipient.mode === "backend" && !!recipient.id;
 
   const qrValue =
     recipient.mode === "backend" && recipient.id ? recipient.id : "";
@@ -1377,15 +1456,30 @@ export default function Invitation() {
         {!isLoaded && (
           <motion.div
             key="loader"
-            className="absolute inset-0 z-50 flex items-center justify-center bg-black"
+            className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden"
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8, ease: "easeInOut" }}
           >
-            <div className="flex flex-col items-center gap-6">
+            {/* Soft gradient + vignette background */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(255,255,255,0.06),_transparent_55%)] bg-black" />
+
+            {/* Glass card */}
+            <motion.div
+              className="relative z-10 max-w-xs w-[80%] rounded-3xl border border-white/20 bg-white/10 
+                   backdrop-blur-xl shadow-[0_18px_60px_rgba(0,0,0,0.7)] px-7 py-6 
+                   flex flex-col items-center gap-5"
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              {/* HF circle */}
               <motion.div
-                className="w-28 h-28 md:w-32 md:h-32 rounded-full border border-white/40 flex items-center justify-center"
+                className="w-24 h-24 md:w-28 md:h-28 rounded-full border border-white/40 
+                     bg-white/10 backdrop-blur-2xl flex items-center justify-center
+                     shadow-[0_12px_35px_rgba(0,0,0,0.65)]"
                 animate={{ scale: [1, 1.08, 1] }}
                 transition={{
                   duration: LOADER_PULSE_DURATION,
@@ -1396,9 +1490,7 @@ export default function Invitation() {
                 <motion.span
                   className="text-4xl md:text-5xl font-bold text-white"
                   style={{ fontFamily: fonts.heading, letterSpacing: "0.08em" }}
-                  animate={{
-                    scale: [1, 1.15, 1],
-                  }}
+                  animate={{ scale: [1, 1.15, 1] }}
                   transition={{
                     duration: LOADER_PULSE_DURATION,
                     repeat: Infinity,
@@ -1408,7 +1500,9 @@ export default function Invitation() {
                   HF
                 </motion.span>
               </motion.div>
-              <div className="flex flex-col items-center gap-1">
+
+              {/* Text + line */}
+              <div className="flex flex-col items-center gap-1.5">
                 <span
                   className="text-m md:text-base tracking-[0.25em] uppercase text-white/80 font-bold"
                   style={{ fontFamily: fonts.subheading }}
@@ -1421,8 +1515,9 @@ export default function Invitation() {
                 >
                   INVITATION
                 </span>
+
                 <motion.div
-                  className="h-px w-24 bg-white/30 mt-2"
+                  className="h-px w-24 bg-white/40 mt-3 rounded-full"
                   initial={{ opacity: 0.4, scaleX: 0.6 }}
                   animate={{
                     opacity: [0.4, 1, 0.4],
@@ -1435,7 +1530,7 @@ export default function Invitation() {
                   }}
                 />
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1505,13 +1600,13 @@ export default function Invitation() {
                       }}
                     >
                       <p
-                        className="text-xs tracking-[0.25em] uppercase text-white/70 mb-3"
+                        className="text-lg tracking-[0.25em] uppercase text-white/70 mb-3"
                         style={{ fontFamily: fonts.subheading }}
                       >
                         Our Journey
                       </p>
                       <p
-                        className="text-sm md:text-[17px] leading-snug text-white/90"
+                        className="text-m md:text-[17px] leading-snug text-white/90"
                         style={{ fontFamily: fonts.subheading }}
                       >
                         “When two souls find home in each other,
@@ -1556,14 +1651,22 @@ export default function Invitation() {
                       style={{
                         backgroundImage: "url('/assets/scroll23-bg.jpg')",
                       }}
-                      variants={scroll2BgVariants}
+                      variants={scroll23BgVariants}
                       initial="initial"
                       animate={hasOpened ? "enter" : "initial"}
                       transition={{ duration: 1.5, ease: "easeOut" }}
                     />
 
                     {/* Soft gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/80 z-10 pointer-events-none" />
+                    <motion.div
+                      className="absolute inset-0 bg-cover bg-center z-0"
+                      variants={scroll23BgVariants}
+                      initial="initial"
+                      animate={hasOpened ? "enter" : "initial"}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/50 to-black/80 z-10 pointer-events-none" />
+                    </motion.div>
 
                     {/* Shared couple photo */}
                     <div className="absolute inset-0 flex items-center justify-center z-20">
@@ -1587,54 +1690,104 @@ export default function Invitation() {
                         <motion.div
                           key="bride-text"
                           className="absolute top-10 left-6 right-28 z-30 text-left"
-                          initial={{ opacity: 0, y: -20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{
-                            duration: 0.4,
-                            ease: "easeOut",
+                          initial={{ opacity: 0, y: -60 }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                            transition: {
+                              duration: 2, // 👈 bride info ENTER (1) – slower
+                              ease: "easeOut",
+                            },
+                          }}
+                          exit={{
+                            opacity: 0,
+                            y: -20,
+                            transition: {
+                              duration: 0.5, // 👈 bride info EXIT (1 → 2)
+                              ease: "easeInOut",
+                            },
                           }}
                         >
+                          {/* Title */}
                           <p
-                            className="text-xs tracking-[0.25em] uppercase text-white/70 mb-2"
+                            className="text-lg tracking-[0.25em] uppercase text-white/70 mb-3"
                             style={{ fontFamily: fonts.subheading }}
                           >
                             The Bride
                           </p>
 
+                          {/* Name */}
                           <p
-                            className="text-3xl md:text-4xl text-white mb-2"
+                            className="text-4xl md:text-4xl text-white mb-3"
                             style={{ fontFamily: fonts.heading }}
                           >
                             {COUPLE.bride.fullName}
                           </p>
 
+                          {/* Parents – 3 lines */}
                           <p
-                            className="text-sm md:text-base text-white/80 mb-2"
+                            className="text-m md:text-base text-white/80 mb-3 leading-relaxed"
                             style={{ fontFamily: fonts.subheading }}
                           >
-                            Daughter of{" "}
+                            Daughter of
+                            <br />
                             <span className="font-semibold">
                               {COUPLE.bride.fatherName}
-                            </span>{" "}
-                            &amp;{" "}
+                            </span>
+                            <br />
                             <span className="font-semibold">
                               {COUPLE.bride.motherName}
                             </span>
                           </p>
 
+                          {/* IG icon + handle */}
                           <p
-                            className="text-sm md:text-base text-white/70"
+                            className="text-m md:text-base text-white/70"
                             style={{ fontFamily: fonts.subheading }}
                           >
-                            Instagram:{" "}
                             <a
                               href={`https://instagram.com/${COUPLE.bride.instagram}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="underline underline-offset-2"
+                              className="inline-flex items-center gap-2 hover:text-white transition-colors"
                             >
-                              @{COUPLE.bride.instagram}
+                              <svg
+                                className="w-5 h-5"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                              >
+                                {/* Outer rounded square */}
+                                <rect
+                                  x="3"
+                                  y="3"
+                                  width="18"
+                                  height="18"
+                                  rx="5"
+                                  ry="5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  fill="none"
+                                />
+                                {/* Inner circle */}
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r="5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  fill="none"
+                                />
+                                {/* Small circle (flash) – outline only, no fill */}
+                                <circle
+                                  cx="17"
+                                  cy="7"
+                                  r="1.2"
+                                  stroke="currentColor"
+                                  strokeWidth="1.3"
+                                  fill="none"
+                                />
+                              </svg>
+                              <span>@{COUPLE.bride.instagram}</span>
                             </a>
                           </p>
                         </motion.div>
@@ -1644,54 +1797,101 @@ export default function Invitation() {
                         <motion.div
                           key="groom-text"
                           className="absolute top-10 left-28 right-6 z-30 text-right"
-                          initial={{ opacity: 0, y: -20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{
-                            duration: 0.4,
-                            ease: "easeOut",
+                          initial={{ opacity: 0, y: -60 }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                            transition: {
+                              duration: 2, // 👈 groom info ENTER (1 → 2)
+                              ease: "easeOut",
+                            },
+                          }}
+                          exit={{
+                            opacity: 0,
+                            y: -20,
+                            transition: {
+                              duration: 0.4, // 👈 groom info EXIT (2 → 3)
+                              ease: "easeInOut",
+                            },
                           }}
                         >
+                          {/* Title */}
                           <p
-                            className="text-xs tracking-[0.25em] uppercase text-white/70 mb-2"
+                            className="text-lg tracking-[0.25em] uppercase text-white/70 mb-3"
                             style={{ fontFamily: fonts.subheading }}
                           >
                             The Groom
                           </p>
 
+                          {/* Name */}
                           <p
-                            className="text-3xl md:text-4xl text-white mb-2"
+                            className="text-4xl md:text-4xl text-white mb-3"
                             style={{ fontFamily: fonts.heading }}
                           >
                             {COUPLE.groom.fullName}
                           </p>
 
+                          {/* Parents – 3 lines */}
                           <p
-                            className="text-sm md:text-base text-white/80 mb-2"
+                            className="text-m md:text-base text-white/80 mb-3 leading-relaxed"
                             style={{ fontFamily: fonts.subheading }}
                           >
-                            Son of{" "}
+                            Son of
+                            <br />
                             <span className="font-semibold">
                               {COUPLE.groom.fatherName}
-                            </span>{" "}
-                            &amp;{" "}
+                            </span>
+                            <br />
                             <span className="font-semibold">
                               {COUPLE.groom.motherName}
                             </span>
                           </p>
 
+                          {/* IG icon + handle */}
                           <p
-                            className="text-sm md:text-base text-white/70"
+                            className="text-m md:text-base text-white/70"
                             style={{ fontFamily: fonts.subheading }}
                           >
-                            Instagram:{" "}
                             <a
                               href={`https://instagram.com/${COUPLE.groom.instagram}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="underline underline-offset-2"
+                              className="inline-flex items-center gap-2 justify-end hover:text-white transition-colors"
                             >
-                              @{COUPLE.groom.instagram}
+                              <span>@{COUPLE.groom.instagram}</span>
+                              <svg
+                                className="w-5 h-5"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                              >
+                                <rect
+                                  x="3"
+                                  y="3"
+                                  width="18"
+                                  height="18"
+                                  rx="5"
+                                  ry="5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  fill="none"
+                                />
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r="5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  fill="none"
+                                />
+                                <circle
+                                  cx="17"
+                                  cy="7"
+                                  r="1.2"
+                                  stroke="currentColor"
+                                  strokeWidth="1.3"
+                                  fill="none"
+                                />
+                              </svg>
                             </a>
                           </p>
                         </motion.div>
@@ -1718,14 +1918,14 @@ export default function Invitation() {
                       style={{
                         backgroundImage: "url('/assets/scroll4-bg.jpg')",
                       }}
-                      variants={scroll6BgVariants}
+                      variants={scroll4BgVariants}
                       initial="initial"
                       animate={hasOpened ? "enter" : "initial"}
                       transition={{ duration: 1.5, ease: "easeOut" }}
                     />
 
-                    {/* Soft dark gradient for readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/0 via-black/20 to-black/40" />
+                    {/* Soft light overlay for readability on light BG */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-white/0 via-white/10 to-white/20" />
 
                     {/* Text + countdown at top */}
                     <motion.div
@@ -1742,30 +1942,43 @@ export default function Invitation() {
                         delay: 0.2,
                       }}
                     >
+                      {/* Save the Date */}
                       <p
-                        className="text-xs tracking-[0.25em] uppercase text-white/70 mb-2"
+                        className="text-lg md:text-lg tracking-[0.28em] uppercase text-black/80 mb-3"
                         style={{ fontFamily: fonts.subheading }}
                       >
                         Save the Date
                       </p>
 
+                      {/* Subtitle */}
                       <p
-                        className="text-sm md:text-[16px] text-white/90 mb-2"
+                        className="text-m md:text-2xl text-black mb-3"
                         style={{ fontFamily: fonts.subheading }}
                       >
                         Countdown to our wedding reception
                       </p>
 
+                      {/* Date & time */}
                       <p
-                        className="text-xs md:text-sm text-white/70 mb-5"
+                        className="text-m md:text-lg text-black/80 mb-6"
                         style={{ fontFamily: fonts.subheading }}
                       >
                         {EVENTS.reception.dateText} ·{" "}
                         {EVENTS.reception.timeText}
                       </p>
 
+                      {/* Save to Calendar button */}
+                      <motion.button
+                        type="button"
+                        onClick={handleSaveTheDate}
+                        className="inline-flex items-center justify-center rounded-full border border-black/60 bg-white/80 px-7 py-3 text-sm md:text-sm uppercase tracking-[0.2em] text-black/90 backdrop-blur-sm shadow-md hover:bg-white hover:border-black transition"
+                        whileTap={{ scale: 0.96 }}
+                      >
+                        Save to Calendar
+                      </motion.button>
+
                       {/* Countdown timer */}
-                      <div className="flex justify-center gap-3 md:gap-4">
+                      <div className="mt-7 flex justify-center gap-3 md:gap-4">
                         {[
                           { label: "Days", value: timeLeft.days },
                           { label: "Hours", value: timeLeft.hours },
@@ -1774,16 +1987,16 @@ export default function Invitation() {
                         ].map((item) => (
                           <div
                             key={item.label}
-                            className="w-16 md:w-18 bg-white/10 border border-white/30 rounded-xl py-2"
+                            className="w-16 md:w-20 rounded-2xl border border-black/10 bg-white/85 backdrop-blur-sm px-3 py-3 shadow-sm flex flex-col items-center justify-center"
                           >
                             <div
-                              className="text-lg md:text-xl font-semibold text-white"
+                              className="text-xl md:text-2xl font-semibold text-black leading-none"
                               style={{ fontFamily: fonts.subheading }}
                             >
                               {String(item.value).padStart(2, "0")}
                             </div>
                             <div
-                              className="text-[10px] md:text-xs uppercase tracking-[0.15em] text-white/70 mt-1"
+                              className="mt-1 text-[10px] md:text-xs uppercase tracking-[0.18em] text-black/70"
                               style={{ fontFamily: fonts.subheading }}
                             >
                               {item.label}
@@ -1819,8 +2032,8 @@ export default function Invitation() {
                       transition={{ duration: 1.5, ease: "easeOut" }}
                     />
 
-                    {/* Lighter gradient overlay for readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/0 via-black/0 to-black/0 z-10 pointer-events-none" />
+                    {/* Lighter overlay for readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-black/0 to-black/0 z-10 pointer-events-none" />
 
                     {/* Wedding Day Schedule – centered */}
                     <motion.div
@@ -1837,8 +2050,9 @@ export default function Invitation() {
                         delay: 0.15,
                       }}
                     >
+                      {/* Title: lg */}
                       <p
-                        className="text-xs md:text-sm tracking-[0.25em] uppercase text-white/80 mb-4"
+                        className="text-lg tracking-[0.25em] uppercase text-white/80 mb-4"
                         style={{ fontFamily: fonts.subheading }}
                       >
                         Wedding Day Schedule
@@ -1847,22 +2061,25 @@ export default function Invitation() {
                       <div className="space-y-4 w-full max-w-sm">
                         {/* Holy Matrimony */}
                         <div className="space-y-1">
+                          {/* Subheading: m */}
                           <p
-                            className="text-sm md:text-base font-semibold text-white"
+                            className="text-m md:text-base font-semibold text-white"
                             style={{ fontFamily: fonts.subheading }}
                           >
                             {EVENTS.blessing.label}
                           </p>
 
+                          {/* Everything else: m */}
                           <p
-                            className="text-xs md:text-sm text-white/90"
+                            className="text-m md:text-base text-white/90"
                             style={{ fontFamily: fonts.subheading }}
                           >
                             {EVENTS.blessing.dateText}
                           </p>
+
                           {EVENTS.blessing.timeText && (
                             <p
-                              className="text-xs md:text-sm text-white/80"
+                              className="text-m md:text-base text-white/80"
                               style={{ fontFamily: fonts.subheading }}
                             >
                               {EVENTS.blessing.timeText}
@@ -1870,28 +2087,23 @@ export default function Invitation() {
                           )}
 
                           <p
-                            className="text-xs md:text-sm text-white font-semibold mt-1"
+                            className="text-m md:text-base text-white font-semibold mt-1"
                             style={{ fontFamily: fonts.subheading }}
                           >
                             {EVENTS.blessing.venueName}
                           </p>
-                          <p
-                            className="text-[11px] md:text-xs text-white/80"
-                            style={{ fontFamily: fonts.body }}
-                          >
-                            {EVENTS.blessing.locationText}
-                          </p>
 
+                          {/* Glass button */}
                           <a
                             href={EVENTS.blessing.mapsUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center justify-center gap-1.5 mt-2 px-3 py-1.5 rounded-full bg-white text-black text-[11px] md:text-xs font-semibold shadow-sm hover:bg-neutral-100 transition-colors"
+                            className="inline-flex items-center justify-center gap-1.5 mt-2 px-4 py-2 rounded-full border border-white/60 bg-white/10 text-white text-m md:text-base font-semibold shadow-[0_10px_35px_rgba(0,0,0,0.35)] backdrop-blur-md hover:bg-white/20 transition-colors"
                             style={{ fontFamily: fonts.button }}
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              className="w-3.5 h-3.5"
+                              className="w-4 h-4"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"
@@ -1911,22 +2123,25 @@ export default function Invitation() {
 
                         {/* Reception */}
                         <div className="space-y-1">
+                          {/* Subheading: m */}
                           <p
-                            className="text-sm md:text-base font-semibold text-white"
+                            className="text-m md:text-base font-semibold text-white"
                             style={{ fontFamily: fonts.subheading }}
                           >
                             {EVENTS.reception.label}
                           </p>
 
+                          {/* Everything else: m */}
                           <p
-                            className="text-xs md:text-sm text-white/90"
+                            className="text-m md:text-base text-white/90"
                             style={{ fontFamily: fonts.subheading }}
                           >
                             {EVENTS.reception.dateText}
                           </p>
+
                           {EVENTS.reception.timeText && (
                             <p
-                              className="text-xs md:text-sm text-white/80"
+                              className="text-m md:text-base text-white/80"
                               style={{ fontFamily: fonts.subheading }}
                             >
                               {EVENTS.reception.timeText}
@@ -1934,28 +2149,23 @@ export default function Invitation() {
                           )}
 
                           <p
-                            className="text-xs md:text-sm text-white font-semibold mt-1"
+                            className="text-m md:text-base text-white font-semibold mt-1"
                             style={{ fontFamily: fonts.subheading }}
                           >
                             {EVENTS.reception.venueName}
                           </p>
-                          <p
-                            className="text-[11px] md:text-xs text-white/80"
-                            style={{ fontFamily: fonts.body }}
-                          >
-                            {EVENTS.reception.locationText}
-                          </p>
 
+                          {/* Glass button */}
                           <a
                             href={EVENTS.reception.mapsUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center justify-center gap-2 mt-2 px-3 py-1.5 rounded-full bg-white text-black text-[11px] md:text-xs font-semibold shadow-sm hover:bg-neutral-100 transition-colors"
+                            className="inline-flex items-center justify-center gap-2 mt-2 px-4 py-2 rounded-full border border-white/60 bg-white/10 text-white text-m md:text-base font-semibold shadow-[0_10px_35px_rgba(0,0,0,0.35)] backdrop-blur-md hover:bg-white/20 transition-colors"
                             style={{ fontFamily: fonts.button }}
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              className="w-3.5 h-3.5"
+                              className="w-4 h-4"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"
@@ -1975,7 +2185,7 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                    SECTION 6 – RECEPTION INFO
+                    SECTION 6 – Verse & Couple
                     ========================= */}
                 {currentSection === 5 && (
                   <motion.section
@@ -2017,19 +2227,19 @@ export default function Invitation() {
                       }}
                     >
                       <p
-                        className="text-xs tracking-[0.25em] uppercase text-white/70 mb-3"
+                        className="text-lg tracking-[0.25em] uppercase text-white/70 mb-3"
                         style={{ fontFamily: fonts.subheading }}
                       >
                         With Love &amp; Gratitude
                       </p>
 
                       <p
-                        className="text-sm md:text-[17px] leading-snug text-white/90"
+                        className="text-m md:text-[17px] leading-snug text-white/90"
                         style={{ fontFamily: fonts.subheading }}
                       >
                         “Your presence is our greatest gift,
                         <br />
-                        and your prayers our greatest blessing.”
+                        and your prayers are our greatest blessing.”
                       </p>
                     </motion.div>
 
@@ -2049,46 +2259,109 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                    SECTION 7 – RSVP
-                   ========================= */}
+                    SECTION 7 – Dance
+                    ========================= */}
+
                 {currentSection === 6 && (
                   <motion.section
                     key="section-7"
-                    className="absolute inset-0 h-dvh overflow-hidden bg-black"
+                    className="absolute inset-0 h-dvh overflow-hidden"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.4, ease: "easeInOut" }}
                   >
-                    {/* Dynamic black & white moving background */}
+                    {/* Background image – dance */}
                     <motion.div
-                      className="absolute inset-0"
+                      className="absolute inset-0 bg-cover bg-center"
                       style={{
-                        backgroundImage:
-                          "radial-gradient(circle at 15% 0%, rgba(255,255,255,0.16), transparent 55%), radial-gradient(circle at 85% 100%, rgba(255,255,255,0.10), transparent 60%), linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(0,0,0,0.85))",
-                        backgroundSize: "140% 140%, 140% 140%, 100% 100%",
+                        backgroundImage: "url('/assets/scrollDance-bg.jpg')",
                       }}
-                      initial={{
-                        backgroundPosition: "0% 0%, 100% 100%, 50% 0%",
-                      }}
-                      animate={{
-                        backgroundPosition: [
-                          "0% 0%, 100% 100%, 50% 0%",
-                          "100% 100%, 0% 0%, 50% 100%",
-                        ],
-                      }}
-                      transition={{
-                        duration: 18,
-                        repeat: Infinity,
-                        repeatType: "reverse",
-                        ease: "easeInOut",
-                      }}
+                      variants={scrollDanceBgVariants}
+                      initial="initial"
+                      animate={hasOpened ? "enter" : "initial"}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
                     />
 
-                    <div className="relative z-10 flex items-center justify-center h-full px-4">
-                      <div className="bg-white/96 backdrop-blur-sm border border-black/10 rounded-2xl p-4 md:p-5 max-w-md w-full shadow-2xl">
+                    {/* Soft gradient overlay for readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-black/20 to-black/70" />
+
+                    {/* Verse at top center */}
+                    <motion.div
+                      className="absolute top-10 inset-x-0 px-6 text-center z-30"
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={
+                        hasOpened
+                          ? { opacity: 1, y: 0 }
+                          : { opacity: 0, y: -20 }
+                      }
+                      transition={{
+                        duration: 1.1,
+                        ease: "easeOut",
+                        delay: 0.3,
+                      }}
+                    >
+                      <p
+                        className="text-lg tracking-[0.25em] uppercase text-white/70 mb-3"
+                        style={{ fontFamily: fonts.subheading }}
+                      >
+                        Joyful &amp; Whimsical
+                      </p>
+
+                      <p
+                        className="text-m md:text-[17px] leading-snug text-white/90"
+                        style={{ fontFamily: fonts.subheading }}
+                      >
+                        “Come dance with us as we begin
+                        <br />a lifetime filled with love and laughter.”
+                      </p>
+                    </motion.div>
+
+                    {/* Dancing couple – frame animation */}
+                    <ScrollDanceAnimation hasOpened={hasOpened} />
+                  </motion.section>
+                )}
+
+                {/* =========================
+                    SECTION 8 – RSVP
+                   ========================= */}
+                {currentSection === 7 && (
+                  <motion.section
+                    key="section-8"
+                    className="absolute inset-0 h-dvh overflow-hidden"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                  >
+                    {/* Full-screen background image */}
+                    <motion.div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{
+                        backgroundImage: "url('/assets/scrollRSVP-bg.jpg')",
+                      }}
+                      initial={{ scale: 1.1, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 1.2, ease: "easeOut" }}
+                    />
+
+                    {/* Black overlay for readability */}
+                    <div className="absolute inset-0 bg-black/20" />
+
+                    {/* Content */}
+                    <div className="relative z-10 flex items-center justify-center h-full px-4 pb-20">
+                      <div
+                        className="w-full max-w-md rounded-3xl
+                    border border-white/10
+                    bg-black/30
+                    backdrop-blur-sm
+                    shadow-[0_14px_40px_rgba(0,0,0,0.7)]
+                    p-5 md:p-6 text-white"
+                      >
+                        {/* Title (text-lg) */}
                         <h3
-                          className="text-[22px] font-bold text-center mb-3 tracking-[0.18em] uppercase text-black"
+                          className="text-lg md:text-xl font-semibold text-center mb-4 tracking-[0.18em] uppercase"
                           style={{ fontFamily: fonts.subheading }}
                         >
                           RSVP
@@ -2097,7 +2370,7 @@ export default function Invitation() {
                         {/* Loading / error */}
                         {isLoadingGuest && (
                           <p
-                            className="text-[12px] text-neutral-500 mb-2 text-center"
+                            className="text-m md:text-base text-white/70 mb-2 text-center"
                             style={{ fontFamily: fonts.body }}
                           >
                             Loading guest info...
@@ -2106,7 +2379,7 @@ export default function Invitation() {
 
                         {guestError && (
                           <p
-                            className="text-[12px] text-red-600 mb-3 text-center"
+                            className="text-m md:text-base text-red-300 mb-3 text-center"
                             style={{ fontFamily: fonts.body }}
                           >
                             {guestError}
@@ -2114,9 +2387,9 @@ export default function Invitation() {
                         )}
 
                         {/* Invitee info */}
-                        <div className="mb-3 text-center">
+                        <div className="mb-4 text-center">
                           <p
-                            className="text-[14px]"
+                            className="text-m md:text-base"
                             style={{ fontFamily: fonts.body }}
                           >
                             Invitee:{" "}
@@ -2127,7 +2400,7 @@ export default function Invitation() {
                           {recipient.isAttending === true &&
                           recipient.numAttendeesConfirmed !== undefined ? (
                             <p
-                              className="text-[11px] text-neutral-500 mt-1"
+                              className="text-m md:text-base text-white/60 mt-1"
                               style={{ fontFamily: fonts.body }}
                             >
                               Confirmed guests:{" "}
@@ -2135,7 +2408,7 @@ export default function Invitation() {
                             </p>
                           ) : (
                             <p
-                              className="text-[11px] text-neutral-500 mt-1"
+                              className="text-m md:text-base text-white/60 mt-1"
                               style={{ fontFamily: fonts.body }}
                             >
                               Maximum guests: {recipient.maxGuests}
@@ -2146,9 +2419,9 @@ export default function Invitation() {
                         {/* IF RSVP FILLED OR EDITING */}
                         {!isEditingRsvp && recipient.isAttending === true ? (
                           // CASE 1: Confirmed attending → QR / pass + Edit button
-                          <div className="mb-4">
+                          <div className="mb-5">
                             <p
-                              className="text-[13px] text-center text-neutral-700 leading-snug"
+                              className="text-m md:text-base text-center text-white/80 leading-snug"
                               style={{ fontFamily: fonts.body }}
                             >
                               Thank you for confirming your attendance.
@@ -2159,22 +2432,22 @@ export default function Invitation() {
                             </p>
 
                             {canShowQr && qrValue && (
-                              <div className="mt-3 flex justify-center">
-                                <div className="bg-white border border-black/60 rounded-xl px-4 py-3 inline-flex flex-col items-center gap-1.5">
+                              <div className="mt-4 flex justify-center">
+                                <div className="bg-black/50 border border-white/40 rounded-2xl px-3 py-2 inline-flex flex-col items-center gap-1.5 backdrop-blur-md">
                                   <p
-                                    className="text-[11px] tracking-[0.18em] uppercase text-neutral-500"
+                                    className="text-m md:text-base tracking-[0.18em] uppercase text-white/70"
                                     style={{ fontFamily: fonts.subheading }}
                                   >
-                                    Admission Pass
+                                    Wedding Pass
                                   </p>
 
                                   {/* QR Code based on id (same as admin app) */}
-                                  <div className="bg-white p-2 rounded-md">
+                                  <div className="bg-white p-1.5 rounded-md">
                                     <QRCode value={qrValue} size={160} />
                                   </div>
 
                                   <p
-                                    className="text-[10px] text-neutral-500 mt-1"
+                                    className="text-m md:text-base text-white/70 mt-1"
                                     style={{ fontFamily: fonts.body }}
                                   >
                                     {recipient.displayName}
@@ -2184,10 +2457,10 @@ export default function Invitation() {
                             )}
 
                             {/* Edit button */}
-                            <div className="mt-4 flex justify-center">
+                            <div className="mt-5 flex justify-center">
                               <button
                                 onClick={startEditRsvp}
-                                className="px-4 py-1.5 rounded-full border border-neutral-400 text-[12px] text-neutral-700 hover:bg-neutral-100 transition-colors"
+                                className="px-5 py-2 rounded-full border border-white/50 text-m md:text-base text-white hover:bg-white/10 transition-colors"
                                 style={{ fontFamily: fonts.body }}
                               >
                                 Edit RSVP
@@ -2197,9 +2470,9 @@ export default function Invitation() {
                         ) : !isEditingRsvp &&
                           recipient.isAttending === false ? (
                           // CASE 2: RSVP filled but not attending + Edit button
-                          <div className="mb-4">
+                          <div className="mb-5">
                             <p
-                              className="text-[13px] text-center text-neutral-700 leading-snug"
+                              className="text-m md:text-base text-center text-white/80 leading-snug"
                               style={{ fontFamily: fonts.body }}
                             >
                               Thank you for letting us know.
@@ -2209,10 +2482,10 @@ export default function Invitation() {
                             </p>
 
                             {/* Edit button */}
-                            <div className="mt-4 flex justify-center">
+                            <div className="mt-5 flex justify-center">
                               <button
                                 onClick={startEditRsvp}
-                                className="px-4 py-1.5 rounded-full border border-neutral-400 text-[12px] text-neutral-700 hover:bg-neutral-100 transition-colors"
+                                className="px-5 py-2 rounded-full border border-white/50 text-m md:text-base text-white hover:bg-white/10 transition-colors"
                                 style={{ fontFamily: fonts.body }}
                               >
                                 Edit RSVP
@@ -2221,10 +2494,10 @@ export default function Invitation() {
                           </div>
                         ) : (
                           // CASE 3: RSVP not filled OR editing → show form
-                          <div className="space-y-3 mb-4">
+                          <div className="space-y-3 mb-5">
                             <div className="space-y-1.5">
                               <label
-                                className="text-[12px] text-neutral-700"
+                                className="text-m md:text-base text-white/80"
                                 style={{ fontFamily: fonts.body }}
                               >
                                 Your Name
@@ -2233,7 +2506,7 @@ export default function Invitation() {
                                 type="text"
                                 name="name"
                                 placeholder="Your Name"
-                                className="w-full px-3 py-2 rounded-md border border-neutral-300 text-[14px] focus:outline-none focus:ring-1 focus:ring-black/70"
+                                className="w-full px-3 py-2.5 rounded-lg border border-white/30 bg-black/30 text-m md:text-base text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/80"
                                 style={{ fontFamily: fonts.body }}
                                 value={form.name}
                                 onChange={handleChange}
@@ -2242,7 +2515,7 @@ export default function Invitation() {
 
                             <div className="space-y-1.5">
                               <label
-                                className="text-[12px] text-neutral-700"
+                                className="text-m md:text-base text-white/80"
                                 style={{ fontFamily: fonts.body }}
                               >
                                 Your Best Wishes
@@ -2250,7 +2523,7 @@ export default function Invitation() {
                               <textarea
                                 name="wish"
                                 placeholder="Write your best wishes"
-                                className="w-full px-3 py-2 rounded-md border border-neutral-300 text-[13px] focus:outline-none focus:ring-1 focus:ring-black/70"
+                                className="w-full px-3 py-2.5 rounded-lg border border-white/30 bg-black/30 text-m md:text-base text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/80"
                                 style={{ fontFamily: fonts.body }}
                                 rows={3}
                                 value={form.wish}
@@ -2261,12 +2534,12 @@ export default function Invitation() {
                             {/* Will you attend? – inline radio */}
                             <div className="flex items-center justify-between flex-wrap gap-2">
                               <span
-                                className="text-[12px] text-neutral-700"
+                                className="text-m md:text-base text-white/80"
                                 style={{ fontFamily: fonts.body }}
                               >
                                 Will you attend?
                               </span>
-                              <div className="flex gap-4 text-[13px]">
+                              <div className="flex gap-4 text-m md:text-base">
                                 <label
                                   className="flex items-center gap-1.5"
                                   style={{ fontFamily: fonts.body }}
@@ -2299,12 +2572,12 @@ export default function Invitation() {
                             {/* Number of guests – inline options */}
                             <div className="flex items-center justify-between flex-wrap gap-2">
                               <span
-                                className="text-[12px] text-neutral-700"
+                                className="text-m md:text-base text-white/80"
                                 style={{ fontFamily: fonts.body }}
                               >
                                 Number of Guests
                               </span>
-                              <div className="flex flex-wrap gap-3 text-[13px]">
+                              <div className="flex flex-wrap gap-3 text-m md:text-base">
                                 {maxGuestsOptions.map((num) => (
                                   <label
                                     key={num}
@@ -2329,7 +2602,7 @@ export default function Invitation() {
 
                             <button
                               onClick={handleSubmit}
-                              className="w-full bg-black text-white py-2.5 rounded-full text-[13px] font-semibold tracking-[0.08em] uppercase hover:bg-neutral-900 transition-colors"
+                              className="w-full mt-3 bg-white text-black py-2.5 rounded-full text-m md:text-base font-semibold tracking-[0.08em] uppercase hover:bg-neutral-200 transition-colors"
                               style={{ fontFamily: fonts.button }}
                             >
                               Submit RSVP
@@ -2337,36 +2610,36 @@ export default function Invitation() {
                           </div>
                         )}
 
-                        {/* Wishes (always visible) */}
+                        {/* Wishes (always visible, scrollable) */}
                         <div className="mt-3">
                           <h4
-                            className="text-[14px] font-bold mb-2 text-neutral-900"
+                            className="text-lg md:text-lg font-semibold mb-2 text-white"
                             style={{ fontFamily: fonts.subheading }}
                           >
                             Wishes
                           </h4>
                           {wishes.length === 0 ? (
                             <p
-                              className="text-[12px] text-neutral-500 italic"
+                              className="text-m md:text-base text-white/70 italic"
                               style={{ fontFamily: fonts.body }}
                             >
-                              Be the first to leave a wish. 💌
+                              Be the first to send a wish 💌
                             </p>
                           ) : (
-                            <ul className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                            <ul className="space-y-2 max-h-44 overflow-y-auto pr-1">
                               {wishes.map((w) => (
                                 <li
                                   key={w.id}
-                                  className="bg-white border border-neutral-200 p-2 rounded-md"
+                                  className="bg-white/5 border border-white/15 p-2.5 rounded-lg"
                                 >
                                   <p
-                                    className="text-[12px] italic text-neutral-800"
+                                    className="text-m md:text-base italic text-white/90"
                                     style={{ fontFamily: fonts.body }}
                                   >
                                     "{w.wish}"
                                   </p>
                                   <p
-                                    className="text-[10px] text-right text-neutral-500 mt-1"
+                                    className="text-m md:text-base text-right text-white/60 mt-1"
                                     style={{ fontFamily: fonts.body }}
                                   >
                                     — {w.name}
@@ -2378,15 +2651,53 @@ export default function Invitation() {
                         </div>
                       </div>
                     </div>
+
+                    {/* RSVP Success Modal */}
+                    <AnimatePresence>
+                      {showRsvpModal && (
+                        <motion.div
+                          className="absolute inset-0 z-50 flex items-center justify-center bg-black/60"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.25, ease: "easeInOut" }}
+                          onClick={() => setShowRsvpModal(false)}
+                        >
+                          <motion.div
+                            className="bg-black/70 border border-white/20 rounded-2xl px-5 py-4 max-w-xs w-[85%] shadow-2xl text-center text-white backdrop-blur-md"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: "easeOut" }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <p
+                              className="text-m md:text-base mb-3 leading-snug"
+                              style={{ fontFamily: fonts.body }}
+                            >
+                              {rsvpModalMessage ||
+                                "Thank you! Your RSVP has been recorded."}
+                            </p>
+                            <button
+                              onClick={() => setShowRsvpModal(false)}
+                              className="mt-1 px-5 py-2 rounded-full border border-white/50 text-m md:text-base text-white hover:bg-white/10 transition-colors"
+                              style={{ fontFamily: fonts.body }}
+                            >
+                              Close
+                            </button>
+                          </motion.div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.section>
                 )}
 
                 {/* =========================
-                    SECTION 8 – Gallery
+                    SECTION 9 – Gallery
                    ========================= */}
-                {currentSection === 7 && (
+                {currentSection === 8 && (
                   <motion.section
-                    key="section-7"
+                    key="section-9"
                     className="absolute inset-0 h-dvh overflow-hidden bg-black"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -2450,7 +2761,7 @@ export default function Invitation() {
             {!hasOpened && (
               <motion.div
                 key="cover"
-                className="absolute inset-0 z-40 flex items-end justify-center"
+                className="absolute inset-0 z-40 flex items-stretch justify-center"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -2543,15 +2854,15 @@ export default function Invitation() {
                             </p>
 
                             <div className="flex justify-center">
-                              <div className="bg-white border border-black/60 rounded-xl px-4 py-3 inline-flex flex-col items-center gap-1.5">
+                              <div className="bg-white border border-black/60 rounded-xl px-3 py-2 inline-flex flex-col items-center gap-1.5">
                                 <p
                                   className="text-[11px] tracking-[0.18em] uppercase text-neutral-500"
                                   style={{ fontFamily: fonts.subheading }}
                                 >
-                                  Admission Pass
+                                  Wedding Pass
                                 </p>
 
-                                <div className="bg-white p-2 rounded-md">
+                                <div className="bg-white p-1.5 rounded-md">
                                   <QRCode value={qrValue} size={160} />
                                 </div>
 
@@ -2571,51 +2882,55 @@ export default function Invitation() {
                 )}
 
                 {/* Main cover content */}
-                <div className="relative z-10 w-full px-6 pb-12 text-center">
-                  <p
-                    className="text-lg font-light mb-1"
-                    style={{ fontFamily: fonts.subheading }}
-                  >
-                    The Wedding of
-                  </p>
-                  <h1
-                    className="text-5xl mb-1"
-                    style={{ fontFamily: fonts.heading }}
-                  >
-                    {COUPLE.groom.shortName} &amp; {COUPLE.bride.shortName}
-                  </h1>
-                  <p
-                    className="text-md font-light mb-4"
-                    style={{ fontFamily: fonts.subheading }}
-                  >
-                    {EVENTS.reception.dateText}
-                  </p>
+                <div className="relative z-10 w-full h-full px-6 pt-20 pb-12 text-center flex flex-col justify-between">
+                  {/* TOP: Wedding of + names + date */}
+                  <div>
+                    <p
+                      className="text-sm md:text-base tracking-[0.28em] uppercase text-black/70 mb-2"
+                      style={{ fontFamily: fonts.subheading }}
+                    >
+                      The Wedding of
+                    </p>
+                    <h1
+                      className="text-5xl mb-2 text-black"
+                      style={{ fontFamily: fonts.heading }}
+                    >
+                      {COUPLE.groom.shortName} &amp; {COUPLE.bride.shortName}
+                    </h1>
+                    <p
+                      className="text-sm md:text-base text-black/80"
+                      style={{ fontFamily: fonts.subheading }}
+                    >
+                      {EVENTS.reception.dateText}
+                    </p>
+                  </div>
 
-                  <p
-                    className="text-sm mb-1"
-                    style={{ fontFamily: fonts.recipient }}
-                  >
-                    Kepada Yth. Bapak/Ibu/Saudara/i
-                  </p>
-                  <p
-                    className="text-lg font-semibold mb-6"
-                    style={{ fontFamily: fonts.recipient }}
-                  >
-                    {recipient.displayName}
-                  </p>
+                  {/* BOTTOM: recipient + button */}
+                  <div>
+                    <p
+                      className="text-[11px] md:text-xs tracking-[0.26em] uppercase text-black/70 mb-1"
+                      style={{ fontFamily: fonts.recipient }}
+                    >
+                      Kepada Yth. Bapak/Ibu/Saudara/i
+                    </p>
+                    <p
+                      className="text-xl md:text-2xl text-black mb-6"
+                      style={{ fontFamily: fonts.recipient }}
+                    >
+                      {recipient.displayName}
+                    </p>
 
-                  <motion.button
-                    onClick={handleOpen}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="px-8 py-3 bg-black text-white rounded-full shadow-lg text-base tracking-wide mx-auto flex items-center justify-center font-bold"
-                    style={{
-                      fontFamily: fonts.button,
-                      letterSpacing: "0.03em",
-                    }}
-                  >
-                    <span className="leading-none">OPEN INVITATION</span>
-                  </motion.button>
+                    {/* Glass-like button only (same vibe as QR shortcut) */}
+                    <motion.button
+                      onClick={handleOpen}
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="mx-auto inline-flex items-center justify-center rounded-full bg-black/70 backdrop-blur-sm border border-white/40 shadow-lg px-8 py-3 text-[11px] md:text-sm tracking-[0.22em] uppercase text-white font-bold"
+                      style={{ fontFamily: fonts.button }}
+                    >
+                      <span className="leading-none">Open Invitation</span>
+                    </motion.button>
+                  </div>
                 </div>
               </motion.div>
             )}

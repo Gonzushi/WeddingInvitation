@@ -14,3 +14,9 @@
   transform: translateZ(0); /* triggers GPU acceleration */
   backface-visibility: hidden;
 }
+
+.print-select-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
