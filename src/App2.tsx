@@ -2996,7 +2996,7 @@ export default function Invitation() {
                 )}
 
                 {/* Main cover content */}
-                <div className="relative z-10 w-full h-full px-6 pt-20 pb-12 text-center flex flex-col justify-between">
+                <div className="relative z-10 w-full h-full px-6 pt-18 pb-12 text-center flex flex-col justify-between">
                   {/* TOP: Wedding of + names + date */}
                   <div>
                     <p
