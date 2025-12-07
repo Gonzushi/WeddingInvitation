@@ -14,7 +14,7 @@ export const LOADER_PULSE_DURATION = 1.8;
 const AUTO_SCROLL_DELAY = 3000;
 
 // Frame duration for scroll 4 dance animation
-const FRAME_DURATION = 400; // ms per frame
+// const FRAME_DURATION = 400; // ms per frame
 
 // =========================
 // Music
@@ -59,9 +59,9 @@ type RsvpForm = {
   numAttendeesConfirmed: number;
 };
 
-type Scroll4DanceAnimationProps = {
-  hasOpened: boolean;
-};
+// type Scroll4DanceAnimationProps = {
+//   hasOpened: boolean;
+// };
 
 type OurMomentsGalleryProps = {
   onModalChange?: (open: boolean) => void; // to hide music + arrows
@@ -187,68 +187,68 @@ function capitalizeWords(text: string): string {
     .trim();
 }
 
-const Scroll5DanceAnimation: React.FC<Scroll4DanceAnimationProps> = ({
-  hasOpened,
-}) => {
-  const [frameIndex, setFrameIndex] = React.useState(0);
-  const [direction, setDirection] = React.useState<1 | -1>(1);
+// const Scroll5DanceAnimation: React.FC<Scroll4DanceAnimationProps> = ({
+//   hasOpened,
+// }) => {
+//   const [frameIndex, setFrameIndex] = React.useState(0);
+//   const [direction, setDirection] = React.useState<1 | -1>(1);
 
-  React.useEffect(() => {
-    if (!hasOpened) return;
+//   React.useEffect(() => {
+//     if (!hasOpened) return;
 
-    const last = SCROLL5_FRAMES.length - 1;
+//     const last = SCROLL5_FRAMES.length - 1;
 
-    const interval = window.setInterval(() => {
-      setFrameIndex((prev) => {
-        // right edge → go backward
-        if (direction === 1 && prev === last) {
-          setDirection(-1);
-          return last - 1;
-        }
+//     const interval = window.setInterval(() => {
+//       setFrameIndex((prev) => {
+//         // right edge → go backward
+//         if (direction === 1 && prev === last) {
+//           setDirection(-1);
+//           return last - 1;
+//         }
 
-        // left edge → go forward
-        if (direction === -1 && prev === 0) {
-          setDirection(1);
-          return 1;
-        }
+//         // left edge → go forward
+//         if (direction === -1 && prev === 0) {
+//           setDirection(1);
+//           return 1;
+//         }
 
-        return prev + direction;
-      });
-    }, FRAME_DURATION);
+//         return prev + direction;
+//       });
+//     }, FRAME_DURATION);
 
-    return () => window.clearInterval(interval);
-  }, [hasOpened, direction]);
+//     return () => window.clearInterval(interval);
+//   }, [hasOpened, direction]);
 
-  return (
-    <div className="absolute inset-0 flex items-end justify-center z-20 pb-6">
-      {/* 1) Subject entrance motion (from your scroll4SubjectVariants) */}
-      <motion.div
-        variants={scroll5SubjectVariants}
-        initial="initial"
-        animate={hasOpened ? "enter" : "initial"}
-        transition={{ duration: 1.5, ease: "easeOut" }}
-      >
-        {/* 2) Looping float / sway motion */}
-        <motion.div
-          animate={{ y: [0, 0, 0] }} // subtle float
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            repeatType: "mirror",
-            ease: "easeInOut",
-          }}
-        >
-          {/* 3) Actual frame animation (no motion here, just image swap) */}
-          <img
-            src={SCROLL5_FRAMES[frameIndex]}
-            alt="Dancing couple"
-            className="h-[70vh] w-auto object-contain"
-          />
-        </motion.div>
-      </motion.div>
-    </div>
-  );
-};
+//   return (
+//     <div className="absolute inset-0 flex items-end justify-center z-20 pb-6">
+//       {/* 1) Subject entrance motion (from your scroll4SubjectVariants) */}
+//       <motion.div
+//         variants={scroll5SubjectVariants}
+//         initial="initial"
+//         animate={hasOpened ? "enter" : "initial"}
+//         transition={{ duration: 1.5, ease: "easeOut" }}
+//       >
+//         {/* 2) Looping float / sway motion */}
+//         <motion.div
+//           animate={{ y: [0, 0, 0] }} // subtle float
+//           transition={{
+//             duration: 3,
+//             repeat: Infinity,
+//             repeatType: "mirror",
+//             ease: "easeInOut",
+//           }}
+//         >
+//           {/* 3) Actual frame animation (no motion here, just image swap) */}
+//           <img
+//             src={SCROLL5_FRAMES[frameIndex]}
+//             alt="Dancing couple"
+//             className="h-[70vh] w-auto object-contain"
+//           />
+//         </motion.div>
+//       </motion.div>
+//     </div>
+//   );
+// };
 
 function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -651,10 +651,10 @@ const couple23Variants = {
 // Motion variants – Scroll 4 (Save the Date / Countdown)
 // =========================
 
-const scroll4BgVariants = {
-  initial: { scale: 2, x: -40, y: 120, opacity: 1 },
-  enter: { scale: 1.5, x: -40, y: -180, opacity: 1 },
-};
+// const scroll4BgVariants = {
+//   initial: { scale: 2, x: -40, y: 120, opacity: 1 },
+//   enter: { scale: 1.5, x: -40, y: -180, opacity: 1 },
+// };
 
 // =========================
 // Motion variants – Scroll 5 (Reception)
@@ -665,10 +665,10 @@ const scroll5BgVariants = {
   enter: { scale: 1.5, x: -30, y: 0, opacity: 1 },
 };
 
-const scroll5SubjectVariants = {
-  initial: { opacity: 1, x: -200, y: 80, scale: 2 },
-  enter: { opacity: 1, x: -35, y: -190, scale: 2 },
-};
+// const scroll5SubjectVariants = {
+//   initial: { opacity: 1, x: -200, y: 80, scale: 2 },
+//   enter: { opacity: 1, x: -35, y: -190, scale: 2 },
+// };
 
 // =========================
 // Motion variants – Scroll 6 (Reception)
