@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import QRCode from "react-qr-code";
 
 const API_URL = "https://rest.trip-nus.com"; // adjust if needed
@@ -65,6 +65,19 @@ type ScrollDanceAnimationProps = {
 
 type OurMomentsGalleryProps = {
   onModalChange?: (open: boolean) => void; // to hide music + arrows
+};
+
+type OurMomentImageWithIndex = {
+  src: string;
+  span?: number;
+  animation?: string;
+  index: number;
+};
+
+type RowTickerProps = {
+  rowImages: OurMomentImageWithIndex[];
+  rowIdx: number;
+  onImageClick: (idx: number) => void;
 };
 
 // =========================
@@ -337,6 +350,69 @@ const ScrollDanceAnimation: React.FC<ScrollDanceAnimationProps> = ({
   );
 };
 
+function RowTicker({ rowImages, rowIdx, onImageClick }: RowTickerProps) {
+  const controls = useAnimation();
+  const [isDragging, setIsDragging] = useState(false);
+
+  const direction = rowIdx === 1 ? "right" : "left";
+  const duration = rowIdx === 2 ? 26 : 32;
+
+  const fromX = direction === "left" ? "0%" : "-50%";
+  const toX = direction === "left" ? "-50%" : "0%";
+
+  const doubled = [...rowImages, ...rowImages];
+
+  // Start / restart autoplay whenever not dragging
+  useEffect(() => {
+    if (!isDragging && rowImages.length > 0) {
+      controls.start({
+        x: [fromX, toX],
+        transition: {
+          duration,
+          repeat: Infinity,
+          repeatType: "loop",
+          ease: "linear",
+        },
+      });
+    }
+  }, [controls, fromX, toX, duration, isDragging, rowImages.length]);
+
+  return (
+    <div className="relative w-full flex-1 overflow-hidden rounded-xl">
+      <motion.div
+        className="absolute inset-y-0 left-0 flex gap-2 will-change-transform"
+        animate={controls}
+        drag="x"
+        dragElastic={0.15}
+        dragMomentum={false}
+        style={{ touchAction: "pan-y", cursor: "grab" }}
+        whileTap={{ cursor: "grabbing" }}
+        onDragStart={() => setIsDragging(true)}
+        onDragEnd={() => {
+          // end drag -> set flag back, effect above restarts autoplay
+          setIsDragging(false);
+        }}
+      >
+        {doubled.map((img, idx) => (
+          <button
+            key={`${img.src}-${idx}`}
+            type="button"
+            className="relative h-full w-32 sm:w-40 md:w-44 flex-shrink-0 overflow-hidden rounded-xl group"
+            onClick={() => onImageClick(img.index)}
+          >
+            <img
+              src={img.src}
+              alt={`Our moment ${img.index + 1}`}
+              className="w-full h-full object-cover grayscale-[20%] group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
 function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
@@ -384,59 +460,20 @@ function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
       {/* Collage view */}
       <section className="h-full flex flex-col">
         <div className="flex-1 flex flex-col gap-2">
-          {rows.map((rowImages, rowIdx) => {
-            if (rowImages.length === 0) return null;
+          <div className="flex-1 flex flex-col gap-2">
+            {rows.map((rowImages, rowIdx) => {
+              if (rowImages.length === 0) return null;
 
-            const direction = rowIdx === 1 ? "right" : "left";
-            const duration = rowIdx === 2 ? 26 : 32;
-
-            const fromX = direction === "left" ? "0%" : "-50%";
-            const toX = direction === "left" ? "-50%" : "0%";
-
-            const doubled = [...rowImages, ...rowImages];
-
-            return (
-              <div
-                key={rowIdx}
-                className="relative w-full flex-1 overflow-hidden rounded-xl"
-              >
-                <motion.div
-                  className="absolute inset-y-0 left-0 flex gap-2 will-change-transform"
-                  initial={{ x: fromX }}
-                  animate={{ x: [fromX, toX] }}
-                  transition={{
-                    duration,
-                    repeat: Infinity,
-                    repeatType: "loop",
-                    ease: "linear",
-                  }}
-                  // 👇 NEW: allow touch/drag left–right
-                  drag="x"
-                  dragElastic={0.15}
-                  dragMomentum={false}
-                  // (optional, feels nicer on touch)
-                  style={{ touchAction: "pan-y", cursor: "grab" }}
-                  whileTap={{ cursor: "grabbing" }}
-                >
-                  {doubled.map((img, idx) => (
-                    <button
-                      key={`${img.src}-${idx}`}
-                      type="button"
-                      className="relative h-full w-32 sm:w-40 md:w-44 flex-shrink-0 overflow-hidden rounded-xl group"
-                      onClick={() => openModal(img.index)}
-                    >
-                      <img
-                        src={img.src}
-                        alt={`Our moment ${img.index + 1}`}
-                        className="w-full h-full object-cover grayscale-[20%] group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
-                  ))}
-                </motion.div>
-              </div>
-            );
-          })}
+              return (
+                <RowTicker
+                  key={rowIdx}
+                  rowImages={rowImages}
+                  rowIdx={rowIdx}
+                  onImageClick={openModal}
+                />
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -2774,7 +2811,7 @@ export default function Invitation() {
                                     flex flex-col h-full" // ⬅️ added flex + h-full
                         >
                           <OurMomentsGallery
-                            // onModalChange={setIsGalleryModalOpen}
+                          // onModalChange={setIsGalleryModalOpen}
                           />
                         </div>
                       </div>
