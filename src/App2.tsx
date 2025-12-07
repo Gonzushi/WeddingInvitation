@@ -1456,68 +1456,87 @@ export default function Invitation() {
         {!isLoaded && (
           <motion.div
             key="loader"
-            className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden"
+            className="absolute inset-0 z-50 flex items-center justify-center bg-white overflow-hidden"
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8, ease: "easeInOut" }}
           >
-            {/* Soft gradient + vignette background */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(255,255,255,0.06),_transparent_55%)] bg-black" />
+            {/* subtle background texture */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,0,0,0.04),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(0,0,0,0.04),_transparent_55%)]" />
 
-            {/* Glass card */}
             <motion.div
-              className="relative z-10 max-w-xs w-[80%] rounded-3xl border border-white/20 bg-white/10 
-                   backdrop-blur-xl shadow-[0_18px_60px_rgba(0,0,0,0.7)] px-7 py-6 
-                   flex flex-col items-center gap-5"
+              className="relative z-10 flex flex-col items-center gap-6 px-6"
               initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.96, opacity: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
-              {/* HF circle */}
-              <motion.div
-                className="w-24 h-24 md:w-28 md:h-28 rounded-full border border-white/40 
-                     bg-white/10 backdrop-blur-2xl flex items-center justify-center
-                     shadow-[0_12px_35px_rgba(0,0,0,0.65)]"
-                animate={{ scale: [1, 1.08, 1] }}
-                transition={{
-                  duration: LOADER_PULSE_DURATION,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              >
-                <motion.span
-                  className="text-4xl md:text-5xl font-bold text-white"
-                  style={{ fontFamily: fonts.heading, letterSpacing: "0.08em" }}
-                  animate={{ scale: [1, 1.15, 1] }}
-                  transition={{
-                    duration: LOADER_PULSE_DURATION,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
+              {/* Envelope */}
+              <div className="relative w-64 md:w-72 aspect-[4/3]">
+                {/* Envelope body (glassy) */}
+                <div
+                  className="absolute inset-x-4 top-3 bottom-7 rounded-3xl
+                       border border-black/70
+                       bg-white/20 backdrop-blur-xl
+                       shadow-[0_18px_50px_rgba(0,0,0,0.16)]
+                       overflow-hidden"
                 >
-                  HF
-                </motion.span>
-              </motion.div>
+                  {/* Inner paper */}
+                  <div className="absolute inset-3 rounded-2xl border border-black/10 bg-white/30" />
 
-              {/* Text + line */}
+                  {/* HF stamp perfectly centered, with transparent fill */}
+                  <motion.div
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    animate={{ scale: [1, 1.06, 1] }}
+                    transition={{
+                      duration: LOADER_PULSE_DURATION,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <div
+                      className="relative w-12 h-12 md:w-14 md:h-14
+                           rounded-full 
+                           border border-black/80
+                           bg-transparent      
+                           flex items-center justify-center
+                           "
+                    >
+                      <motion.span
+                        className="text-base md:text-lg font-bold text-black tracking-[0.18em]"
+                        style={{ fontFamily: fonts.heading }}
+                        animate={{ scale: [1, 1.12, 1] }}
+                        transition={{
+                          duration: LOADER_PULSE_DURATION,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                        }}
+                      >
+                        HF
+                      </motion.span>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+
+              {/* Text under envelope */}
               <div className="flex flex-col items-center gap-1.5">
                 <span
-                  className="text-m md:text-base tracking-[0.25em] uppercase text-white/80 font-bold"
+                  className="text-m md:text-base tracking-[0.25em] uppercase text-black/80 font-bold"
                   style={{ fontFamily: fonts.subheading }}
                 >
-                  LOADING
+                  YOU ARE
                 </span>
                 <span
-                  className="text-m md:text-base tracking-[0.25em] uppercase text-white/80 font-bold"
+                  className="text-m md:text-base tracking-[0.25em] uppercase text-black/80 font-bold"
                   style={{ fontFamily: fonts.subheading }}
                 >
-                  INVITATION
+                  INVITED
                 </span>
 
                 <motion.div
-                  className="h-px w-24 bg-white/40 mt-3 rounded-full"
+                  className="h-px w-24 bg-black/40 mt-3 rounded-full"
                   initial={{ opacity: 0.4, scaleX: 0.6 }}
                   animate={{
                     opacity: [0.4, 1, 0.4],
