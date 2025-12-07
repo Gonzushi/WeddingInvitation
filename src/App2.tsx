@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useAnimationFrame,
+  useMotionValue,
+} from "framer-motion";
+
 import QRCode from "react-qr-code";
 
 const API_URL = "https://rest.trip-nus.com"; // adjust if needed
@@ -351,46 +357,88 @@ const ScrollDanceAnimation: React.FC<ScrollDanceAnimationProps> = ({
 };
 
 function RowTicker({ rowImages, rowIdx, onImageClick }: RowTickerProps) {
-  const controls = useAnimation();
-  const [isDragging, setIsDragging] = useState(false);
+  const x = useMotionValue(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [rowWidth, setRowWidth] = useState(0);
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
   const direction = rowIdx === 1 ? "right" : "left";
-  const duration = rowIdx === 2 ? 26 : 32;
-
-  const fromX = direction === "left" ? "0%" : "-50%";
-  const toX = direction === "left" ? "-50%" : "0%";
+  const speed = rowIdx === 2 ? 22 : 16; // px/sec
 
   const doubled = [...rowImages, ...rowImages];
 
-  // Start / restart autoplay whenever not dragging
+  // Measure width of a single row (half of doubled content)
   useEffect(() => {
-    if (!isDragging && rowImages.length > 0) {
-      controls.start({
-        x: [fromX, toX],
-        transition: {
-          duration,
-          repeat: Infinity,
-          repeatType: "loop",
-          ease: "linear",
-        },
-      });
+    if (contentRef.current) {
+      const fullWidth = contentRef.current.scrollWidth;
+      setRowWidth(fullWidth / 2);
+      x.set(-fullWidth / 4); // start somewhere in the middle
     }
-  }, [controls, fromX, toX, duration, isDragging, rowImages.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowImages.length]);
+
+  // Continuous marquee animation
+  useAnimationFrame((_, delta) => {
+    if (isPaused || rowWidth === 0) return;
+
+    const dirMultiplier = direction === "left" ? -1 : 1;
+    const moveBy = (speed * dirMultiplier * delta) / 1000;
+
+    let nextX = x.get() + moveBy;
+
+    // Keep x wrapped in [-rowWidth, 0]
+    if (nextX <= -rowWidth) {
+      nextX += rowWidth;
+    } else if (nextX >= 0) {
+      nextX -= rowWidth;
+    }
+
+    x.set(nextX);
+  });
+
+  const normalizeX = () => {
+    if (!rowWidth) return;
+    let current = x.get();
+
+    // Wrap current into [-rowWidth, 0]
+    while (current > 0) current -= rowWidth;
+    while (current < -rowWidth) current += rowWidth;
+
+    x.set(current);
+  };
+
+  const resumeAfterTouch = () => {
+    // small delay so it doesn't feel jumpy
+    setTimeout(() => setIsPaused(false), 80);
+  };
 
   return (
     <div className="relative w-full flex-1 overflow-hidden rounded-xl">
       <motion.div
+        ref={contentRef}
         className="absolute inset-y-0 left-0 flex gap-2 will-change-transform"
-        animate={controls}
+        style={{
+          x,
+          touchAction: "pan-y",
+          cursor: "grab",
+        }}
         drag="x"
-        dragElastic={0.15}
+        dragElastic={0.25}
         dragMomentum={false}
-        style={{ touchAction: "pan-y", cursor: "grab" }}
         whileTap={{ cursor: "grabbing" }}
-        onDragStart={() => setIsDragging(true)}
+        // 👉 Touch / press = pause
+        onPointerDown={() => setIsPaused(true)}
+        onPointerUp={() => {
+          normalizeX();
+          resumeAfterTouch();
+        }}
+        onPointerCancel={resumeAfterTouch}
+        onPointerLeave={resumeAfterTouch}
+        // Extra safety: drag events also pause
+        onDragStart={() => setIsPaused(true)}
         onDragEnd={() => {
-          // end drag -> set flag back, effect above restarts autoplay
-          setIsDragging(false);
+          normalizeX();
+          resumeAfterTouch();
         }}
       >
         {doubled.map((img, idx) => (
@@ -1538,7 +1586,7 @@ export default function Invitation() {
                   {/* HF stamp perfectly centered, with transparent fill */}
                   <motion.div
                     className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    animate={{ scale: [1, 1.06, 1] }}
+                    animate={{ scale: [1, 1.5, 1] }}
                     transition={{
                       duration: LOADER_PULSE_DURATION,
                       repeat: Infinity,
@@ -1556,7 +1604,7 @@ export default function Invitation() {
                       <motion.span
                         className="text-base md:text-lg font-bold text-black tracking-[0.18em]"
                         style={{ fontFamily: fonts.heading }}
-                        animate={{ scale: [1, 1.12, 1] }}
+                        animate={{ scale: [1, 1.3, 1] }}
                         transition={{
                           duration: LOADER_PULSE_DURATION,
                           repeat: Infinity,
@@ -2692,7 +2740,7 @@ export default function Invitation() {
                               className="text-m md:text-base text-white/70 italic"
                               style={{ fontFamily: fonts.body }}
                             >
-                              Be the first to send a wish 💌
+                              💌 Be the first to send a wish
                             </p>
                           ) : (
                             <ul className="space-y-2 max-h-44 overflow-y-auto pr-1">
