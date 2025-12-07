@@ -143,6 +143,20 @@ const IMAGE_URLS = [
   "/assets/gal4.jpg",
   "/assets/gal5.jpg",
   "/assets/gal6.jpg",
+  "/assets/gal7.jpg",
+  "/assets/gal8.jpg",
+  "/assets/gal9.jpg",
+  "/assets/gal10.jpg",
+  "/assets/gal11.jpg",
+  "/assets/gal12.jpg",
+  "/assets/gal13.jpg",
+  "/assets/gal14.jpg",
+  "/assets/gal15.jpg",
+  "/assets/gal16.jpg",
+  "/assets/gal17.jpg",
+  "/assets/gal18.jpg",
+  "/assets/gal19.jpg",
+  "/assets/gal20.jpg",
 ];
 
 const SCROLL_DANCE_FRAMES = [
@@ -163,6 +177,20 @@ const ourMomentsImages = [
   { src: "/assets/gal4.jpg", span: 8, animation: "left" },
   { src: "/assets/gal5.jpg", span: 4, animation: "left" },
   { src: "/assets/gal6.jpg", span: 4, animation: "right" },
+  { src: "/assets/gal7.jpg", span: 5, animation: "right" },
+  { src: "/assets/gal8.jpg", span: 3, animation: "left" },
+  { src: "/assets/gal9.jpg", span: 7, animation: "right" },
+  { src: "/assets/gal10.jpg", span: 4, animation: "left" },
+  { src: "/assets/gal11.jpg", span: 6, animation: "right" },
+  { src: "/assets/gal12.jpg", span: 3, animation: "left" },
+  { src: "/assets/gal13.jpg", span: 5, animation: "right" },
+  { src: "/assets/gal14.jpg", span: 4, animation: "left" },
+  { src: "/assets/gal15.jpg", span: 7, animation: "right" },
+  { src: "/assets/gal16.jpg", span: 3, animation: "left" },
+  { src: "/assets/gal17.jpg", span: 6, animation: "right" },
+  { src: "/assets/gal18.jpg", span: 4, animation: "left" },
+  { src: "/assets/gal19.jpg", span: 5, animation: "right" },
+  { src: "/assets/gal20.jpg", span: 8, animation: "left" },
 ];
 
 const PRELOAD_URLS = [...IMAGE_URLS, ...SCROLL_DANCE_FRAMES];
@@ -332,36 +360,79 @@ function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
   const next = () =>
     setActiveIndex((i) => (i === null ? 0 : (i + 1) % ourMomentsImages.length));
 
-  const getSpanClass = (span: number = 8) => `col-span-${span}`;
+  // keep a stable global index for each image
+  const imagesWithIndex = ourMomentsImages.map((img, index) => ({
+    ...img,
+    index,
+  }));
+
+  const ROW_COUNT = 3;
+  const perRow = Math.ceil(imagesWithIndex.length / ROW_COUNT);
+
+  // Split into up to 3 rows: [0..perRow-1], [perRow..2*perRow-1], ...
+  const rows: (typeof imagesWithIndex)[] = Array.from(
+    { length: ROW_COUNT },
+    (_, row) => {
+      const start = row * perRow;
+      const end = start + perRow;
+      return imagesWithIndex.slice(start, end);
+    }
+  );
 
   return (
     <>
-      {/* grid only, no second "Our Moments" title */}
-      <section className="space-y-4">
-        <div className="grid grid-cols-8 gap-2">
-          {ourMomentsImages.map((img, idx) => {
-            const spanClass = getSpanClass(img.span);
-            const fromX = img.animation === "left" ? -80 : 80;
+      {/* Collage view */}
+      <section className="h-full flex flex-col">
+        <div className="flex-1 flex flex-col gap-2">
+          {rows.map((rowImages, rowIdx) => {
+            if (rowImages.length === 0) return null;
+
+            const direction = rowIdx === 1 ? "right" : "left";
+            const duration = rowIdx === 2 ? 26 : 32;
+
+            const fromX = direction === "left" ? "0%" : "-50%";
+            const toX = direction === "left" ? "-50%" : "0%";
+
+            const doubled = [...rowImages, ...rowImages];
 
             return (
               <div
-                key={img.src}
-                className={`${spanClass} overflow-hidden rounded-xl`}
+                key={rowIdx}
+                className="relative w-full flex-1 overflow-hidden rounded-xl"
               >
                 <motion.div
-                  initial={{ opacity: 0, x: fromX }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  whileHover={{ scale: 1.04 }}
-                  transition={{ duration: 0.4 }}
-                  viewport={{ once: true, amount: 0.2 }}
-                  className="cursor-pointer"
-                  onClick={() => openModal(idx)}
+                  className="absolute inset-y-0 left-0 flex gap-2 will-change-transform"
+                  initial={{ x: fromX }}
+                  animate={{ x: [fromX, toX] }}
+                  transition={{
+                    duration,
+                    repeat: Infinity,
+                    repeatType: "loop",
+                    ease: "linear",
+                  }}
+                  // 👇 NEW: allow touch/drag left–right
+                  drag="x"
+                  dragElastic={0.15}
+                  dragMomentum={false}
+                  // (optional, feels nicer on touch)
+                  style={{ touchAction: "pan-y", cursor: "grab" }}
+                  whileTap={{ cursor: "grabbing" }}
                 >
-                  <img
-                    src={img.src}
-                    alt={`Our moment ${idx + 1}`}
-                    className="w-full h-32 sm:h-40 object-cover grayscale-[20%]"
-                  />
+                  {doubled.map((img, idx) => (
+                    <button
+                      key={`${img.src}-${idx}`}
+                      type="button"
+                      className="relative h-full w-32 sm:w-40 md:w-44 flex-shrink-0 overflow-hidden rounded-xl group"
+                      onClick={() => openModal(img.index)}
+                    >
+                      <img
+                        src={img.src}
+                        alt={`Our moment ${img.index + 1}`}
+                        className="w-full h-full object-cover grayscale-[20%] group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ))}
                 </motion.div>
               </div>
             );
@@ -373,13 +444,13 @@ function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
       <AnimatePresence>
         {activeIndex !== null && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center touch-none w-screen h-screen"
+            className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Close Button */}
+            {/* Close Button (top-right) */}
             <button
               onClick={closeModal}
               className="absolute top-5 right-5 text-white text-3xl z-50"
@@ -387,10 +458,10 @@ function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
               ✕
             </button>
 
-            {/* DESKTOP: left / right side arrows (middle vertically) */}
+            {/* Left arrow – desktop + mobile */}
             <button
               onClick={prev}
-              className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 cursor-pointer items-center justify-center px-2 py-2"
+              className="absolute left-4 top-1/2 -translate-y-1/2 cursor-pointer flex items-center justify-center px-3 py-3 z-40"
             >
               <svg
                 className="w-7 h-7"
@@ -410,9 +481,10 @@ function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
               </svg>
             </button>
 
+            {/* Right arrow – desktop + mobile */}
             <button
               onClick={next}
-              className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer items-center justify-center px-2 py-2"
+              className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer flex items-center justify-center px-3 py-3 z-40"
             >
               <svg
                 className="w-7 h-7"
@@ -433,100 +505,41 @@ function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
             </button>
 
             {/* Centered Image */}
-            <div className="flex justify-center items-center w-full h-dvh px-4">
-              <motion.img
-                key={ourMomentsImages[activeIndex].src}
-                src={ourMomentsImages[activeIndex].src}
-                alt="Fullscreen"
-                className="max-w-full max-h-[80vh] rounded-2xl shadow-2xl mx-auto object-contain"
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.2}
-                onDragEnd={(_, info) => {
-                  if (info.offset.x < -100) next();
-                  else if (info.offset.x > 100) prev();
-                }}
-                onDrag={(_, info) => {
-                  if (info.offset.y > 100) closeModal();
-                }}
-              />
-            </div>
+            <div className="w-full h-full flex items-center justify-center px-4">
+              {ourMomentsImages[activeIndex] && (
+                <motion.img
+                  key={ourMomentsImages[activeIndex].src}
+                  src={ourMomentsImages[activeIndex].src}
+                  alt="Fullscreen"
+                  className="max-h-[90vh] max-w-[100vw] object-contain rounded-2xl shadow-2xl"
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  // Swipe left/right to navigate, swipe down to close
+                  drag
+                  dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                  dragElastic={0.2}
+                  onDragEnd={(_, info) => {
+                    const { offset } = info;
 
-            {/* MOBILE: bottom arrows only (no circle, double arrow style) */}
-            <div className="absolute inset-x-0 bottom-16 flex flex-col items-center md:hidden">
-              {/* optional text */}
-              {/* <p className="text-[11px] text-white/90 mb-2 tracking-[0.18em] uppercase">
-                Swipe or tap arrows
-              </p> */}
-              <div className="flex items-center gap-10">
-                {/* Left side (tap to previous) */}
-                <button
-                  type="button"
-                  onClick={prev}
-                  className="flex items-center gap-1 active:scale-95"
-                >
-                  {[0, 1].map((i) => (
-                    <div
-                      key={`mobile-left-${i}`}
-                      className={i === 0 ? "" : "-ml-2"}
-                    >
-                      <svg
-                        className="w-7 h-7 animate-bounce"
-                        style={{
-                          animationDelay: `${i * 120}ms`,
-                          filter: "drop-shadow(0 0 4px rgba(0,0,0,0.9))",
-                        }}
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M16 4L8 12l8 8"
-                          stroke="white"
-                          strokeWidth="2.4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          fill="none"
-                        />
-                      </svg>
-                    </div>
-                  ))}
-                </button>
+                    // Horizontal swipe
+                    if (offset.x < -100) {
+                      next();
+                      return;
+                    }
+                    if (offset.x > 100) {
+                      prev();
+                      return;
+                    }
 
-                {/* Right side (tap to next) */}
-                <button
-                  type="button"
-                  onClick={next}
-                  className="flex items-center gap-1 active:scale-95"
-                >
-                  {[0, 1].map((i) => (
-                    <div
-                      key={`mobile-right-${i}`}
-                      className={i === 0 ? "" : "-ml-2"}
-                    >
-                      <svg
-                        className="w-7 h-7 animate-bounce"
-                        style={{
-                          animationDelay: `${i * 120}ms`,
-                          filter: "drop-shadow(0 0 4px rgba(0,0,0,0.9))",
-                        }}
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M8 4l8 8-8 8"
-                          stroke="white"
-                          strokeWidth="2.4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          fill="none"
-                        />
-                      </svg>
-                    </div>
-                  ))}
-                </button>
-              </div>
+                    // Vertical swipe down to close
+                    if (offset.y > 100) {
+                      closeModal();
+                    }
+                  }}
+                />
+              )}
             </div>
           </motion.div>
         )}
@@ -780,7 +793,7 @@ export default function Invitation() {
   const autoScrollDisabledRef = useRef(false);
 
   // Modal
-  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  // const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
 
   // recipient & RSVP state
   const [isEditingRsvp, setIsEditingRsvp] = useState(false);
@@ -2717,41 +2730,30 @@ export default function Invitation() {
                 {currentSection === 8 && (
                   <motion.section
                     key="section-9"
-                    className="absolute inset-0 h-dvh overflow-hidden bg-black"
+                    className="absolute inset-0 h-dvh overflow-hidden"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.4, ease: "easeInOut" }}
                   >
-                    <div className="relative flex flex-col h-full">
-                      {/* Dynamic black & white moving background */}
-                      <motion.div
-                        className="absolute inset-0"
-                        style={{
-                          backgroundImage:
-                            "radial-gradient(circle at 15% 0%, rgba(255,255,255,0.16), transparent 55%), radial-gradient(circle at 85% 100%, rgba(255,255,255,0.10), transparent 60%), linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(0,0,0,0.85))",
-                          backgroundSize: "140% 140%, 140% 140%, 100% 100%",
-                        }}
-                        initial={{
-                          backgroundPosition: "0% 0%, 100% 100%, 50% 0%",
-                        }}
-                        animate={{
-                          backgroundPosition: [
-                            "0% 0%, 100% 100%, 50% 0%",
-                            "100% 100%, 0% 0%, 50% 100%",
-                          ],
-                        }}
-                        transition={{
-                          duration: 18,
-                          repeat: Infinity,
-                          repeatType: "reverse",
-                          ease: "easeInOut",
-                        }}
-                      />
-                      {/* title area */}
-                      <div className="pt-8 pb-8 flex flex-col items-center">
-                        {/* small label changed, no 'Section 8' */}
+                    {/* Full-screen background image for gallery */}
+                    <motion.div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{
+                        backgroundImage: "url('/assets/scrollGallery-bg.jpg')",
+                      }}
+                      initial={{ scale: 1.1, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 1.2, ease: "easeOut" }}
+                    />
 
+                    {/* Dark overlay for readability */}
+                    <div className="absolute inset-0 bg-black/35" />
+
+                    <div className="relative flex flex-col h-full z-10">
+                      {/* Title area */}
+                      <div className="pt-8 pb-4 flex flex-col items-center">
                         <h2
                           className="text-3xl text-white"
                           style={{ fontFamily: "'Dancing Script', cursive" }}
@@ -2760,11 +2762,19 @@ export default function Invitation() {
                         </h2>
                       </div>
 
-                      {/* gallery body */}
-                      <div className="flex-1 overflow-y-auto px-4 pb-6">
-                        <div className="max-w-md mx-auto">
+                      {/* Glassy collage card */}
+                      <div className="flex-1 px-4 pb-24 flex items-stretch">
+                        <div
+                          className="w-full max-w-md mx-auto rounded-3xl
+                                    border border-white/10
+                                    bg-black/30
+                                    backdrop-blur-sm
+                                    shadow-[0_14px_40px_rgba(0,0,0,0.7)]
+                                    p-3 md:p-4 overflow-hidden
+                                    flex flex-col h-full" // ⬅️ added flex + h-full
+                        >
                           <OurMomentsGallery
-                            onModalChange={setIsGalleryModalOpen}
+                            // onModalChange={setIsGalleryModalOpen}
                           />
                         </div>
                       </div>
@@ -2958,7 +2968,7 @@ export default function Invitation() {
       </motion.div>
 
       {/* Global overlay for music button + scroll-down arrows aligned to phone */}
-      {isLoaded && hasOpened && !isGalleryModalOpen && (
+      {isLoaded && hasOpened && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="relative max-w-[480px] w-full h-dvh pointer-events-none">
             {/* Music button (always visible once opened, including last section) */}
