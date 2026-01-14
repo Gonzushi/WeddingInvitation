@@ -112,10 +112,10 @@ const EVENTS = {
     label: "Holy Matrimony",
     dateText: "Saturday, 07 February 2026",
     timeText: "10.00 - 11.30 WIB",
-    venueName: "The 101 Bogor Surya Kencana",
+    venueName: "Aston Bogor Hotel & Resort",
     locationText: "Bogor, Jawa Barat",
     mapsUrl:
-      "https://www.google.com/maps/place/The+1O1+Bogor+Suryakancana/@-6.607511,106.8002938,17z/data=!3m1!4b1!4m9!3m8!1s0x2e69c5c277c0edef:0xe022fe1c5bcef5c0!5m2!4m1!1i2!8m2!3d-6.6075163!4d106.8028687!16s%2Fg%2F11bcclx5dt?entry=ttu&g_ep=EgoyMDI1MTIwMi4wIKXMDSoASAFQAw%3D%3D",
+      "https://www.google.com/maps/place/Aston+Bogor+Hotel+%26+Resort/@-6.6385245,106.7945357,16.61z/data=!4m9!3m8!1s0x2e69c5ee5f871091:0xc58549234bdf7d7c!5m2!4m1!1i2!8m2!3d-6.6363857!4d106.7955387!16s%2Fg%2F1jkwh91z1?entry=ttu&g_ep=EgoyMDI1MTIwMi4wIKXMDSoASAFQAw%3D%3D",
   },
   reception: {
     label: "Wedding Reception",
