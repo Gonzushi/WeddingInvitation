@@ -639,7 +639,7 @@ export default function GuestAdmin() {
 
 Kami mengundang dengan hormat ke acara pernikahan kami:
 
-💍 Finna & Hary  
+💍 Hary & Finna  
 📅 Sabtu, 07 Februari 2026  
 📍 ASTON Bogor Hotel & Resort  
 🕒 18.00 - 21.00 WIB
@@ -654,7 +654,7 @@ Mohon konfirmasi kehadiran melalui link di atas ya.
 Terima kasih banyak 🙏  
 
 Salam hangat,  
-Finna & Hary`;
+Hary & Finna`;
 
           let phoneNumber = params.data.phone_number?.replace(/\D/g, "") || "";
           if (phoneNumber.startsWith("0")) {
