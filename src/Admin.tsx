@@ -635,40 +635,43 @@ export default function GuestAdmin() {
         cellRenderer: (params: ICellRendererParams<Guest>) => {
           if (!params.data) return null;
 
-          const waMessage = [
-            `Halo Bapak/Ibu ${params.data.full_name} 👋`,
-            ``,
-            `Kami mengundang dengan hormat ke acara pernikahan kami:`,
-            ``,
-            `💍 Hary & Finna`,
-            `📅 Sabtu, 07 Februari 2026`,
-            `📍 ASTON Bogor Hotel & Resort`,
-            `🕒 18.00 - 21.00 WIB`,
-            ``,
-            `Undangan digital dapat dibuka melalui link berikut:`,
-            `👉 http://hary-finna.trip-nus.com/?to=${params.data.id}`,
-            ``,
-            `Kami sangat berharap kehadiran Bapak/Ibu untuk berbagi kebahagiaan bersama kami.`,
-            ``,
-            `Mohon konfirmasi kehadiran melalui link di atas ya.`,
-            ``,
-            `Terima kasih banyak 🙏`,
-            ``,
-            `Salam hangat,`,
-            `Hary & Finna`,
-          ].join("\n");
+          const EMOJI = {
+            wave: "\u{1F44B}", // 👋
+            ring: "\u{1F48D}", // 💍
+            cal: "\u{1F4C5}", // 📅
+            pin: "\u{1F4CD}", // 📍
+            clock: "\u{1F552}", // 🕒
+            point: "\u{1F449}", // 👉
+            pray: "\u{1F64F}", // 🙏
+          };
+
+          const waMessage = `Halo Bapak/Ibu ${params.data.full_name} ${EMOJI.wave}
+
+Kami mengundang dengan hormat ke acara pernikahan kami:
+
+${EMOJI.ring} Hary & Finna
+${EMOJI.cal} Sabtu, 07 Februari 2026
+${EMOJI.pin} ASTON Bogor Hotel & Resort
+${EMOJI.clock} 18.00 - 21.00 WIB
+
+Undangan digital dapat dibuka melalui link berikut:
+${EMOJI.point} http://hary-finna.trip-nus.com/?to=${params.data.id}
+
+Terima kasih banyak ${EMOJI.pray}
+
+Salam hangat,
+Hary & Finna`;
 
           let phoneNumber = params.data.phone_number?.replace(/\D/g, "") || "";
           if (phoneNumber.startsWith("0")) {
             phoneNumber = "62" + phoneNumber.slice(1);
           }
-          const waUrl = phoneNumber
-            ? `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(
-                waMessage
-              )}`
-            : `https://api.whatsapp.com/send?text=${encodeURIComponent(
-                waMessage
-              )}`;
+
+          const encoded = encodeURIComponent(waMessage);
+
+          const waUrl = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(
+            waMessage
+          )}`;
 
           return (
             <div
