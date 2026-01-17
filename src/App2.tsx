@@ -598,7 +598,7 @@ function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
                   <img
                     src={ourMomentsImages[activeIndex].src}
                     alt=""
-                    className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-60"
+                    className="absolute inset-0 w-full h-full object-cover blur-sm scale-110 opacity-60"
                     aria-hidden="true"
                   />
 

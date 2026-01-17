@@ -635,36 +635,40 @@ export default function GuestAdmin() {
         cellRenderer: (params: ICellRendererParams<Guest>) => {
           if (!params.data) return null;
 
-          const waMessage = `Halo Bapak/Ibu ${params.data.full_name} 👋
-
-Kami mengundang dengan hormat ke acara pernikahan kami:
-
-💍 Hary & Finna  
-📅 Sabtu, 07 Februari 2026  
-📍 ASTON Bogor Hotel & Resort  
-🕒 18.00 - 21.00 WIB
-
-Undangan digital dapat dibuka melalui link berikut:  
-👉 http://hary-finna.trip-nus.com/?to=${params.data.id}
-
-Kami sangat berharap kehadiran Bapak/Ibu untuk berbagi kebahagiaan bersama kami.  
-
-Mohon konfirmasi kehadiran melalui link di atas ya.
-
-Terima kasih banyak 🙏  
-
-Salam hangat,  
-Hary & Finna`;
+          const waMessage = [
+            `Halo Bapak/Ibu ${params.data.full_name} 👋`,
+            ``,
+            `Kami mengundang dengan hormat ke acara pernikahan kami:`,
+            ``,
+            `💍 Hary & Finna`,
+            `📅 Sabtu, 07 Februari 2026`,
+            `📍 ASTON Bogor Hotel & Resort`,
+            `🕒 18.00 - 21.00 WIB`,
+            ``,
+            `Undangan digital dapat dibuka melalui link berikut:`,
+            `👉 http://hary-finna.trip-nus.com/?to=${params.data.id}`,
+            ``,
+            `Kami sangat berharap kehadiran Bapak/Ibu untuk berbagi kebahagiaan bersama kami.`,
+            ``,
+            `Mohon konfirmasi kehadiran melalui link di atas ya.`,
+            ``,
+            `Terima kasih banyak 🙏`,
+            ``,
+            `Salam hangat,`,
+            `Hary & Finna`,
+          ].join("\n");
 
           let phoneNumber = params.data.phone_number?.replace(/\D/g, "") || "";
           if (phoneNumber.startsWith("0")) {
             phoneNumber = "62" + phoneNumber.slice(1);
           }
           const waUrl = phoneNumber
-            ? `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
+            ? `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(
                 waMessage
               )}`
-            : `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
+            : `https://api.whatsapp.com/send?text=${encodeURIComponent(
+                waMessage
+              )}`;
 
           return (
             <div
