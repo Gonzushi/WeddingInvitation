@@ -363,6 +363,7 @@ export default function GuestAdmin() {
       attendance_confirmed: data.attendance_confirmed,
       invited_by: data.invited_by,
       notes: data.notes,
+      wish: data.wish,
     });
     setAdditionalNamesInput(data.additional_names?.join(", ") || "");
     dialogRef.current?.showModal();
@@ -1127,7 +1128,6 @@ Finna & Hary`;
   });
 
   // For printing tickets, paginate guests into pages of 20 (4x5)
-  // For printing tickets, paginate guests into pages of 20 (4x5)
   const ticketPageSize = 20;
 
   const ticketPages = useMemo(
@@ -1187,12 +1187,13 @@ Finna & Hary`;
           minWidth: 0,
         }}
       >
-        <div className="flex justify-between items-center mb-4 gap-2">
-          <h2 className="text-2xl font-bold hidden md:block">
+        <div className="flex justify-between items-center mb-3 gap-2 md:gap-3">
+          {/* Title a bit smaller on large screen */}
+          <h2 className="hidden md:block text-xl font-semibold">
             Guest Management
           </h2>
 
-          <div className="grid grid-cols-10 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto">
+          <div className="grid grid-cols-10 gap-2 w-full md:flex md:gap-2 md:items-center md:w-auto text-xs md:text-sm">
             {/* Print mode + button – left of combo box, desktop only */}
             <div className="hidden md:flex items-center gap-2">
               <select
@@ -1200,7 +1201,7 @@ Finna & Hary`;
                 onChange={(e) =>
                   setPrintMode(e.target.value as "ticket" | "label")
                 }
-                className="border px-2 py-1 rounded h-10 text-sm"
+                className="border rounded px-2 py-1 h-8 text-xs md:text-sm"
               >
                 <option value="ticket">Print Tiket QR</option>
                 <option value="label">Print Label Nama</option>
@@ -1208,9 +1209,9 @@ Finna & Hary`;
 
               <button
                 onClick={handlePrint}
-                className="flex items-center justify-center gap-1 bg-gray-800 text-white px-4 py-2 rounded border border-gray-900 hover:bg-black w-full md:w-auto active:scale-95 transition-transform duration-100"
+                className="flex items-center justify-center gap-1 bg-gray-800 text-white border border-gray-900 hover:bg-black w-full md:w-auto active:scale-95 transition-transform duration-100 text-xs md:text-sm px-3 py-1.5"
               >
-                <PrinterIcon className="h-5 w-5" />
+                <PrinterIcon className="h-4 w-4" />
                 <span>Print</span>
               </button>
             </div>
@@ -1224,7 +1225,7 @@ Finna & Hary`;
               <select
                 value={labelFromParam(invitedBy)}
                 onChange={(e) => handleInviterChange(e.target.value)}
-                className="border px-2 py-1 rounded pr-8 w-full h-10"
+                className="border rounded px-2 py-1 pr-8 w-full h-9 text-xs md:text-sm"
               >
                 {INVITERS.map((label) => (
                   <option key={label} value={label}>
@@ -1237,7 +1238,7 @@ Finna & Hary`;
             <div className="relative col-span-10 md:col-span-1">
               <input
                 type="text"
-                className="border px-2 py-1 rounded pr-8 w-full h-10"
+                className="border rounded px-2 py-1 pr-8 w-full h-9 text-xs md:text-sm"
                 placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => {
@@ -1279,7 +1280,7 @@ Finna & Hary`;
                     setSearchTerm("");
                     setFilteredRows(null);
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-full"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xl w-6 h-6 flex items-center justify-center rounded-full"
                   tabIndex={-1}
                   aria-label="Clear search"
                 >
@@ -1288,46 +1289,51 @@ Finna & Hary`;
               )}
             </div>
 
+            {/* Logout */}
             <button
               onClick={() => handleLogout()}
               className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 
-                bg-red-500 hover:bg-red-600 text-white 
-                px-4 py-2 rounded border border-red-600 
-                w-full md:w-auto active:scale-95 transition-transform duration-100"
+        bg-red-500 hover:bg-red-600 text-white 
+        px-3 py-1.5 rounded border border-red-600 
+        w-full md:w-auto active:scale-95 transition-transform duration-100 text-xs md:text-sm"
             >
-              <ArrowLeftOnRectangleIcon className="h-5 w-5" />
+              <ArrowLeftOnRectangleIcon className="h-4 w-4" />
               <span className="hidden md:inline">Log Out</span>
             </button>
 
+            {/* Summary */}
             <button
               onClick={() => setShowSummary(true)}
-              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
+              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-gray-200 text-gray-800 px-3 py-1.5 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100 text-xs md:text-sm"
             >
-              <ChartBarIcon className="h-5 w-5" />
+              <ChartBarIcon className="h-4 w-4" />
               <span className="hidden md:inline">Summary</span>
             </button>
 
+            {/* Scan QR */}
             <button
-              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100"
+              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-gray-200 text-gray-800 px-3 py-1.5 rounded hover:bg-gray-300 border border-gray-300 w-full md:w-auto active:scale-95 transition-transform duration-100 text-xs md:text-sm"
               onClick={() => setShowScanner((prev) => !prev)}
             >
-              <QrCodeIcon className="h-5 w-5" />
+              <QrCodeIcon className="h-4 w-4" />
               <span className="hidden md:inline">Scan QR</span>
             </button>
 
+            {/* Import Contact */}
             <button
               onClick={handleImport}
-              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100"
+              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100 text-xs md:text-sm"
             >
-              <ImportIcon className="h-5 w-5" />
+              <ImportIcon className="h-4 w-4" />
               <span className="hidden md:inline">Import Contact</span>
             </button>
 
+            {/* Add Guest */}
             <button
               onClick={handleAdd}
-              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100"
+              className="col-span-2 md:col-span-1 flex items-center justify-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 w-full md:w-auto active:scale-95 transition-transform duration-100 text-xs md:text-sm"
             >
-              <UserPlusIcon className="h-5 w-5" />
+              <UserPlusIcon className="h-4 w-4" />
               <span className="hidden md:inline">Add Guest</span>
             </button>
           </div>
@@ -1900,6 +1906,30 @@ Finna & Hary`;
                     <option value="yes">✅ Yes</option>
                     <option value="no">❌ No</option>
                   </select>
+                </div>
+
+                <div className="flex flex-col relative">
+                  <label className="mb-1 font-medium">Wish</label>
+                  <input
+                    className="border p-2 rounded pr-10"
+                    placeholder="Wish"
+                    value={formData.wish || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        wish: e.target.value,
+                      })
+                    }
+                  />
+                  {formData.wish && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, wish: "" })}
+                      className="absolute right-3 bottom-1.5 sm:bottom-2 text-gray-500 hover:text-black text-2xl sm:text-xl"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               </>
             )}

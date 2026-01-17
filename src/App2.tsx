@@ -97,6 +97,7 @@ const COUPLE = {
     fatherName: "Mr. Peng Cheong",
     motherName: "Mrs. Mariyani Lie",
     instagram: "finnawidy",
+    norek: "7310838955",
   },
   groom: {
     fullName: "Haryanto Kartawijaya",
@@ -104,6 +105,7 @@ const COUPLE = {
     fatherName: "Mr. Liauw Sui Kian †",
     motherName: "Mrs. Tan Siok Mei",
     instagram: "haryantokartawijaya",
+    norek: "5271037539",
   },
 };
 
@@ -136,6 +138,7 @@ const RSVP_CONFIG = {
 
 // Fonts
 const fonts = {
+  coupleName: "'Dancing Script', cursive", // NEW – bride/groom names
   heading: "'Dancing Script', cursive", // main names / big titles
   subheading: "'Cormorant Garamond', serif", // “The Wedding of”, date, etc.
   recipient: "'Cormorant Garamond', serif",
@@ -873,9 +876,52 @@ export default function Invitation() {
   const isLockedRef = useRef(false);
   const totalSections = 9;
 
+  // Section Menut State
+  const [isSectionMenuOpen, setIsSectionMenuOpen] = useState(false);
+  const sectionLabels = [
+    { index: 0, label: "Our Journey" },
+    { index: 1, label: "The Bride" },
+    { index: 2, label: "The Groom" },
+    { index: 3, label: "Save the Date" },
+    { index: 4, label: "Schedule" },
+    { index: 5, label: "Joyful & Whimsical" },
+    { index: 6, label: "RSVP" },
+    { index: 7, label: "Wedding Gift" },
+    { index: 8, label: "Gallery" },
+  ];
+
+  const scrollToSection = (targetIndex: number) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Disable auto-scroll once user uses manual navigation
+    autoScrollDisabledRef.current = true;
+    if (autoScrollTimeoutRef.current !== null) {
+      window.clearTimeout(autoScrollTimeoutRef.current);
+      autoScrollTimeoutRef.current = null;
+    }
+
+    const clamped = Math.max(0, Math.min(totalSections - 1, targetIndex));
+
+    isLockedRef.current = true;
+    setCurrentSection(clamped);
+
+    container.scrollTo({
+      top: clamped * window.innerHeight,
+      behavior: "smooth",
+    });
+
+    window.setTimeout(() => {
+      isLockedRef.current = false;
+    }, 500);
+  };
+
   // Auto-scroll state
   const autoScrollTimeoutRef = useRef<number | null>(null);
   const autoScrollDisabledRef = useRef(false);
+
+  const isAutoScrollOn =
+    hasOpened && !autoScrollDisabledRef.current && currentSection < 6;
 
   // Modal
   // const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
@@ -937,7 +983,13 @@ export default function Invitation() {
   useEffect(() => {
     const link = document.createElement("link");
     link.href =
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Dancing+Script&display=swap";
+      "https://fonts.googleapis.com/css2?" +
+      "family=Cormorant+Garamond:wght@400;600&" +
+      "family=Dancing+Script&" +
+      "family=Italianno&" +
+      "family=Great+Vibes&" +
+      "family=Allura&" +
+      "family=Parisienne&display=swap";
     link.rel = "stylesheet";
     document.head.appendChild(link);
   }, []);
@@ -1149,7 +1201,7 @@ export default function Invitation() {
             numAttendeesConfirmed:
               typeof confirmedGuests === "number" && confirmedGuests > 0
                 ? confirmedGuests
-                : 1,
+                : backendRecipient.maxGuests,
           });
 
           // Load wishes list for this guest (this guest prioritized by backend)
@@ -1314,8 +1366,8 @@ export default function Invitation() {
     if (!hasOpened) return;
     if (autoScrollDisabledRef.current) return; // user has interacted → stop forever
 
-    // ⛔ Stop auto-scroll starting from RSVP (section 7)
-    if (currentSection >= 7) return;
+    // ⛔ Stop auto-scroll starting from RSVP (section 6)
+    if (currentSection >= 6) return;
 
     // clear existing timer
     if (autoScrollTimeoutRef.current !== null) {
@@ -1414,10 +1466,45 @@ export default function Invitation() {
     const { name, value } = e.target;
 
     if (name === "isAttending") {
-      setForm((prev) => ({
-        ...prev,
-        isAttending: value === "yes" ? true : value === "no" ? false : null,
-      }));
+      setForm((prev) => {
+        const newIsAttending =
+          value === "yes" ? true : value === "no" ? false : null;
+
+        let newGuests = prev.numAttendeesConfirmed;
+
+        if (newIsAttending === true) {
+          // Only consider "first time Yes" when it was never answered before
+          const firstTimeYes = prev.isAttending === null;
+
+          const numericGuests = Number(newGuests || 0);
+
+          // First time switching to Yes, and guest count not meaningful yet:
+          // -> default to maxGuests (e.g. 3)
+          if (firstTimeYes && numericGuests <= 1) {
+            newGuests = recipient.maxGuests;
+          }
+
+          // Safety clamp in case something weird comes from backend
+          const clamped = Number(newGuests || 0);
+          if (clamped > recipient.maxGuests) {
+            newGuests = recipient.maxGuests;
+          }
+        }
+
+        if (newIsAttending === false) {
+          // When "No", guest count is irrelevant; keep a harmless baseline
+          const numericGuests = Number(newGuests || 0);
+          if (numericGuests < 1) {
+            newGuests = 1;
+          }
+        }
+
+        return {
+          ...prev,
+          isAttending: newIsAttending,
+          numAttendeesConfirmed: newGuests,
+        };
+      });
     } else if (name === "numAttendeesConfirmed") {
       setForm((prev) => ({
         ...prev,
@@ -1437,18 +1524,17 @@ export default function Invitation() {
       return;
     }
 
-    if (!form.name.trim()) {
+    const trimmedName = form.name.trim();
+    const trimmedWish = form.wish.trim();
+    const hasWish = trimmedWish.length > 0;
+
+    if (!trimmedName) {
       alert("Please enter your name.");
       return;
     }
 
     if (form.isAttending === null) {
       alert("Please let us know if you will attend.");
-      return;
-    }
-
-    if (!form.wish.trim()) {
-      alert("Please write your best wishes.");
       return;
     }
 
@@ -1466,63 +1552,76 @@ export default function Invitation() {
     const numAttendeesForSubmit =
       form.isAttending === true ? form.numAttendeesConfirmed : 0;
 
-    // Update wishes list locally:
-    // - For backend guests: remove old wish for this guest.id, then prepend new wish
-    // - For non-backend: just prepend with a local id
-    if (form.wish.trim()) {
-      if (recipient.mode === "backend" && recipient.id) {
-        const guestId = recipient.id;
+    // =========================
+    // Wishes list UI behavior
+    // =========================
+    if (recipient.mode === "backend" && recipient.id) {
+      const guestId = recipient.id;
+
+      if (hasWish) {
+        // add / replace this guest's wish
         setWishes((prev) => {
           const filtered = prev.filter((w) => w.id !== guestId);
           return [
             {
               id: guestId,
-              name: form.name.trim(),
-              wish: form.wish.trim(),
+              name: trimmedName,
+              wish: trimmedWish,
             },
             ...filtered,
           ];
         });
       } else {
+        // wish cleared -> remove this guest from wishes list
+        setWishes((prev) => prev.filter((w) => w.id !== guestId));
+      }
+    } else {
+      // non-backend / default / custom mode
+      if (hasWish) {
         const localId = `local-${Date.now()}`;
         setWishes((prev) => [
           {
             id: localId,
-            name: form.name.trim(),
-            wish: form.wish.trim(),
+            name: trimmedName,
+            wish: trimmedWish,
           },
           ...prev,
         ]);
+      } else {
+        // optional: clear any previous local wish for this name
+        setWishes((prev) => prev.filter((w) => w.name !== trimmedName));
       }
     }
 
-    // Update local recipient state
+    // Update local recipient state – ALWAYS set wish, even if ""
     setRecipient((prev) => ({
       ...prev,
       isAttending: form.isAttending,
       numAttendeesConfirmed: numAttendeesForSubmit,
-      wish: form.wish.trim(),
+      wish: trimmedWish, // can be ""
     }));
 
     // Send to backend if backend guest
     if (recipient.mode === "backend" && recipient.id) {
+      const payload: Record<string, unknown> = {
+        is_attending: form.isAttending,
+        num_attendees_confirmed: numAttendeesForSubmit,
+        name: trimmedName,
+        wish: trimmedWish, // always send, even ""
+      };
+
       fetch(`${API_URL}/guests/${recipient.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          is_attending: form.isAttending, // yes/no/null
-          num_attendees_confirmed: numAttendeesForSubmit,
-          wish: form.wish.trim(),
-          name: form.name.trim(),
-        }),
+        body: JSON.stringify(payload),
       }).catch((err) => {
         console.error("Failed to submit RSVP to backend", err);
       });
     }
 
-    // ✅ Show elegant modal instead of alert
+    // Modal message
     setRsvpModalMessage(
       form.isAttending === true
         ? "Thank you! Your RSVP has been recorded. We look forward to celebrating with you."
@@ -1530,6 +1629,84 @@ export default function Invitation() {
     );
     setShowRsvpModal(true);
     setIsEditingRsvp(false);
+  };
+
+  const isSubmitDisabled =
+    // 1) Must choose yes/no
+    form.isAttending === null ||
+    // 2) If "Yes", number of guests must be valid (1..maxGuests)
+    (form.isAttending === true &&
+      (!form.numAttendeesConfirmed ||
+        form.numAttendeesConfirmed < 1 ||
+        form.numAttendeesConfirmed > recipient.maxGuests));
+
+  const handleCopy = (text: string) => {
+    const raw = text.replace(/\D/g, ""); // ensure digits only
+
+    // Fallback using a hidden textarea + execCommand
+    const fallbackCopy = (value: string) => {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = value;
+        // Avoid scrolling to bottom on iOS
+        textarea.style.position = "fixed";
+        textarea.style.top = "0";
+        textarea.style.left = "0";
+        textarea.style.opacity = "0";
+        textarea.style.pointerEvents = "none";
+
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        const successful = document.execCommand("copy");
+        document.body.removeChild(textarea);
+
+        if (successful) {
+          setRsvpModalMessage("Account number copied to clipboard.");
+          setShowRsvpModal(true);
+        } else {
+          alert("Failed to copy account number.");
+        }
+      } catch (err) {
+        console.error("Fallback copy failed", err);
+        alert("Failed to copy account number.");
+      }
+    };
+
+    // Modern API path (desktop, some mobile, HTTPS)
+    if (
+      typeof navigator !== "undefined" &&
+      "clipboard" in navigator &&
+      window.isSecureContext
+    ) {
+      (navigator as Navigator & { clipboard: Clipboard }).clipboard
+        .writeText(raw)
+        .then(() => {
+          setRsvpModalMessage("Account number copied to clipboard.");
+          setShowRsvpModal(true);
+        })
+        .catch((err) => {
+          console.warn("navigator.clipboard failed, using fallback", err);
+          fallbackCopy(raw);
+        });
+      return;
+    }
+
+    // No navigator.clipboard or not secure → fallback
+    fallbackCopy(raw);
+  };
+
+  const formatNorek = (norek: string): string => {
+    const digits = norek.replace(/\D/g, "");
+
+    // Example: '1672821872' -> '167-282-1872'
+    if (digits.length === 10) {
+      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+    }
+
+    // Fallback: if length is different, just return as-is or do a generic grouping
+    return digits;
   };
 
   // -------------------------
@@ -1836,7 +2013,7 @@ export default function Invitation() {
                           {/* Name */}
                           <p
                             className="text-4xl md:text-4xl text-white mb-3"
-                            style={{ fontFamily: fonts.heading }}
+                            style={{ fontFamily: fonts.coupleName }}
                           >
                             {COUPLE.bride.fullName}
                           </p>
@@ -1943,7 +2120,7 @@ export default function Invitation() {
                           {/* Name */}
                           <p
                             className="text-4xl md:text-4xl text-white mb-3"
-                            style={{ fontFamily: fonts.heading }}
+                            style={{ fontFamily: fonts.coupleName }}
                           >
                             {COUPLE.groom.fullName}
                           </p>
@@ -2076,13 +2253,13 @@ export default function Invitation() {
                       </p>
 
                       {/* Date & time */}
-                      <p
+                      {/* <p
                         className="text-m md:text-lg text-black/80 mb-6"
                         style={{ fontFamily: fonts.subheading }}
                       >
                         {EVENTS.reception.dateText} ·{" "}
                         {EVENTS.reception.timeText}
-                      </p>
+                      </p> */}
 
                       {/* Save to Calendar button */}
                       <motion.button
@@ -2302,9 +2479,9 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                    SECTION 6 – Verse & Couple
+                    SECTION SKIP – Verse & Couple
                     ========================= */}
-                {currentSection === 5 && (
+                {false && currentSection === 5 && (
                   <motion.section
                     key="section-6"
                     className="absolute inset-0 h-dvh overflow-hidden"
@@ -2376,12 +2553,12 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                    SECTION 7 – Dance
+                    SECTION 6 – Dance
                     ========================= */}
 
-                {currentSection === 6 && (
+                {currentSection === 5 && (
                   <motion.section
-                    key="section-7"
+                    key="section-6"
                     className="absolute inset-0 h-dvh overflow-hidden"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -2440,11 +2617,11 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                    SECTION 8 – RSVP
-                   ========================= */}
-                {currentSection === 7 && (
+                      SECTION 7 – RSVP
+                    ========================= */}
+                {currentSection === 6 && (
                   <motion.section
-                    key="section-8"
+                    key="section-7"
                     className="absolute inset-0 h-dvh overflow-hidden"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -2466,19 +2643,23 @@ export default function Invitation() {
                     {/* Black overlay for readability */}
                     <div className="absolute inset-0 bg-black/20" />
 
-                    {/* Content */}
-                    <div className="relative z-10 flex items-center justify-center h-full px-4 pb-20">
+                    {/* Content – card centered, with extra bottom space for music button */}
+                    <div className="relative z-10 flex items-center justify-center h-full px-4 pt-6 pb-24">
                       <div
-                        className="w-full max-w-md rounded-3xl
-                    border border-white/10
-                    bg-black/30
-                    backdrop-blur-sm
-                    shadow-[0_14px_40px_rgba(0,0,0,0.7)]
-                    p-5 md:p-6 text-white"
+                        className="w-full max-w-md max-h-full
+                                  rounded-3xl
+                                  border border-white/10
+                                  bg-black/30
+                                  backdrop-blur-sm
+                                  shadow-[0_14px_40px_rgba(0,0,0,0.7)]
+                                  p-5 md:p-6
+                                  text-white
+                                  flex flex-col
+                                  overflow-y-auto"
                       >
                         {/* Title (text-lg) */}
                         <h3
-                          className="text-lg md:text-xl font-semibold text-center mb-4 tracking-[0.18em] uppercase"
+                          className="text-lg md:text-xl font-semibold text-center mb-4 tracking-[0.18em] uppercase flex-shrink-0"
                           style={{ fontFamily: fonts.subheading }}
                         >
                           RSVP
@@ -2487,7 +2668,7 @@ export default function Invitation() {
                         {/* Loading / error */}
                         {isLoadingGuest && (
                           <p
-                            className="text-m md:text-base text-white/70 mb-2 text-center"
+                            className="text-m md:text-base text-white/70 mb-2 text-center flex-shrink-0"
                             style={{ fontFamily: fonts.body }}
                           >
                             Loading guest info...
@@ -2496,316 +2677,457 @@ export default function Invitation() {
 
                         {guestError && (
                           <p
-                            className="text-m md:text-base text-red-300 mb-3 text-center"
+                            className="text-m md:text-base text-red-300 mb-3 text-center flex-shrink-0"
                             style={{ fontFamily: fonts.body }}
                           >
                             {guestError}
                           </p>
                         )}
 
-                        {/* Invitee info */}
-                        <div className="mb-4 text-center">
-                          <p
-                            className="text-m md:text-base"
-                            style={{ fontFamily: fonts.body }}
-                          >
-                            Invitee:{" "}
-                            <span className="font-semibold">
-                              {recipient.displayName}
-                            </span>
-                          </p>
-                          {recipient.isAttending === true &&
-                          recipient.numAttendeesConfirmed !== undefined ? (
+                        {/* MAIN CONTENT + WISHES share the vertical space */}
+                        <div className="flex-1 flex flex-col min-h-0">
+                          {/* Invitee info */}
+                          <div className="mb-4 text-center flex-shrink-0">
                             <p
-                              className="text-m md:text-base text-white/60 mt-1"
+                              className="text-m md:text-base"
                               style={{ fontFamily: fonts.body }}
                             >
-                              Confirmed guests:{" "}
-                              {recipient.numAttendeesConfirmed}
+                              Invitee:{" "}
+                              <span className="font-semibold">
+                                {recipient.displayName}
+                              </span>
                             </p>
-                          ) : (
-                            <p
-                              className="text-m md:text-base text-white/60 mt-1"
-                              style={{ fontFamily: fonts.body }}
-                            >
-                              Maximum guests: {recipient.maxGuests}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* IF RSVP FILLED OR EDITING */}
-                        {!isEditingRsvp && recipient.isAttending === true ? (
-                          // CASE 1: Confirmed attending → QR / pass + Edit button
-                          <div className="mb-5">
-                            <p
-                              className="text-m md:text-base text-center text-white/80 leading-snug"
-                              style={{ fontFamily: fonts.body }}
-                            >
-                              Thank you for confirming your attendance.
-                              <br />
-                              {canShowQr
-                                ? "Please show this QR code at the reception."
-                                : "We look forward to celebrating with you."}
-                            </p>
-
-                            {canShowQr && qrValue && (
-                              <div className="mt-4 flex justify-center">
-                                <div className="bg-black/50 border border-white/40 rounded-2xl px-3 py-2 inline-flex flex-col items-center gap-1.5 backdrop-blur-md">
-                                  <p
-                                    className="text-m md:text-base tracking-[0.18em] uppercase text-white/70"
-                                    style={{ fontFamily: fonts.subheading }}
-                                  >
-                                    Wedding Pass
-                                  </p>
-
-                                  {/* QR Code based on id (same as admin app) */}
-                                  <div className="bg-white p-1.5 rounded-md">
-                                    <QRCode value={qrValue} size={160} />
-                                  </div>
-
-                                  <p
-                                    className="text-m md:text-base text-white/70 mt-1"
-                                    style={{ fontFamily: fonts.body }}
-                                  >
-                                    {recipient.displayName}
-                                  </p>
-                                </div>
-                              </div>
+                            {recipient.isAttending === true &&
+                            recipient.numAttendeesConfirmed !== undefined ? (
+                              <p
+                                className="text-m md:text-base text-white/60 mt-1"
+                                style={{ fontFamily: fonts.body }}
+                              >
+                                Confirmed guests:{" "}
+                                {recipient.numAttendeesConfirmed}
+                              </p>
+                            ) : (
+                              <p
+                                className="text-m md:text-base text-white/60 mt-1"
+                                style={{ fontFamily: fonts.body }}
+                              >
+                                Maximum guests: {recipient.maxGuests}
+                              </p>
                             )}
-
-                            {/* Edit button */}
-                            <div className="mt-5 flex justify-center">
-                              <button
-                                onClick={startEditRsvp}
-                                className="px-5 py-2 rounded-full border border-white/50 text-m md:text-base text-white hover:bg-white/10 transition-colors"
-                                style={{ fontFamily: fonts.body }}
-                              >
-                                Edit RSVP
-                              </button>
-                            </div>
                           </div>
-                        ) : !isEditingRsvp &&
-                          recipient.isAttending === false ? (
-                          // CASE 2: RSVP filled but not attending + Edit button
-                          <div className="mb-5">
-                            <p
-                              className="text-m md:text-base text-center text-white/80 leading-snug"
-                              style={{ fontFamily: fonts.body }}
-                            >
-                              Thank you for letting us know.
-                              <br />
-                              We understand you cannot attend, and we truly
-                              appreciate your wishes and prayers.
-                            </p>
 
-                            {/* Edit button */}
-                            <div className="mt-5 flex justify-center">
-                              <button
-                                onClick={startEditRsvp}
-                                className="px-5 py-2 rounded-full border border-white/50 text-m md:text-base text-white hover:bg-white/10 transition-colors"
+                          {/* IF RSVP FILLED OR EDITING */}
+                          {!isEditingRsvp && recipient.isAttending === true ? (
+                            // CASE 1: Confirmed attending → thank you + (optional QR) + Edit
+                            <div className="mb-4 flex-shrink-0">
+                              <p
+                                className="text-m md:text-base text-center text-white/80 leading-snug"
                                 style={{ fontFamily: fonts.body }}
                               >
-                                Edit RSVP
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          // CASE 3: RSVP not filled OR editing → show form
-                          <div className="space-y-3 mb-5">
-                            <div className="space-y-1.5">
-                              <label
-                                className="text-m md:text-base text-white/80"
-                                style={{ fontFamily: fonts.body }}
-                              >
-                                Your Name
-                              </label>
-                              <input
-                                type="text"
-                                name="name"
-                                placeholder="Your Name"
-                                className="w-full px-3 py-2.5 rounded-lg border border-white/30 bg-black/30 text-m md:text-base text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/80"
-                                style={{ fontFamily: fonts.body }}
-                                value={form.name}
-                                onChange={handleChange}
-                              />
-                            </div>
+                                Thank you for confirming your attendance.
+                                <br />
+                                {false && canShowQr
+                                  ? "Please show this QR code at the reception."
+                                  : "We look forward to celebrating with you."}
+                              </p>
 
-                            <div className="space-y-1.5">
-                              <label
-                                className="text-m md:text-base text-white/80"
-                                style={{ fontFamily: fonts.body }}
-                              >
-                                Your Best Wishes
-                              </label>
-                              <textarea
-                                name="wish"
-                                placeholder="Write your best wishes"
-                                className="w-full px-3 py-2.5 rounded-lg border border-white/30 bg-black/30 text-m md:text-base text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/80"
-                                style={{ fontFamily: fonts.body }}
-                                rows={3}
-                                value={form.wish}
-                                onChange={handleChange}
-                              />
-                            </div>
+                              {false && canShowQr && qrValue && (
+                                <div className="mt-4 flex justify-center">
+                                  <div className="bg-black/50 border border-white/40 rounded-2xl px-3 py-2 inline-flex flex-col items-center gap-1.5 backdrop-blur-md">
+                                    <p
+                                      className="text-m md:text-base tracking-[0.18em] uppercase text-white/70"
+                                      style={{ fontFamily: fonts.subheading }}
+                                    >
+                                      Wedding Pass
+                                    </p>
+                                    <div className="bg-white p-1.5 rounded-md">
+                                      <QRCode value={qrValue} size={160} />
+                                    </div>
+                                    <p
+                                      className="text-m md:text-base text-white/70 mt-1"
+                                      style={{ fontFamily: fonts.body }}
+                                    >
+                                      {recipient.displayName}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
 
-                            {/* Will you attend? – inline radio */}
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                              <span
-                                className="text-m md:text-base text-white/80"
-                                style={{ fontFamily: fonts.body }}
-                              >
-                                Will you attend?
-                              </span>
-                              <div className="flex gap-4 text-m md:text-base">
-                                <label
-                                  className="flex items-center gap-1.5"
+                              <div className="mt-5 flex justify-center">
+                                <button
+                                  onClick={startEditRsvp}
+                                  className="px-5 py-2 rounded-full border border-white/50 text-m md:text-base text-white hover:bg-white/10 transition-colors"
                                   style={{ fontFamily: fonts.body }}
                                 >
-                                  <input
-                                    type="radio"
-                                    name="isAttending"
-                                    value="yes"
-                                    checked={form.isAttending === true}
-                                    onChange={handleChange}
-                                  />
-                                  Yes
-                                </label>
-                                <label
-                                  className="flex items-center gap-1.5"
-                                  style={{ fontFamily: fonts.body }}
-                                >
-                                  <input
-                                    type="radio"
-                                    name="isAttending"
-                                    value="no"
-                                    checked={form.isAttending === false}
-                                    onChange={handleChange}
-                                  />
-                                  No
-                                </label>
+                                  Edit RSVP
+                                </button>
                               </div>
                             </div>
-
-                            {/* Number of guests – inline options */}
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                              <span
-                                className="text-m md:text-base text-white/80"
+                          ) : !isEditingRsvp &&
+                            recipient.isAttending === false ? (
+                            // CASE 2: RSVP filled but not attending + Edit
+                            <div className="mb-4 flex-shrink-0">
+                              <p
+                                className="text-m md:text-base text-center text-white/80 leading-snug"
                                 style={{ fontFamily: fonts.body }}
                               >
-                                Number of Guests
-                              </span>
-                              <div className="flex flex-wrap gap-3 text-m md:text-base">
-                                {maxGuestsOptions.map((num) => (
+                                Thank you for letting us know.
+                                <br />
+                                We understand you cannot attend, and we truly
+                                appreciate your wishes and prayers.
+                              </p>
+
+                              <div className="mt-5 flex justify-center">
+                                <button
+                                  onClick={startEditRsvp}
+                                  className="px-5 py-2 rounded-full border border-white/50 text-m md:text-base text-white hover:bg-white/10 transition-colors"
+                                  style={{ fontFamily: fonts.body }}
+                                >
+                                  Edit RSVP
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            // CASE 3: RSVP not filled OR editing → form
+                            <div className="space-y-3 mb-4 flex-shrink-0">
+                              {/* Wishes (optional) */}
+                              <div className="space-y-1.5">
+                                <label
+                                  className="text-m md:text-base text-white/80"
+                                  style={{ fontFamily: fonts.body }}
+                                >
+                                  Your Best Wishes
+                                </label>
+                                <textarea
+                                  name="wish"
+                                  placeholder="Write your best wishes (optional)"
+                                  className="w-full px-3 py-2.5 rounded-lg border border-white/30 bg-black/30 text-m md:text-base text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/80"
+                                  style={{ fontFamily: fonts.body }}
+                                  rows={3}
+                                  value={form.wish}
+                                  onChange={handleChange}
+                                />
+                              </div>
+
+                              {/* Will you attend? – pill buttons */}
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <span
+                                  className="text-m md:text-base text-white/80"
+                                  style={{ fontFamily: fonts.body }}
+                                >
+                                  Will you attend?
+                                </span>
+                                <div className="flex gap-2 text-m md:text-base">
                                   <label
-                                    key={num}
-                                    className="flex items-center gap-1.5"
+                                    className={
+                                      "inline-flex items-center justify-center px-4 py-1.5 rounded-full border text-sm md:text-sm cursor-pointer transition-colors " +
+                                      (form.isAttending === true
+                                        ? "bg-white text-black border-white"
+                                        : "border-white/40 text-white/80 bg-white/5")
+                                    }
                                     style={{ fontFamily: fonts.body }}
                                   >
                                     <input
                                       type="radio"
-                                      name="numAttendeesConfirmed"
-                                      value={num}
-                                      checked={
-                                        form.numAttendeesConfirmed === num
-                                      }
+                                      name="isAttending"
+                                      value="yes"
+                                      checked={form.isAttending === true}
                                       onChange={handleChange}
-                                      disabled={form.isAttending === false}
+                                      className="sr-only"
                                     />
-                                    {num}
+                                    <span>Yes</span>
                                   </label>
-                                ))}
+                                  <label
+                                    className={
+                                      "inline-flex items-center justify-center px-4 py-1.5 rounded-full border text-xs md:text-sm cursor-pointer transition-colors " +
+                                      (form.isAttending === false
+                                        ? "bg-white text-black border-white"
+                                        : "border-white/40 text-white/80 bg-white/5")
+                                    }
+                                    style={{ fontFamily: fonts.body }}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name="isAttending"
+                                      value="no"
+                                      checked={form.isAttending === false}
+                                      onChange={handleChange}
+                                      className="sr-only"
+                                    />
+                                    <span>No</span>
+                                  </label>
+                                </div>
                               </div>
+
+                              {/* Number of guests – ONLY when attending = yes */}
+                              {form.isAttending === true && (
+                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                  <span
+                                    className="text-m md:text-base text-white/80"
+                                    style={{ fontFamily: fonts.body }}
+                                  >
+                                    Number of Guests
+                                  </span>
+                                  <div className="flex flex-wrap gap-2 text-m md:text-base">
+                                    {maxGuestsOptions.map((num) => {
+                                      const selected =
+                                        form.numAttendeesConfirmed === num;
+                                      return (
+                                        <label
+                                          key={num}
+                                          className={
+                                            "inline-flex items-center justify-center min-w-[44px] h-9 px-3 pb-1 rounded-full border text-xl md:text-base cursor-pointer transition-colors " +
+                                            (selected
+                                              ? "bg-white text-black border-white"
+                                              : "border-white/40 text-white/80 bg-white/5")
+                                          }
+                                          style={{ fontFamily: fonts.body }}
+                                        >
+                                          <input
+                                            type="radio"
+                                            name="numAttendeesConfirmed"
+                                            value={num}
+                                            checked={selected}
+                                            onChange={handleChange}
+                                            className="sr-only"
+                                          />
+                                          <span>{num}</span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                onClick={handleSubmit}
+                                disabled={isSubmitDisabled}
+                                className={
+                                  "w-full mt-3 py-2.5 rounded-full text-m md:text-base font-semibold tracking-[0.08em] uppercase transition-colors " +
+                                  (isSubmitDisabled
+                                    ? "bg-white/30 text-black/40 cursor-not-allowed"
+                                    : "bg-white text-black hover:bg-neutral-200")
+                                }
+                                style={{ fontFamily: fonts.button }}
+                              >
+                                Submit RSVP
+                              </button>
                             </div>
-
-                            <button
-                              onClick={handleSubmit}
-                              className="w-full mt-3 bg-white text-black py-2.5 rounded-full text-m md:text-base font-semibold tracking-[0.08em] uppercase hover:bg-neutral-200 transition-colors"
-                              style={{ fontFamily: fonts.button }}
-                            >
-                              Submit RSVP
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Wishes (always visible, scrollable) */}
-                        <div className="mt-3">
-                          <h4
-                            className="text-lg md:text-lg font-semibold mb-2 text-white"
-                            style={{ fontFamily: fonts.subheading }}
-                          >
-                            Wishes
-                          </h4>
-                          {wishes.length === 0 ? (
-                            <p
-                              className="text-m md:text-base text-white/70 italic"
-                              style={{ fontFamily: fonts.body }}
-                            >
-                              💌 Be the first to send a wish
-                            </p>
-                          ) : (
-                            <ul className="space-y-2 max-h-44 overflow-y-auto pr-1">
-                              {wishes.map((w) => (
-                                <li
-                                  key={w.id}
-                                  className="bg-white/5 border border-white/15 p-2.5 rounded-lg"
-                                >
-                                  <p
-                                    className="text-m md:text-base italic text-white/90"
-                                    style={{ fontFamily: fonts.body }}
-                                  >
-                                    "{w.wish}"
-                                  </p>
-                                  <p
-                                    className="text-m md:text-base text-right text-white/60 mt-1"
-                                    style={{ fontFamily: fonts.body }}
-                                  >
-                                    — {w.name}
-                                  </p>
-                                </li>
-                              ))}
-                            </ul>
                           )}
+
+                          {/* Wishes – fills the rest of the card and scrolls if needed */}
+                          <div className="mt-3 flex-1 min-h-0 flex flex-col">
+                            <h4
+                              className="text-lg md:text-lg font-semibold mb-2 text-white flex-shrink-0"
+                              style={{ fontFamily: fonts.subheading }}
+                            >
+                              Wishes
+                            </h4>
+                            {wishes.length === 0 ? (
+                              <p
+                                className="text-m md:text-base text-white/70 italic flex-shrink-0"
+                                style={{ fontFamily: fonts.body }}
+                              >
+                                💌 Be the first to send a wish
+                              </p>
+                            ) : (
+                              <ul className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1">
+                                {wishes.map((w) => (
+                                  <li
+                                    key={w.id}
+                                    className="bg-white/5 border border-white/15 p-2.5 rounded-lg"
+                                  >
+                                    <p
+                                      className="text-m md:text-base italic text-white/90"
+                                      style={{ fontFamily: fonts.body }}
+                                    >
+                                      "{w.wish}"
+                                    </p>
+                                    <p
+                                      className="text-m md:text-base text-right text-white/60 mt-1"
+                                      style={{ fontFamily: fonts.body }}
+                                    >
+                                      — {w.name}
+                                    </p>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </motion.section>
+                )}
 
-                    {/* RSVP Success Modal */}
-                    <AnimatePresence>
-                      {showRsvpModal && (
-                        <motion.div
-                          className="absolute inset-0 z-50 flex items-center justify-center bg-black/60"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.25, ease: "easeInOut" }}
-                          onClick={() => setShowRsvpModal(false)}
+                {/* =========================
+                    SECTION 8 – Wedding Gift
+                  ========================= */}
+                {currentSection === 7 && (
+                  <motion.section
+                    key="section-8"
+                    className="absolute inset-0 h-dvh overflow-hidden"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                  >
+                    {/* Full-screen background image – SAME as RSVP */}
+                    <motion.div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{
+                        backgroundImage: "url('/assets/scrollRSVP-bg.jpg')",
+                      }}
+                      initial={{ scale: 1.1, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 1.2, ease: "easeOut" }}
+                    />
+
+                    {/* Black overlay for readability */}
+                    <div className="absolute inset-0 bg-black/20" />
+
+                    {/* Content – same layout as RSVP card, above music button */}
+                    <div className="relative z-10 flex items-center justify-center h-full px-4 pt-6 pb-24">
+                      <div
+                        className="w-full max-w-md max-h-full
+                                  rounded-3xl
+                                  border border-white/10
+                                  bg-black/30
+                                  backdrop-blur-sm
+                                  shadow-[0_14px_40px_rgba(0,0,0,0.7)]
+                                  p-5 md:p-6
+                                  text-white
+                                  flex flex-col
+                                  overflow-y-auto"
+                      >
+                        {/* Title */}
+                        <h3
+                          className="text-lg md:text-xl font-semibold text-center mb-4 tracking-[0.18em] uppercase flex-shrink-0"
+                          style={{ fontFamily: fonts.subheading }}
                         >
-                          <motion.div
-                            className="bg-black/70 border border-white/20 rounded-2xl px-5 py-4 max-w-xs w-[85%] shadow-2xl text-center text-white backdrop-blur-md"
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            transition={{ duration: 0.25, ease: "easeOut" }}
-                            onClick={(e) => e.stopPropagation()}
+                          Wedding Gift
+                        </h3>
+
+                        {/* Intro text */}
+                        <div className="mb-4 text-center flex-shrink-0">
+                          <p
+                            className="text-m md:text-base text-white/80 leading-relaxed"
+                            style={{ fontFamily: fonts.body }}
+                          >
+                            Your presence at our wedding is the greatest gift.
+                            <br />
+                            However, if you would like to share a blessing in
+                            the form of a gift, you may send it through the
+                            account details below.
+                          </p>
+                        </div>
+
+                        {/* Main content – accounts inside the glass card */}
+                        <div className="flex-1 flex flex-col gap-3 min-h-0">
+                          {/* Bride account */}
+                          <div
+                            className="rounded-2xl border border-white/15 bg-white/5
+                       px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.6)]"
                           >
                             <p
-                              className="text-m md:text-base mb-3 leading-snug"
+                              className="text-m md:text-base text-white/70 mb-1"
                               style={{ fontFamily: fonts.body }}
                             >
-                              {rsvpModalMessage ||
-                                "Thank you! Your RSVP has been recorded."}
+                              For the Bride
                             </p>
-                            <button
-                              onClick={() => setShowRsvpModal(false)}
-                              className="mt-1 px-5 py-2 rounded-full border border-white/50 text-m md:text-base text-white hover:bg-white/10 transition-colors"
+                            <p
+                              className="text-lg md:text-xl text-white mb-1"
+                              style={{ fontFamily: fonts.coupleName }}
+                            >
+                              {COUPLE.bride.fullName}
+                            </p>
+                            <p
+                              className="text-m md:text-base text-white/80"
                               style={{ fontFamily: fonts.body }}
                             >
-                              Close
-                            </button>
-                          </motion.div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                              Bank: <span className="font-semibold">BCA</span>
+                            </p>
+
+                            {/* Account + copy button */}
+                            <div className="mt-1 flex items-center justify-between gap-2">
+                              <span
+                                className="text-m md:text-base text-white/80"
+                                style={{ fontFamily: fonts.body }}
+                              >
+                                Account No:{" "}
+                                <span className="font-mono tracking-[0.18em] text-white">
+                                  {formatNorek(COUPLE.bride.norek)}
+                                </span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(COUPLE.bride.norek)}
+                                className="shrink-0 inline-flex items-center justify-center px-3 py-1.5 rounded-full border border-white/50 bg-white/10 text-[11px] md:text-xs uppercase tracking-[0.16em] hover:bg-white/20 transition-colors"
+                                style={{ fontFamily: fonts.button }}
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Groom account */}
+                          <div
+                            className="rounded-2xl border border-white/15 bg-white/5
+                       px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.6)]"
+                          >
+                            <p
+                              className="text-m md:text-base text-white/70 mb-1"
+                              style={{ fontFamily: fonts.body }}
+                            >
+                              For the Groom
+                            </p>
+                            <p
+                              className="text-lg md:text-xl text-white mb-1"
+                              style={{ fontFamily: fonts.coupleName }}
+                            >
+                              {COUPLE.groom.fullName}
+                            </p>
+                            <p
+                              className="text-m md:text-base text-white/80"
+                              style={{ fontFamily: fonts.body }}
+                            >
+                              Bank: <span className="font-semibold">BCA</span>
+                            </p>
+
+                            {/* Account + copy button */}
+                            <div className="mt-1 flex items-center justify-between gap-2">
+                              <span
+                                className="text-m md:text-base text-white/80"
+                                style={{ fontFamily: fonts.body }}
+                              >
+                                Account No:{" "}
+                                <span className="font-mono tracking-[0.18em] text-white">
+                                  {formatNorek(COUPLE.groom.norek)}
+                                </span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(COUPLE.groom.norek)}
+                                className="shrink-0 inline-flex items-center justify-center px-3 py-1.5 rounded-full border border-white/50 bg-white/10 text-[11px] md:text-xs uppercase tracking-[0.16em] hover:bg-white/20 transition-colors"
+                                style={{ fontFamily: fonts.button }}
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Small note at bottom of card */}
+                          <p
+                            className="mt-2 text-center text-[11px] md:text-xs text-white/60 flex-shrink-0"
+                            style={{ fontFamily: fonts.body }}
+                          >
+                            Thank you for sharing your love, prayers, and
+                            kindness as we begin this new journey together.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </motion.section>
                 )}
 
@@ -2895,7 +3217,7 @@ export default function Invitation() {
                 <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
 
                 {/* QR shortcut button – ONLY on cover, top-right */}
-                {canShowQr && qrValue && (
+                {true && canShowQr && qrValue && (
                   <>
                     <button
                       onClick={() => setShowCoverQr(true)}
@@ -2948,7 +3270,7 @@ export default function Invitation() {
                             >
                               <svg
                                 viewBox="0 0 24 24"
-                                className="w-4 h-4"
+                                className="w-6 h-6"
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="1.6"
@@ -3007,7 +3329,7 @@ export default function Invitation() {
                     </p>
                     <h1
                       className="text-5xl mb-2 text-black"
-                      style={{ fontFamily: fonts.heading }}
+                      style={{ fontFamily: fonts.coupleName }}
                     >
                       {COUPLE.groom.shortName} &amp; {COUPLE.bride.shortName}
                     </h1>
@@ -3052,10 +3374,124 @@ export default function Invitation() {
         </div>
       </motion.div>
 
+      {/* RSVP Success Modal */}
+      <AnimatePresence>
+        {showRsvpModal && (
+          <motion.div
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/60"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            onClick={() => setShowRsvpModal(false)}
+          >
+            <motion.div
+              className="bg-black/70 border border-white/20 rounded-2xl px-5 py-4 max-w-xs w-[85%] shadow-2xl text-center text-white backdrop-blur-md"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p
+                className="text-m md:text-base mb-3 leading-snug"
+                style={{ fontFamily: fonts.body }}
+              >
+                {rsvpModalMessage || "Thank you! Your RSVP has been recorded."}
+              </p>
+              <button
+                onClick={() => setShowRsvpModal(false)}
+                className="mt-1 px-5 py-2 rounded-full border border-white/50 text-m md:text-base text-white hover:bg-white/10 transition-colors"
+                style={{ fontFamily: fonts.body }}
+              >
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Global overlay for music button + scroll-down arrows aligned to phone */}
       {isLoaded && hasOpened && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="relative max-w-[480px] w-full h-dvh pointer-events-none">
+            {/* Bottom-left: Section navigation icon button */}
+            <div className="absolute left-4 bottom-6.5 pointer-events-auto z-50">
+              <button
+                type="button"
+                onClick={() => setIsSectionMenuOpen((open) => !open)}
+                className="w-13 h-13 rounded-full bg-black/70 border border-white/40 shadow-lg backdrop-blur-sm flex items-center justify-center hover:bg-black/80 transition-colors"
+                aria-label="Open section navigation"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth={1.6}
+                  strokeLinecap="round"
+                >
+                  <line x1="3" y1="7" x2="21" y2="7" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="17" x2="21" y2="17" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Section menu overlay – closes when clicking outside */}
+            <AnimatePresence>
+              {isSectionMenuOpen && (
+                <motion.div
+                  key="section-menu-overlay"
+                  className="absolute inset-0 pointer-events-auto z-40"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  onClick={() => setIsSectionMenuOpen(false)}
+                >
+                  {/* Menu card, positioned above the nav button */}
+                  <motion.div
+                    className="absolute left-4 bottom-21"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    onClick={(e) => e.stopPropagation()} // don't close when clicking inside card
+                  >
+                    <div className="max-h-96 w-48 rounded-2xl border border-white/25 bg-black/75 backdrop-blur-md shadow-[0_14px_40px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col">
+                      {sectionLabels.map((sec) => {
+                        const isActive = sec.index === currentSection;
+                        return (
+                          <button
+                            key={sec.index}
+                            type="button"
+                            onClick={() => {
+                              setIsSectionMenuOpen(false);
+                              scrollToSection(sec.index);
+                            }}
+                            className={
+                              "w-full text-left px-3.5 py-2.5 text-[11px] md:text-xs flex items-center gap-2 border-b border-white/10 last:border-b-0 transition-colors " +
+                              (isActive
+                                ? "bg-white/15 text-white"
+                                : "bg-transparent text-white/80 hover:bg-white/10")
+                            }
+                            style={{ fontFamily: fonts.body }}
+                          >
+                            <span className="inline-flex items-center justify-center w-5 h-5 pb-0.5 rounded-full border border-white/40 text-[10px] leading-none">
+                              {sec.index + 1}
+                            </span>
+
+                            <span className="truncate">{sec.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Music button (always visible once opened, including last section) */}
             <div className="absolute inset-x-0 bottom-2.5 flex justify-center pointer-events-none">
               <div className="pointer-events-auto">
@@ -3066,20 +3502,27 @@ export default function Invitation() {
               </div>
             </div>
 
-            {/* Scroll-down arrows (hidden on last section) */}
-            {currentSection !== totalSections - 1 && (
-              <div className="absolute inset-x-0 bottom-6 flex flex-col items-center pointer-events-none">
+            {/* Arrows OR credit (depending on section) */}
+            {currentSection !== totalSections - 1 ? (
+              // Not last section → show arrows + auto-scroll pill
+              <div
+                className={
+                  "absolute inset-x-0 flex flex-col items-center pointer-events-none " +
+                  (isAutoScrollOn ? "bottom-4" : "bottom-7")
+                }
+              >
+                {/* Arrows */}
                 {[0, 1].map((i) => (
                   <div key={i} className={i === 0 ? "" : "-mt-3"}>
                     <svg
-                      className="w-8 h-8 animate-bounce"
+                      className="w-7 h-7 animate-bounce"
                       style={{ animationDelay: `${i * 120}ms` }}
                       viewBox="0 0 24 24"
                     >
                       <path
                         d="M4 16l8-8 8 8"
                         stroke="white"
-                        strokeWidth="2.5"
+                        strokeWidth="2.2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         fill="none"
@@ -3087,6 +3530,32 @@ export default function Invitation() {
                     </svg>
                   </div>
                 ))}
+
+                {/* Small auto-scroll pill under the arrows */}
+                {isAutoScrollOn && (
+                  <div className="mt-1 pointer-events-none">
+                    <span
+                      className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full border border-white/40 bg-black/60 text-[9px] md:text-[10px] uppercase tracking-[0.16em] text-white/85 backdrop-blur-sm"
+                      style={{ fontFamily: fonts.button }}
+                    >
+                      Auto scroll
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Last section → show credit pill instead of arrows
+              <div className="absolute inset-x-0 bottom-9 flex justify-center pointer-events-none">
+                <a
+                  href="https://wa.me/6282124480308?text=Hi%20Hendry%2C%20I%20saw%20your%20wedding%20invitation%20website."
+                  target="_blank"
+                  rel="noreferrer"
+                  className="pointer-events-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/35 bg-black/65 text-[9px] md:text-[10px] uppercase tracking-[0.18em] text-white/85 backdrop-blur-sm shadow-[0_8px_30px_rgba(0,0,0,0.6)] hover:bg-black/80 transition-colors"
+                  style={{ fontFamily: fonts.button }}
+                >
+                  <span className="text-[10px]">Designed &amp; built by</span>
+                  <span className="font-semibold">Hendry</span>
+                </a>
               </div>
             )}
           </div>

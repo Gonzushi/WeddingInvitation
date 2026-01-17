@@ -20,3 +20,15 @@
   align-items: center;
   justify-content: center;
 }
+
+@font-face {
+  font-family: 'Mildest Free';
+  src:
+    url('/fonts/mildest-free.ttf') format('truetype'),
+    url('/fonts/mildest-free.woff2') format('woff2'),
+    url('/fonts/mildest-free.woff') format('woff'),
+    url('/fonts/mildest-free.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
