@@ -1,0 +1,30 @@
+<svg
+    width="120"
+    height="120"
+    viewBox="0 0 120 120"
+    xmlns="http://www.w3.org/2000/svg"
+>
+    <!-- Outer circle (outline only, transparent center) -->
+    <circle
+        cx="60"
+        cy="60"
+        r="54"
+        fill="none"
+        stroke="black"
+        stroke-width="2"
+    />
+
+    <!-- HF initials -->
+    <text
+        x="50%"
+        y="50%"
+        text-anchor="middle"
+        dominant-baseline="central"
+        font-family="'Cormorant Garamond', 'Times New Roman', serif"
+        font-size="36"
+        letter-spacing="6"
+        fill="black"
+    >
+        HF
+    </text>
+</svg>

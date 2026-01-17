@@ -159,26 +159,25 @@ const IMAGE_URLS = [
   "/assets/scroll6-couple.png",
   "/assets/scroll4-bg.jpg",
   "/assets/scrollRSVP-bg.jpg",
-  "/assets/gal1.jpg",
-  "/assets/gal2.jpg",
-  "/assets/gal3.jpg",
-  "/assets/gal4.jpg",
-  "/assets/gal5.jpg",
-  "/assets/gal6.jpg",
-  "/assets/gal7.jpg",
-  "/assets/gal8.jpg",
-  "/assets/gal9.jpg",
-  "/assets/gal10.jpg",
-  "/assets/gal11.jpg",
-  "/assets/gal12.jpg",
-  "/assets/gal13.jpg",
-  "/assets/gal14.jpg",
-  "/assets/gal15.jpg",
-  "/assets/gal16.jpg",
-  "/assets/gal17.jpg",
-  "/assets/gal18.jpg",
-  "/assets/gal19.jpg",
-  "/assets/gal20.jpg",
+  "/assets/gal1.jpeg",
+  "/assets/gal2.jpeg",
+  "/assets/gal3.jpeg",
+  "/assets/gal4.jpeg",
+  "/assets/gal5.jpeg",
+  "/assets/gal6.jpeg",
+  "/assets/gal7.jpeg",
+  "/assets/gal8.jpeg",
+  "/assets/gal9.jpeg",
+  "/assets/gal10.jpeg",
+  "/assets/gal11.jpeg",
+  "/assets/gal12.jpeg",
+  "/assets/gal13.jpeg",
+  "/assets/gal14.jpeg",
+  "/assets/gal15.jpeg",
+  "/assets/gal16.jpeg",
+  "/assets/gal17.jpeg",
+  "/assets/gal18.jpeg",
+  "/assets/gal19.jpeg",
 ];
 
 const SCROLL_DANCE_FRAMES = [
@@ -193,26 +192,25 @@ const SCROLL_DANCE_FRAMES = [
 ];
 
 const ourMomentsImages = [
-  { src: "/assets/gal1.jpg", span: 8, animation: "left" },
-  { src: "/assets/gal2.jpg", span: 3, animation: "left" },
-  { src: "/assets/gal3.jpg", span: 5, animation: "right" },
-  { src: "/assets/gal4.jpg", span: 8, animation: "left" },
-  { src: "/assets/gal5.jpg", span: 4, animation: "left" },
-  { src: "/assets/gal6.jpg", span: 4, animation: "right" },
-  { src: "/assets/gal7.jpg", span: 5, animation: "right" },
-  { src: "/assets/gal8.jpg", span: 3, animation: "left" },
-  { src: "/assets/gal9.jpg", span: 7, animation: "right" },
-  { src: "/assets/gal10.jpg", span: 4, animation: "left" },
-  { src: "/assets/gal11.jpg", span: 6, animation: "right" },
-  { src: "/assets/gal12.jpg", span: 3, animation: "left" },
-  { src: "/assets/gal13.jpg", span: 5, animation: "right" },
-  { src: "/assets/gal14.jpg", span: 4, animation: "left" },
-  { src: "/assets/gal15.jpg", span: 7, animation: "right" },
-  { src: "/assets/gal16.jpg", span: 3, animation: "left" },
-  { src: "/assets/gal17.jpg", span: 6, animation: "right" },
-  { src: "/assets/gal18.jpg", span: 4, animation: "left" },
-  { src: "/assets/gal19.jpg", span: 5, animation: "right" },
-  { src: "/assets/gal20.jpg", span: 8, animation: "left" },
+  { src: "/assets/gal1.jpeg", span: 8, animation: "left" },
+  { src: "/assets/gal2.jpeg", span: 3, animation: "left" },
+  { src: "/assets/gal3.jpeg", span: 5, animation: "right" },
+  { src: "/assets/gal4.jpeg", span: 8, animation: "left" },
+  { src: "/assets/gal5.jpeg", span: 4, animation: "left" },
+  { src: "/assets/gal6.jpeg", span: 4, animation: "right" },
+  { src: "/assets/gal7.jpeg", span: 5, animation: "right" },
+  { src: "/assets/gal8.jpeg", span: 3, animation: "left" },
+  { src: "/assets/gal9.jpeg", span: 7, animation: "right" },
+  { src: "/assets/gal10.jpeg", span: 4, animation: "left" },
+  { src: "/assets/gal11.jpeg", span: 6, animation: "right" },
+  { src: "/assets/gal12.jpeg", span: 3, animation: "left" },
+  { src: "/assets/gal13.jpeg", span: 5, animation: "right" },
+  { src: "/assets/gal14.jpeg", span: 4, animation: "left" },
+  { src: "/assets/gal15.jpeg", span: 7, animation: "right" },
+  { src: "/assets/gal16.jpeg", span: 3, animation: "left" },
+  { src: "/assets/gal17.jpeg", span: 6, animation: "right" },
+  { src: "/assets/gal18.jpeg", span: 4, animation: "left" },
+  { src: "/assets/gal19.jpeg", span: 5, animation: "right" },
 ];
 
 const PRELOAD_URLS = [...IMAGE_URLS, ...SCROLL_DANCE_FRAMES];
@@ -532,7 +530,7 @@ function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
       <AnimatePresence>
         {activeIndex !== null && (
           <motion.div
-            className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
+            className="fixed inset-0 z-[9999] bg-black flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -593,40 +591,38 @@ function OurMomentsGallery({ onModalChange }: OurMomentsGalleryProps) {
             </button>
 
             {/* Centered Image */}
-            <div className="w-full h-full flex items-center justify-center px-4">
+            <div className="absolute inset-0 flex items-center justify-center">
               {ourMomentsImages[activeIndex] && (
-                <motion.img
-                  key={ourMomentsImages[activeIndex].src}
-                  src={ourMomentsImages[activeIndex].src}
-                  alt="Fullscreen"
-                  className="max-h-[90vh] max-w-[100vw] object-contain rounded-2xl shadow-2xl"
-                  initial={{ opacity: 0, scale: 0.96 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  // Swipe left/right to navigate, swipe down to close
-                  drag
-                  dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                  dragElastic={0.2}
-                  onDragEnd={(_, info) => {
-                    const { offset } = info;
+                <div className="relative w-full h-full overflow-hidden">
+                  {/* Blurred background to eliminate side bars */}
+                  <img
+                    src={ourMomentsImages[activeIndex].src}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-60"
+                    aria-hidden="true"
+                  />
 
-                    // Horizontal swipe
-                    if (offset.x < -100) {
-                      next();
-                      return;
-                    }
-                    if (offset.x > 100) {
-                      prev();
-                      return;
-                    }
-
-                    // Vertical swipe down to close
-                    if (offset.y > 100) {
-                      closeModal();
-                    }
-                  }}
-                />
+                  {/* Main image: always fully visible, no crop */}
+                  <motion.img
+                    key={ourMomentsImages[activeIndex].src}
+                    src={ourMomentsImages[activeIndex].src}
+                    alt="Fullscreen"
+                    className="relative z-10 w-full h-full object-contain"
+                    initial={{ opacity: 0, scale: 1.1 }}
+                    animate={{ opacity: 1, scale: 1.05 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    drag
+                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                    dragElastic={0.2}
+                    onDragEnd={(_, info) => {
+                      const { offset } = info;
+                      if (offset.x < -100) return next();
+                      if (offset.x > 100) return prev();
+                      if (offset.y > 100) return closeModal();
+                    }}
+                  />
+                </div>
               )}
             </div>
           </motion.div>
