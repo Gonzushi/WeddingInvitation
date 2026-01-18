@@ -635,6 +635,22 @@ export default function GuestAdmin() {
         cellRenderer: (params: ICellRendererParams<Guest>) => {
           if (!params.data) return null;
 
+          // Build display name: full_name or nickname, plus additional_names if any
+          const baseName =
+            (params.data.full_name && params.data.full_name.trim()) ||
+            params.data.nickname ||
+            "Tamu";
+
+          const additionalNames = Array.isArray(params.data.additional_names)
+            ? params.data.additional_names.filter(
+                (name) => typeof name === "string" && name.trim() !== ""
+              )
+            : [];
+
+          const fullDisplayName = additionalNames.length
+            ? [baseName, ...additionalNames].join(" & ")
+            : baseName;
+
           const EMOJI = {
             ring: "\u{1F48D}", // 💍
             cal: "\u{1F4C5}", // 📅
@@ -650,7 +666,7 @@ Haryanto & Finna
 
 Kepada Yth,
 Bapak/Ibu/Sdr/i:
-${params.data.full_name}
+${fullDisplayName}
 
 Dengan rendah hati, kami turut mengundang Bapak/Ibu/Sdr/i untuk menghadiri acara pernikahan anak kami Haryanto & Finna yang akan dilaksanakan pada:
 

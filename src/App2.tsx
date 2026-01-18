@@ -8,6 +8,8 @@ import {
 
 import QRCode from "react-qr-code";
 
+// const DEFAULT_WISH_GUEST_ID = "dcef547f-74ce-499f-8266-2f037ac8c7fc";
+
 const API_URL = "https://rest.trip-nus.com"; // adjust if needed
 
 // Minimum loading duration (ms)
