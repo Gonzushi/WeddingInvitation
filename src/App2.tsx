@@ -913,6 +913,12 @@ export default function Invitation() {
     }, 500);
   };
 
+  const goNextSection = () => {
+    // If already last section, do nothing
+    if (currentSection >= totalSections - 1) return;
+    scrollToSection(currentSection + 1);
+  };
+
   // Auto-scroll state
   const autoScrollTimeoutRef = useRef<number | null>(null);
   const autoScrollDisabledRef = useRef(false);
@@ -3541,41 +3547,48 @@ export default function Invitation() {
               // Not last section → show arrows + auto-scroll pill
               <div
                 className={
-                  "absolute inset-x-0 flex flex-col items-center pointer-events-none " +
+                  "absolute inset-x-0 flex flex-col items-center " +
                   (isAutoScrollOn ? "bottom-4" : "bottom-7")
                 }
               >
-                {/* Arrows */}
-                {[0, 1].map((i) => (
-                  <div key={i} className={i === 0 ? "" : "-mt-3"}>
-                    <svg
-                      className="w-7 h-7 animate-bounce"
-                      style={{ animationDelay: `${i * 120}ms` }}
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M4 16l8-8 8 8"
-                        stroke="white"
-                        strokeWidth="2.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        fill="none"
-                      />
-                    </svg>
-                  </div>
-                ))}
+                {/* Clickable arrow stack */}
+                <button
+                  type="button"
+                  onClick={goNextSection}
+                  className="pointer-events-auto flex flex-col items-center focus:outline-none"
+                  aria-label="Scroll to next section"
+                >
+                  {[0, 1].map((i) => (
+                    <div key={i} className={i === 0 ? "" : "-mt-3"}>
+                      <svg
+                        className="w-7 h-7 animate-bounce"
+                        style={{ animationDelay: `${i * 120}ms` }}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M4 16l8-8 8 8"
+                          stroke="white"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          fill="none"
+                        />
+                      </svg>
+                    </div>
+                  ))}
 
-                {/* Small auto-scroll pill under the arrows */}
-                {isAutoScrollOn && (
-                  <div className="mt-1 pointer-events-none">
-                    <span
-                      className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full border border-white/40 bg-black/60 text-[9px] md:text-[10px] uppercase tracking-[0.16em] text-white/85 backdrop-blur-sm"
-                      style={{ fontFamily: fonts.button }}
-                    >
-                      Auto scroll
-                    </span>
-                  </div>
-                )}
+                  {/* Small auto-scroll pill under the arrows */}
+                  {isAutoScrollOn && (
+                    <div className="mt-1 pointer-events-none">
+                      <span
+                        className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full border border-white/40 bg-black/60 text-[9px] md:text-[10px] uppercase tracking-[0.16em] text-white/85 backdrop-blur-sm"
+                        style={{ fontFamily: fonts.button }}
+                      >
+                        Auto scroll
+                      </span>
+                    </div>
+                  )}
+                </button>
               </div>
             ) : (
               // Last section → show credit pill instead of arrows
