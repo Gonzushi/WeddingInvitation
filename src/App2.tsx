@@ -785,13 +785,13 @@ const couple23Variants = {
     y: 200, // bottom
     scale: 2,
   },
-  bride: {
+  groom: {
     opacity: 1,
     x: -70, // right side
     y: -150,
     scale: 2,
   },
-  groom: {
+  bride: {
     opacity: 1,
     x: -250, // left side
     y: -150,
@@ -870,20 +870,21 @@ export default function Invitation() {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [currentSection, setCurrentSection] = useState(0);
   const isLockedRef = useRef(false);
-  const totalSections = 9;
+  const totalSections = 10;
 
   // Section Menut State
   const [isSectionMenuOpen, setIsSectionMenuOpen] = useState(false);
   const sectionLabels = [
     { index: 0, label: "Our Journey" },
-    { index: 1, label: "The Bride" },
-    { index: 2, label: "The Groom" },
+    { index: 1, label: "The Groom" },
+    { index: 2, label: "The Bride" },
     { index: 3, label: "Save the Date" },
     { index: 4, label: "Schedule" },
     { index: 5, label: "Joyful & Whimsical" },
     { index: 6, label: "RSVP" },
     { index: 7, label: "Wedding Gift" },
     { index: 8, label: "Gallery" },
+    { index: 9, label: "Thank You" },
   ];
 
   const scrollToSection = (targetIndex: number) => {
@@ -1007,6 +1008,8 @@ export default function Invitation() {
   // -------------------------
   // Autoplay music once loading done (if browser allows)
   // -------------------------
+  const wasPlayingBeforeHideRef = useRef(false);
+
   useEffect(() => {
     if (!isLoaded || !audioRef.current) return;
 
@@ -1037,6 +1040,53 @@ export default function Invitation() {
         });
     }
   };
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const pauseForBackground = () => {
+      // remember if it was playing
+      wasPlayingBeforeHideRef.current = !audio.paused;
+      audio.pause();
+      setIsMusicPlaying(false);
+    };
+
+    const resumeIfNeeded = () => {
+      // Only resume if it was playing before the page got hidden
+      if (!wasPlayingBeforeHideRef.current) return;
+
+      audio
+        .play()
+        .then(() => setIsMusicPlaying(true))
+        .catch(() => {
+          // Autoplay may be blocked when returning; keep it paused
+          setIsMusicPlaying(false);
+        })
+        .finally(() => {
+          wasPlayingBeforeHideRef.current = false;
+        });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) pauseForBackground();
+      else resumeIfNeeded();
+    };
+
+    // iOS/Safari reliability extras
+    const handlePageHide = () => pauseForBackground();
+    const handleFocus = () => resumeIfNeeded();
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
 
   // countdown to reception
   const [timeLeft, setTimeLeft] = useState({
@@ -1978,6 +2028,110 @@ export default function Invitation() {
                     <AnimatePresence mode="wait">
                       {currentSection === 1 && (
                         <motion.div
+                          key="groom-text"
+                          className="absolute top-10 left-28 right-6 z-30 text-right"
+                          initial={{ opacity: 0, y: -60 }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                            transition: {
+                              duration: 2, // 👈 groom info ENTER (1 → 2)
+                              ease: "easeOut",
+                            },
+                          }}
+                          exit={{
+                            opacity: 0,
+                            y: -20,
+                            transition: {
+                              duration: 0.4, // 👈 groom info EXIT (2 → 3)
+                              ease: "easeInOut",
+                            },
+                          }}
+                        >
+                          {/* Title */}
+                          <p
+                            className="text-lg tracking-[0.25em] uppercase text-white/70 mb-3"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            The Groom
+                          </p>
+
+                          {/* Name */}
+                          <p
+                            className="text-4xl md:text-4xl text-white mb-3"
+                            style={{ fontFamily: fonts.coupleName }}
+                          >
+                            {COUPLE.groom.fullName}
+                          </p>
+
+                          {/* Parents – 3 lines */}
+                          <p
+                            className="text-m md:text-base text-white/80 mb-3 leading-relaxed"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            Son of
+                            <br />
+                            <span className="font-semibold">
+                              {COUPLE.groom.fatherName}
+                            </span>
+                            <br />
+                            <span className="font-semibold">
+                              {COUPLE.groom.motherName}
+                            </span>
+                          </p>
+
+                          {/* IG icon + handle */}
+                          <p
+                            className="text-m md:text-base text-white/70"
+                            style={{ fontFamily: fonts.subheading }}
+                          >
+                            <a
+                              href={`https://instagram.com/${COUPLE.groom.instagram}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-2 justify-end hover:text-white transition-colors"
+                            >
+                              <span>@{COUPLE.groom.instagram}</span>
+                              <svg
+                                className="w-5 h-5"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                              >
+                                <rect
+                                  x="3"
+                                  y="3"
+                                  width="18"
+                                  height="18"
+                                  rx="5"
+                                  ry="5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  fill="none"
+                                />
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r="5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  fill="none"
+                                />
+                                <circle
+                                  cx="17"
+                                  cy="7"
+                                  r="1.2"
+                                  stroke="currentColor"
+                                  strokeWidth="1.3"
+                                  fill="none"
+                                />
+                              </svg>
+                            </a>
+                          </p>
+                        </motion.div>
+                      )}
+
+                      {currentSection === 2 && (
+                        <motion.div
                           key="bride-text"
                           className="absolute top-10 left-6 right-28 z-30 text-left"
                           initial={{ opacity: 0, y: -60 }}
@@ -2078,110 +2232,6 @@ export default function Invitation() {
                                 />
                               </svg>
                               <span>@{COUPLE.bride.instagram}</span>
-                            </a>
-                          </p>
-                        </motion.div>
-                      )}
-
-                      {currentSection === 2 && (
-                        <motion.div
-                          key="groom-text"
-                          className="absolute top-10 left-28 right-6 z-30 text-right"
-                          initial={{ opacity: 0, y: -60 }}
-                          animate={{
-                            opacity: 1,
-                            y: 0,
-                            transition: {
-                              duration: 2, // 👈 groom info ENTER (1 → 2)
-                              ease: "easeOut",
-                            },
-                          }}
-                          exit={{
-                            opacity: 0,
-                            y: -20,
-                            transition: {
-                              duration: 0.4, // 👈 groom info EXIT (2 → 3)
-                              ease: "easeInOut",
-                            },
-                          }}
-                        >
-                          {/* Title */}
-                          <p
-                            className="text-lg tracking-[0.25em] uppercase text-white/70 mb-3"
-                            style={{ fontFamily: fonts.subheading }}
-                          >
-                            The Groom
-                          </p>
-
-                          {/* Name */}
-                          <p
-                            className="text-4xl md:text-4xl text-white mb-3"
-                            style={{ fontFamily: fonts.coupleName }}
-                          >
-                            {COUPLE.groom.fullName}
-                          </p>
-
-                          {/* Parents – 3 lines */}
-                          <p
-                            className="text-m md:text-base text-white/80 mb-3 leading-relaxed"
-                            style={{ fontFamily: fonts.subheading }}
-                          >
-                            Son of
-                            <br />
-                            <span className="font-semibold">
-                              {COUPLE.groom.fatherName}
-                            </span>
-                            <br />
-                            <span className="font-semibold">
-                              {COUPLE.groom.motherName}
-                            </span>
-                          </p>
-
-                          {/* IG icon + handle */}
-                          <p
-                            className="text-m md:text-base text-white/70"
-                            style={{ fontFamily: fonts.subheading }}
-                          >
-                            <a
-                              href={`https://instagram.com/${COUPLE.groom.instagram}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-2 justify-end hover:text-white transition-colors"
-                            >
-                              <span>@{COUPLE.groom.instagram}</span>
-                              <svg
-                                className="w-5 h-5"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <rect
-                                  x="3"
-                                  y="3"
-                                  width="18"
-                                  height="18"
-                                  rx="5"
-                                  ry="5"
-                                  stroke="currentColor"
-                                  strokeWidth="1.5"
-                                  fill="none"
-                                />
-                                <circle
-                                  cx="12"
-                                  cy="12"
-                                  r="5"
-                                  stroke="currentColor"
-                                  strokeWidth="1.5"
-                                  fill="none"
-                                />
-                                <circle
-                                  cx="17"
-                                  cy="7"
-                                  r="1.2"
-                                  stroke="currentColor"
-                                  strokeWidth="1.3"
-                                  fill="none"
-                                />
-                              </svg>
                             </a>
                           </p>
                         </motion.div>
@@ -2471,80 +2521,6 @@ export default function Invitation() {
                         </div>
                       </div>
                     </motion.div>
-                  </motion.section>
-                )}
-
-                {/* =========================
-                    SECTION SKIP – Verse & Couple
-                    ========================= */}
-                {false && currentSection === 5 && (
-                  <motion.section
-                    key="section-6"
-                    className="absolute inset-0 h-dvh overflow-hidden"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, ease: "easeInOut" }}
-                  >
-                    {/* Background image with scroll5 animation */}
-                    <motion.div
-                      className="absolute inset-0 bg-cover bg-center"
-                      style={{
-                        backgroundImage: "url('/assets/scroll6-bg.jpg')",
-                      }}
-                      variants={scroll6BgVariants}
-                      initial="initial"
-                      animate={hasOpened ? "enter" : "initial"}
-                      transition={{ duration: 1.5, ease: "easeOut" }}
-                    />
-
-                    {/* Soft gradient overlay for readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-black/20 to-black/80" />
-
-                    {/* Verse at top center */}
-                    <motion.div
-                      className="absolute top-10 inset-x-0 px-6 text-center"
-                      initial={{ opacity: 0, y: -20 }}
-                      animate={
-                        hasOpened
-                          ? { opacity: 1, y: 0 }
-                          : { opacity: 0, y: -20 }
-                      }
-                      transition={{
-                        duration: 1.1,
-                        ease: "easeOut",
-                        delay: 0.3,
-                      }}
-                    >
-                      <p
-                        className="text-lg tracking-[0.25em] uppercase text-white/70 mb-3"
-                        style={{ fontFamily: fonts.subheading }}
-                      >
-                        With Love &amp; Gratitude
-                      </p>
-
-                      <p
-                        className="text-m md:text-[17px] leading-snug text-white/90"
-                        style={{ fontFamily: fonts.subheading }}
-                      >
-                        “Your presence is our greatest gift,
-                        <br />
-                        and your prayers are our greatest blessing.”
-                      </p>
-                    </motion.div>
-
-                    {/* Couple with scroll5 subject animation */}
-                    <div className="absolute inset-0 flex justify-center items-center">
-                      <motion.img
-                        src="/assets/scroll6-couple.png"
-                        alt="Bride and Groom"
-                        className="max-h-[75vh] w-auto object-contain"
-                        variants={scroll6SubjectVariants}
-                        initial="initial"
-                        animate={hasOpened ? "enter" : "initial"}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                      />
-                    </div>
                   </motion.section>
                 )}
 
@@ -3027,12 +3003,6 @@ export default function Invitation() {
                        px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.6)]"
                           >
                             <p
-                              className="text-m md:text-base text-white/70 mb-1"
-                              style={{ fontFamily: fonts.body }}
-                            >
-                              For the Bride
-                            </p>
-                            <p
                               className="text-lg md:text-xl text-white mb-1"
                               style={{ fontFamily: fonts.coupleName }}
                             >
@@ -3072,12 +3042,6 @@ export default function Invitation() {
                             className="rounded-2xl border border-white/15 bg-white/5
                        px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.6)]"
                           >
-                            <p
-                              className="text-m md:text-base text-white/70 mb-1"
-                              style={{ fontFamily: fonts.body }}
-                            >
-                              For the Groom
-                            </p>
                             <p
                               className="text-lg md:text-xl text-white mb-1"
                               style={{ fontFamily: fonts.coupleName }}
@@ -3181,6 +3145,80 @@ export default function Invitation() {
                           />
                         </div>
                       </div>
+                    </div>
+                  </motion.section>
+                )}
+
+                {/* =========================
+                    SECTION 10 – Verse & Couple
+                    ========================= */}
+                {currentSection === 9 && (
+                  <motion.section
+                    key="section-10"
+                    className="absolute inset-0 h-dvh overflow-hidden"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                  >
+                    {/* Background image with scroll5 animation */}
+                    <motion.div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{
+                        backgroundImage: "url('/assets/scroll6-bg.jpg')",
+                      }}
+                      variants={scroll6BgVariants}
+                      initial="initial"
+                      animate={hasOpened ? "enter" : "initial"}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                    />
+
+                    {/* Soft gradient overlay for readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-black/20 to-black/80" />
+
+                    {/* Verse at top center */}
+                    <motion.div
+                      className="absolute top-10 inset-x-0 px-6 text-center"
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={
+                        hasOpened
+                          ? { opacity: 1, y: 0 }
+                          : { opacity: 0, y: -20 }
+                      }
+                      transition={{
+                        duration: 1.1,
+                        ease: "easeOut",
+                        delay: 0.3,
+                      }}
+                    >
+                      <p
+                        className="text-lg tracking-[0.25em] uppercase text-white/70 mb-3"
+                        style={{ fontFamily: fonts.subheading }}
+                      >
+                        Thank You
+                      </p>
+
+                      <p
+                        className="text-m md:text-[17px] leading-snug text-white/90"
+                        style={{ fontFamily: fonts.subheading }}
+                      >
+                        “Your presence is our greatest gift,
+                        <br />
+                        and your prayers are our greatest blessing.”
+                      </p>
+                    </motion.div>
+
+                    {/* Couple with scroll5 subject animation */}
+                    <div className="absolute inset-0 flex justify-center items-center">
+                      <motion.img
+                        src="/assets/scroll6-couple.png"
+                        alt="Bride and Groom"
+                        className="max-h-[75vh] w-auto object-contain"
+                        variants={scroll6SubjectVariants}
+                        initial="initial"
+                        animate={hasOpened ? "enter" : "initial"}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                      />
                     </div>
                   </motion.section>
                 )}
@@ -3455,7 +3493,7 @@ export default function Invitation() {
                     transition={{ duration: 0.2, ease: "easeOut" }}
                     onClick={(e) => e.stopPropagation()} // don't close when clicking inside card
                   >
-                    <div className="max-h-96 w-48 rounded-2xl border border-white/25 bg-black/75 backdrop-blur-md shadow-[0_14px_40px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col">
+                    <div className="max-h w-48 rounded-2xl border border-white/25 bg-black/75 backdrop-blur-md shadow-[0_14px_40px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col">
                       {sectionLabels.map((sec) => {
                         const isActive = sec.index === currentSection;
                         return (
@@ -3543,14 +3581,14 @@ export default function Invitation() {
               // Last section → show credit pill instead of arrows
               <div className="absolute inset-x-0 bottom-9 flex justify-center pointer-events-none">
                 <a
-                  href="https://wa.me/6282124480308?text=Hi%20Hendry%2C%20I%20saw%20your%20wedding%20invitation%20website."
+                  href="https://wa.me/6282124480308?text=Hi%20Hendry"
                   target="_blank"
                   rel="noreferrer"
                   className="pointer-events-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/35 bg-black/65 text-[9px] md:text-[10px] uppercase tracking-[0.18em] text-white/85 backdrop-blur-sm shadow-[0_8px_30px_rgba(0,0,0,0.6)] hover:bg-black/80 transition-colors"
                   style={{ fontFamily: fonts.button }}
                 >
-                  <span className="text-[10px]">Designed &amp; built by</span>
-                  <span className="font-semibold">Hendry</span>
+                  <span className="text-[10px]">Crafted by</span>
+                  <span className="font-semibold">HW</span>
                 </a>
               </div>
             )}

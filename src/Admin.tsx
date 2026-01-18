@@ -636,39 +636,49 @@ export default function GuestAdmin() {
           if (!params.data) return null;
 
           const EMOJI = {
-            wave: "\u{1F44B}", // 👋
             ring: "\u{1F48D}", // 💍
             cal: "\u{1F4C5}", // 📅
             pin: "\u{1F4CD}", // 📍
             clock: "\u{1F552}", // 🕒
             point: "\u{1F449}", // 👉
             pray: "\u{1F64F}", // 🙏
+            envelope: "\u{1F4E9}", // 📩
           };
 
-          const waMessage = `Halo Bapak/Ibu ${params.data.full_name} ${EMOJI.wave}
+          const waMessage = `The Wedding of
+Haryanto & Finna
 
-Kami mengundang dengan hormat ke acara pernikahan kami:
+Kepada Yth,
+Bapak/Ibu/Sdr/i:
+${params.data.full_name}
 
-${EMOJI.ring} Hary & Finna
+Dengan rendah hati, kami turut mengundang Bapak/Ibu/Sdr/i untuk menghadiri acara pernikahan anak kami Haryanto & Finna yang akan dilaksanakan pada:
+
 ${EMOJI.cal} Sabtu, 07 Februari 2026
 ${EMOJI.pin} ASTON Bogor Hotel & Resort
-${EMOJI.clock} 18.00 - 21.00 WIB
+${EMOJI.clock} 18.00 - 20.00 WIB
 
-Undangan digital dapat dibuka melalui link berikut:
+${EMOJI.envelope} Undangan digital dapat dibuka melalui link berikut:
 ${EMOJI.point} http://hary-finna.trip-nus.com/?to=${params.data.id}
 
-Terima kasih banyak ${EMOJI.pray}
+📍 Lokasi acara:
+https://www.google.com/maps?q=Aston%20Bogor%20Hotel%20%26%20Resort
 
-Salam hangat,
-Hary & Finna`;
+Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Sdr/i berkenan hadir untuk berbagi kebahagiaan bersama kami.
+
+Mohon konfirmasi kehadiran melalui link di atas.
+
+Hormat kami,
+Haryanto & Finna
+Kel. Bpk Liauw Sui Kian ✝️ & Ibu Tan Siok Mei
+Kel. Bpk Huang Peng Cheong & Ibu Mariyani Lie
+
+${EMOJI.pray}`;
 
           let phoneNumber = params.data.phone_number?.replace(/\D/g, "") || "";
           if (phoneNumber.startsWith("0")) {
             phoneNumber = "62" + phoneNumber.slice(1);
           }
-
-          const encoded = encodeURIComponent(waMessage);
-
           const waUrl = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(
             waMessage
           )}`;
