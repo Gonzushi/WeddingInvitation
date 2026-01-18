@@ -8,7 +8,8 @@ import {
 
 import QRCode from "react-qr-code";
 
-// const DEFAULT_WISH_GUEST_ID = "dcef547f-74ce-499f-8266-2f037ac8c7fc";
+const DEFAULT_WEDDING_ID = "931d5a18-9bce-40ab-9717-6a117766ff44";
+const DEFAULT_WISH_GUEST_ID = "dcef547f-74ce-499f-8266-2f037ac8c7fc";
 
 const API_URL = "https://rest.trip-nus.com"; // adjust if needed
 
@@ -921,6 +922,33 @@ export default function Invitation() {
     scrollToSection(currentSection + 1);
   };
 
+  // To function
+  // const slugToName = (slug: string) =>
+  //   capitalizeWords(
+  //     decodeURIComponent(slug)
+  //       .replace(/_/g, "-")
+  //       .split("-and-")[0] // take first person only
+  //       .replace(/-/g, " ")
+  //       .trim()
+  //   );
+
+  // async function fetchGuestByTo(to: string): Promise<GuestApi | null> {
+  //   const url = `${API_URL}/guests/by-to?to=${encodeURIComponent(to)}`;
+  //   const res = await fetch(url);
+
+  //   if (res.status === 404) return null;
+
+  //   if (!res.ok) {
+  //     const err = await res.json().catch(() => null);
+  //     throw new Error(
+  //       err?.message || `Failed to lookup guest by to (${res.status})`
+  //     );
+  //   }
+
+  //   const json = await res.json();
+  //   return json?.data ?? null;
+  // }
+
   // Auto-scroll state
   const autoScrollTimeoutRef = useRef<number | null>(null);
   const autoScrollDisabledRef = useRef(false);
@@ -1189,7 +1217,7 @@ export default function Invitation() {
         });
     };
 
-    // CASE 1: no `to` -> default mode
+    // CASE 1: no `to` -> default mode (keep your existing behavior)
     if (!to) {
       const defaultRecipient: Recipient = {
         mode: "default",
@@ -1199,6 +1227,7 @@ export default function Invitation() {
         numAttendeesConfirmed: 1,
         wish: "",
       };
+
       setRecipient(defaultRecipient);
       setForm((prev) => ({
         ...prev,
@@ -1206,20 +1235,19 @@ export default function Invitation() {
         numAttendeesConfirmed: 1,
         isAttending: null,
       }));
+
       setWishes([]);
       return;
     }
 
-    // CASE 2: `to` is UUID -> backend mode
+    // CASE 2: `to` is UUID -> backend mode (your existing flow)
     if (isUuid(to)) {
       setIsLoadingGuest(true);
       setGuestError(null);
 
       fetch(`${API_URL}/guests/${to}`)
         .then((res) => {
-          if (!res.ok) {
-            throw new Error("Guest not found");
-          }
+          if (!res.ok) throw new Error("Guest not found");
           return res.json();
         })
         .then((data) => {
@@ -1258,16 +1286,14 @@ export default function Invitation() {
                 : backendRecipient.maxGuests,
           });
 
-          // Load wishes list for this guest (this guest prioritized by backend)
-          if (guest.id) {
-            loadWishesForGuest(guest.id);
-          } else {
-            setWishes([]);
-          }
+          // Load wishes prioritized by this guest
+          if (guest.id) loadWishesForGuest(guest.id);
+          else setWishes([]);
         })
         .catch((err: unknown) => {
           console.error("Failed to fetch guest", err);
           setGuestError("Guest not found. Using default invitee.");
+
           const fallbackRecipient: Recipient = {
             mode: "default",
             displayName: "Nama Undangan",
@@ -1276,6 +1302,7 @@ export default function Invitation() {
             numAttendeesConfirmed: 1,
             wish: "",
           };
+
           setRecipient(fallbackRecipient);
           setForm((prev) => ({
             ...prev,
@@ -1292,24 +1319,110 @@ export default function Invitation() {
       return;
     }
 
-    // CASE 3: custom string -> e.g. hendry-widyanto-and-finna-widyanti
-    const displayName = formatCustomInvitee(to);
-    const customRecipient: Recipient = {
-      mode: "custom",
-      displayName,
-      maxGuests: RSVP_CONFIG.defaultMaxGuests,
-      isAttending: null,
-      numAttendeesConfirmed: 1,
-      wish: "",
-    };
-    setRecipient(customRecipient);
-    setForm((prev) => ({
-      ...prev,
-      name: displayName,
-      numAttendeesConfirmed: 1,
-      isAttending: null,
-    }));
-    setWishes([]);
+    // CASE 3: custom string -> try to find in DB first
+    setIsLoadingGuest(true);
+    setGuestError(null);
+
+    fetch(`${API_URL}/guests/by-to?to=${encodeURIComponent(to)}`)
+      .then((res) => {
+        if (res.status === 404) return null; // not found => custom mode
+        if (!res.ok) throw new Error("Failed to lookup guest by to");
+        return res.json();
+      })
+      .then((dataOrNull) => {
+        // 3A) Found in DB => backend mode
+        if (dataOrNull?.data?.id) {
+          const guest: GuestApi = dataOrNull.data;
+          const displayName = buildBackendDisplayName(guest);
+
+          const maxGuests = guest.num_attendees || RSVP_CONFIG.defaultMaxGuests;
+          const confirmedGuests = guest.num_attendees_confirmed;
+
+          const backendRecipient: Recipient = {
+            mode: "backend",
+            id: guest.id,
+            displayName,
+            maxGuests,
+            isAttending:
+              typeof guest.is_attending === "boolean"
+                ? guest.is_attending
+                : null,
+            numAttendeesConfirmed:
+              typeof confirmedGuests === "number" ? confirmedGuests : undefined,
+            wish: guest.wish || "",
+          };
+
+          setRecipient(backendRecipient);
+
+          setForm({
+            name: displayName,
+            wish: guest.wish || "",
+            isAttending:
+              typeof guest.is_attending === "boolean"
+                ? guest.is_attending
+                : null,
+            numAttendeesConfirmed:
+              typeof confirmedGuests === "number" && confirmedGuests > 0
+                ? confirmedGuests
+                : backendRecipient.maxGuests,
+          });
+
+          loadWishesForGuest(guest.id);
+          return;
+        }
+
+        // 3B) Not found => custom mode (show name from `to`)
+        const displayName = formatCustomInvitee(to);
+        const customRecipient: Recipient = {
+          mode: "custom",
+          displayName,
+          maxGuests: RSVP_CONFIG.defaultMaxGuests,
+          isAttending: null,
+          numAttendeesConfirmed: 1,
+          wish: "",
+        };
+
+        setRecipient(customRecipient);
+        setForm((prev) => ({
+          ...prev,
+          name: displayName,
+          wish: "",
+          numAttendeesConfirmed: 1,
+          isAttending: null,
+        }));
+
+        // ✅ Wishes must be pulled using DEFAULT_WISH_GUEST_ID
+        loadWishesForGuest(DEFAULT_WISH_GUEST_ID);
+      })
+      .catch((err) => {
+        console.error("Failed to lookup guest by to", err);
+
+        // If lookup fails (server error), still fall back to custom display
+        const displayName = formatCustomInvitee(to);
+        const customRecipient: Recipient = {
+          mode: "custom",
+          displayName,
+          maxGuests: RSVP_CONFIG.defaultMaxGuests,
+          isAttending: null,
+          numAttendeesConfirmed: 1,
+          wish: "",
+        };
+
+        setRecipient(customRecipient);
+        setForm((prev) => ({
+          ...prev,
+          name: displayName,
+          wish: "",
+          numAttendeesConfirmed: 1,
+          isAttending: null,
+        }));
+
+        // still show default wishes
+        loadWishesForGuest(DEFAULT_WISH_GUEST_ID);
+      })
+      .finally(() => {
+        setIsLoadingGuest(false);
+      });
   }, []);
 
   // -------------------------
@@ -1572,7 +1685,30 @@ export default function Invitation() {
     }
   };
 
-  const handleSubmit = () => {
+  function splitPrimaryAndAdditionalNames(display: string): {
+    full_name: string;
+    additional_names: string[] | null;
+  } {
+    const raw = (display || "").trim();
+
+    // Normalize separators to "&"
+    const normalized = raw
+      .replace(/\s+and\s+/gi, " & ")
+      .replace(/\s*,\s*/g, " & ")
+      .replace(/\s*&\s*/g, " & ");
+
+    const parts = normalized
+      .split(" & ")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const full_name = parts[0] || raw;
+    const additional_names = parts.length > 1 ? parts.slice(1) : null;
+
+    return { full_name, additional_names };
+  }
+
+  const handleSubmit = async () => {
     if (!RSVP_CONFIG.rsvpEnabled) {
       alert("RSVP is currently closed.");
       return;
@@ -1606,83 +1742,171 @@ export default function Invitation() {
     const numAttendeesForSubmit =
       form.isAttending === true ? form.numAttendeesConfirmed : 0;
 
-    // =========================
-    // Wishes list UI behavior
-    // =========================
-    if (recipient.mode === "backend" && recipient.id) {
-      const guestId = recipient.id;
-
-      if (hasWish) {
-        // add / replace this guest's wish
-        setWishes((prev) => {
-          const filtered = prev.filter((w) => w.id !== guestId);
-          return [
-            {
-              id: guestId,
-              name: trimmedName,
-              wish: trimmedWish,
-            },
-            ...filtered,
-          ];
-        });
-      } else {
-        // wish cleared -> remove this guest from wishes list
-        setWishes((prev) => prev.filter((w) => w.id !== guestId));
-      }
-    } else {
-      // non-backend / default / custom mode
-      if (hasWish) {
-        const localId = `local-${Date.now()}`;
-        setWishes((prev) => [
-          {
-            id: localId,
-            name: trimmedName,
-            wish: trimmedWish,
-          },
-          ...prev,
-        ]);
-      } else {
-        // optional: clear any previous local wish for this name
-        setWishes((prev) => prev.filter((w) => w.name !== trimmedName));
-      }
-    }
-
     // Update local recipient state – ALWAYS set wish, even if ""
     setRecipient((prev) => ({
       ...prev,
       isAttending: form.isAttending,
       numAttendeesConfirmed: numAttendeesForSubmit,
-      wish: trimmedWish, // can be ""
+      wish: trimmedWish,
     }));
 
-    // Send to backend if backend guest
-    if (recipient.mode === "backend" && recipient.id) {
-      const payload: Record<string, unknown> = {
-        is_attending: form.isAttending,
-        num_attendees_confirmed: numAttendeesForSubmit,
-        name: trimmedName,
-        wish: trimmedWish, // always send, even ""
-      };
+    // =========================
+    // Backend submission
+    // =========================
+    try {
+      // CASE 1: backend guest -> PATCH RSVP fields ONLY (do not overwrite names)
+      if (recipient.mode === "backend" && recipient.id) {
+        const guestId = recipient.id;
 
-      fetch(`${API_URL}/guests/${recipient.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }).catch((err) => {
-        console.error("Failed to submit RSVP to backend", err);
-      });
+        // Wishes list UI behavior (use real id; keep existing behavior)
+        if (hasWish) {
+          setWishes((prev) => {
+            const filtered = prev.filter((w) => w.id !== guestId);
+            return [
+              { id: guestId, name: trimmedName, wish: trimmedWish },
+              ...filtered,
+            ];
+          });
+        } else {
+          setWishes((prev) => prev.filter((w) => w.id !== guestId));
+        }
+
+        // ✅ IMPORTANT: only RSVP fields
+        const payload: Record<string, unknown> = {
+          is_attending: form.isAttending,
+          num_attendees_confirmed: numAttendeesForSubmit,
+          wish: trimmedWish, // always send even ""
+        };
+
+        const res = await fetch(`${API_URL}/guests/${guestId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        // If you want, you can surface errors:
+        if (!res.ok) {
+          const json = await res.json().catch(() => null);
+          throw new Error(json?.message || "Failed to submit RSVP.");
+        }
+      } else {
+        // CASE 2: custom (no id) -> CREATE guest first
+        const params = new URLSearchParams(window.location.search);
+        const toParam = params.get("to") || "";
+
+        // ✅ Split display name into full_name + additional_names
+        const { full_name, additional_names } =
+          splitPrimaryAndAdditionalNames(trimmedName);
+
+        const createPayload: Record<string, unknown> = {
+          nickname: full_name, // required by your API; keep simple
+          full_name: full_name,
+          phone_number: null,
+          address: null,
+          photo_url: null,
+          wish: trimmedWish || null,
+          additional_names: additional_names, // ✅ partner goes here
+          num_attendees: recipient.maxGuests ?? RSVP_CONFIG.defaultMaxGuests,
+          invitation_link: window.location.href,
+          wedding_id: DEFAULT_WEDDING_ID,
+          is_attending: form.isAttending,
+          tag: null,
+          num_attendees_confirmed: numAttendeesForSubmit,
+          attendance_confirmed: null,
+          invited_by: null,
+          notes: toParam ? `to=${toParam}` : null,
+        };
+
+        const res = await fetch(`${API_URL}/guests`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(createPayload),
+        });
+
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(json?.message || "Failed to create guest.");
+        }
+
+        // Your API returns { data: [...] }
+        const created: GuestApi | undefined = json?.data;
+        if (!created?.id) {
+          throw new Error("Guest created but missing id in response.");
+        }
+
+        // Promote recipient to backend with the newly created id
+        const createdDisplayName = buildBackendDisplayName(created);
+        setRecipient({
+          mode: "backend",
+          id: created.id,
+          displayName: createdDisplayName,
+          maxGuests: created.num_attendees || recipient.maxGuests,
+          isAttending:
+            typeof created.is_attending === "boolean"
+              ? created.is_attending
+              : null,
+          numAttendeesConfirmed:
+            typeof created.num_attendees_confirmed === "number"
+              ? created.num_attendees_confirmed
+              : undefined,
+          wish: created.wish || trimmedWish,
+        });
+
+        // Update form name to the backend display (optional but consistent)
+        setForm((prev) => ({
+          ...prev,
+          name: createdDisplayName,
+        }));
+
+        // Wishes list UI behavior: use REAL id now
+        if (hasWish) {
+          setWishes((prev) => {
+            const filtered = prev.filter((w) => w.id !== created.id);
+            return [
+              { id: created.id, name: createdDisplayName, wish: trimmedWish },
+              ...filtered,
+            ];
+          });
+        }
+
+        // Refresh wishes list so the created guest is prioritized at top
+        fetch(`${API_URL}/guests/${created.id}/wishes`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => {
+            const list: GuestApi[] = d?.data || [];
+            const mapped = list
+              .filter((g) => g.wish && g.wish.trim().length > 0)
+              .map((g) => ({
+                id: g.id,
+                name: buildBackendDisplayName(g),
+                wish: g.wish!.trim(),
+              }));
+            setWishes(mapped);
+          })
+          .catch(() => {
+            // if refresh fails, keep local wishes state as-is
+          });
+      }
+
+      // =========================
+      // Success modal
+      // =========================
+      setRsvpModalMessage(
+        form.isAttending === true
+          ? "Thank you! Your RSVP has been recorded. We look forward to celebrating with you."
+          : "Thank you for your response. We truly appreciate your wishes and prayers."
+      );
+      setShowRsvpModal(true);
+      setIsEditingRsvp(false);
+    } catch (err: any) {
+      console.error("RSVP submit failed", err);
+
+      setRsvpModalMessage(
+        err?.message || "Sorry, something went wrong. Please try again."
+      );
+      setShowRsvpModal(true);
     }
-
-    // Modal message
-    setRsvpModalMessage(
-      form.isAttending === true
-        ? "Thank you! Your RSVP has been recorded. We look forward to celebrating with you."
-        : "Thank you for your response. We truly appreciate your wishes and prayers."
-    );
-    setShowRsvpModal(true);
-    setIsEditingRsvp(false);
   };
 
   const isSubmitDisabled =
