@@ -3475,7 +3475,7 @@ export default function Invitation() {
                   style={{
                     backgroundImage: "url('/assets/main.jpg')",
                     backgroundSize: "100%",
-                    backgroundPosition: "110% 120%",
+                    backgroundPosition: "110% 140%",
                   }}
                 />
 
