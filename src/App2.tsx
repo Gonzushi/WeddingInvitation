@@ -3474,7 +3474,7 @@ export default function Invitation() {
                   className="absolute inset-0 bg-cover bg-center"
                   style={{
                     backgroundImage: "url('/assets/main.jpg')",
-                    backgroundSize: "150%",
+                    backgroundSize: "100%",
                     backgroundPosition: "110% 130%",
                   }}
                 />
