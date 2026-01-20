@@ -836,7 +836,7 @@ const scroll6BgVariants = {
 
 const scroll6SubjectVariants = {
   initial: { opacity: 1, x: 220, y: 80, scale: 2 },
-  enter: { opacity: 1, x: -5, y: 150, scale: 1.5 },
+  enter: { opacity: 1, x: 5, y: 70, scale: 1.8 },
 };
 
 // =========================
