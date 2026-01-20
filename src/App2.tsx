@@ -836,7 +836,7 @@ const scroll6BgVariants = {
 
 const scroll6SubjectVariants = {
   initial: { opacity: 1, x: 220, y: 80, scale: 2 },
-  enter: { opacity: 1, x: -5, y: 20, scale: 1.25 },
+  enter: { opacity: 1, x: -5, y: 150, scale: 1.5 },
 };
 
 // =========================
@@ -3406,7 +3406,7 @@ export default function Invitation() {
                     />
 
                     {/* Soft gradient overlay for readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-black/20 to-black/40" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/0 via-black/20 to-black/40" />
 
                     {/* Verse at top center */}
                     <motion.div
@@ -3424,7 +3424,7 @@ export default function Invitation() {
                       }}
                     >
                       <p
-                        className="text-lg tracking-[0.25em] uppercase text-white/70 mb-3"
+                        className="text-lg tracking-[0.25em] uppercase text-white/70 mb-2"
                         style={{ fontFamily: fonts.subheading }}
                       >
                         Thank You
