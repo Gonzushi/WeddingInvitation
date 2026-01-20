@@ -11,7 +11,7 @@ import {
   AllCommunityModule,
   ModuleRegistry,
 } from "ag-grid-community";
-import { FiEdit2, FiTrash2, FiSend } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiSend, FiCopy } from "react-icons/fi";
 import { MdQrCode } from "react-icons/md";
 import { Html5Qrcode } from "html5-qrcode";
 import QRCode from "react-qr-code";
@@ -26,6 +26,7 @@ import {
 import { ImportIcon } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { HiOutlineExternalLink } from "react-icons/hi";
+
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -796,7 +797,68 @@ ${EMOJI.pray}`;
               >
                 <FiSend size={18} />
               </a>
+
+              {/* Copy WA message button */}
+    <button
+      type="button"
+      title="Copy WhatsApp message"
+      style={{
+        background: "#6b7280", // gray-500
+        color: "white",
+        border: "none",
+        width: 32,
+        height: 32,
+        borderRadius: "50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        transition: "background 0.2s",
+      }}
+      onMouseOver={(e) =>
+        (e.currentTarget.style.background = "#4b5563") // gray-600
+      }
+      onMouseOut={(e) =>
+        (e.currentTarget.style.background = "#6b7280")
+      }
+      onClick={() => {
+        const text = waMessage;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(text)
+            .then(() => {
+              // Optional: toast or alert
+              // alert("WhatsApp message copied to clipboard");
+            })
+            .catch((err) => {
+              console.error("Clipboard write failed", err);
+              alert("Failed to copy message");
+            });
+        } else {
+          // Fallback for older browsers
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.left = "-9999px";
+          document.body.appendChild(textarea);
+          textarea.select();
+          try {
+            document.execCommand("copy");
+            // Optional: toast or alert
+            // alert("WhatsApp message copied to clipboard");
+          } catch (err) {
+            console.error("Fallback copy failed", err);
+            alert("Failed to copy message");
+          } finally {
+            document.body.removeChild(textarea);
+          }
+        }
+      }}
+    >
+      <FiCopy size={18} />
+    </button>
             </div>
+            
           );
         },
       },
@@ -1055,7 +1117,7 @@ ${EMOJI.pray}`;
     const selectionCol: ColDef<Guest> = {
       headerName: "",
       width: 60,
-      minWidth: 50,
+      minWidth:70,
       pinned: "left",
       // suppressMenu: true,
       sortable: false,
