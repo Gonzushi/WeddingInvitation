@@ -3406,7 +3406,7 @@ export default function Invitation() {
                     />
 
                     {/* Soft gradient overlay for readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-black/20 to-black/80" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-black/20 to-black/40" />
 
                     {/* Verse at top center */}
                     <motion.div
