@@ -836,7 +836,7 @@ const scroll6BgVariants = {
 
 const scroll6SubjectVariants = {
   initial: { opacity: 1, x: 220, y: 80, scale: 2 },
-  enter: { opacity: 1, x: -5, y: -10, scale: 1.35 },
+  enter: { opacity: 1, x: -5, y: 20, scale: 1.25 },
 };
 
 // =========================
@@ -884,9 +884,9 @@ export default function Invitation() {
     { index: 3, label: "Save the Date" },
     { index: 4, label: "Schedule" },
     { index: 5, label: "Joyful & Whimsical" },
-    { index: 6, label: "RSVP" },
-    { index: 7, label: "Wedding Gift" },
-    { index: 8, label: "Gallery" },
+    { index: 6, label: "Gallery" },
+    { index: 7, label: "RSVP" },
+    { index: 8, label: "Wedding Gift" },
     { index: 9, label: "Thank You" },
   ];
 
@@ -2821,11 +2821,69 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                      SECTION 7 – RSVP
-                    ========================= */}
+                    SECTION 7 – Gallery
+                   ========================= */}
                 {currentSection === 6 && (
                   <motion.section
                     key="section-7"
+                    className="absolute inset-0 h-dvh overflow-hidden"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                  >
+                    {/* Full-screen background image for gallery */}
+                    <motion.div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{
+                        backgroundImage: "url('/assets/scrollGallery-bg.jpg')",
+                      }}
+                      initial={{ scale: 1.1, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 1.2, ease: "easeOut" }}
+                    />
+
+                    {/* Dark overlay for readability */}
+                    <div className="absolute inset-0 bg-black/35" />
+
+                    <div className="relative flex flex-col h-full z-10">
+                      {/* Title area */}
+                      <div className="pt-8 pb-4 flex flex-col items-center">
+                        <h2
+                          className="text-3xl text-white"
+                          style={{ fontFamily: "'Dancing Script', cursive" }}
+                        >
+                          Our Moments
+                        </h2>
+                      </div>
+
+                      {/* Glassy collage card */}
+                      <div className="flex-1 px-4 pb-24 flex items-stretch">
+                        <div
+                          className="w-full max-w-md mx-auto rounded-3xl
+                                    border border-white/10
+                                    bg-black/30
+                                    backdrop-blur-sm
+                                    shadow-[0_14px_40px_rgba(0,0,0,0.7)]
+                                    p-3 md:p-4 overflow-hidden
+                                    flex flex-col h-full" // ⬅️ added flex + h-full
+                        >
+                          <OurMomentsGallery
+                          // onModalChange={setIsGalleryModalOpen}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.section>
+                )}
+
+                {/* =========================
+                      SECTION 8 – RSVP
+                    ========================= */}
+                {currentSection === 7 && (
+                  <motion.section
+                    key="section-8"
                     className="absolute inset-0 h-dvh overflow-hidden"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -3165,11 +3223,11 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                    SECTION 8 – Wedding Gift
+                    SECTION 9 – Wedding Gift
                   ========================= */}
-                {currentSection === 7 && (
+                {currentSection === 8 && (
                   <motion.section
-                    key="section-8"
+                    key="section-9"
                     className="absolute inset-0 h-dvh overflow-hidden"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -3324,64 +3382,6 @@ export default function Invitation() {
                 )}
 
                 {/* =========================
-                    SECTION 9 – Gallery
-                   ========================= */}
-                {currentSection === 8 && (
-                  <motion.section
-                    key="section-9"
-                    className="absolute inset-0 h-dvh overflow-hidden"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, ease: "easeInOut" }}
-                  >
-                    {/* Full-screen background image for gallery */}
-                    <motion.div
-                      className="absolute inset-0 bg-cover bg-center"
-                      style={{
-                        backgroundImage: "url('/assets/scrollGallery-bg.jpg')",
-                      }}
-                      initial={{ scale: 1.1, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 1.2, ease: "easeOut" }}
-                    />
-
-                    {/* Dark overlay for readability */}
-                    <div className="absolute inset-0 bg-black/35" />
-
-                    <div className="relative flex flex-col h-full z-10">
-                      {/* Title area */}
-                      <div className="pt-8 pb-4 flex flex-col items-center">
-                        <h2
-                          className="text-3xl text-white"
-                          style={{ fontFamily: "'Dancing Script', cursive" }}
-                        >
-                          Our Moments
-                        </h2>
-                      </div>
-
-                      {/* Glassy collage card */}
-                      <div className="flex-1 px-4 pb-24 flex items-stretch">
-                        <div
-                          className="w-full max-w-md mx-auto rounded-3xl
-                                    border border-white/10
-                                    bg-black/30
-                                    backdrop-blur-sm
-                                    shadow-[0_14px_40px_rgba(0,0,0,0.7)]
-                                    p-3 md:p-4 overflow-hidden
-                                    flex flex-col h-full" // ⬅️ added flex + h-full
-                        >
-                          <OurMomentsGallery
-                          // onModalChange={setIsGalleryModalOpen}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </motion.section>
-                )}
-
-                {/* =========================
                     SECTION 10 – Verse & Couple
                     ========================= */}
                 {currentSection === 9 && (
@@ -3474,13 +3474,13 @@ export default function Invitation() {
                   className="absolute inset-0 bg-cover bg-center"
                   style={{
                     backgroundImage: "url('/assets/main.jpg')",
-                    backgroundSize: "100%",
-                    backgroundPosition: "0% 0%",
+                    backgroundSize: "150%",
+                    backgroundPosition: "110% 130%",
                   }}
                 />
 
                 {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-transparent" />
 
                 {/* QR shortcut button – ONLY on cover, top-right */}
                 {true && canShowQr && qrValue && (
@@ -3826,8 +3826,8 @@ export default function Invitation() {
                   className="pointer-events-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/35 bg-black/65 text-[9px] md:text-[10px] uppercase tracking-[0.18em] text-white/85 backdrop-blur-sm shadow-[0_8px_30px_rgba(0,0,0,0.6)] hover:bg-black/80 transition-colors"
                   style={{ fontFamily: fonts.button }}
                 >
-                  <span className="text-[10px]">Crafted by</span>
-                  <span className="font-semibold">HW</span>
+                  <span className="text-[10px]">Designed by</span>
+                  <span className="font-semibold">Hendry</span>
                 </a>
               </div>
             )}
