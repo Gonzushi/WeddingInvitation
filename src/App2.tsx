@@ -9,7 +9,7 @@ import {
 import QRCode from "react-qr-code";
 
 const DEFAULT_WEDDING_ID = "931d5a18-9bce-40ab-9717-6a117766ff44";
-const DEFAULT_WISH_GUEST_ID = "dcef547f-74ce-499f-8266-2f037ac8c7fc";
+const DEFAULT_WISH_GUEST_ID = "12a4949c-a656-49b4-a40d-cb9f66f024db";
 
 const API_URL = "https://rest.trip-nus.com"; // adjust if needed
 
