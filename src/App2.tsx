@@ -10,6 +10,54 @@ import QRCode from "react-qr-code";
 
 const DEFAULT_WEDDING_ID = "931d5a18-9bce-40ab-9717-6a117766ff44";
 const DEFAULT_WISH_GUEST_ID = "12a4949c-a656-49b4-a40d-cb9f66f024db";
+const WEDDING_ID = DEFAULT_WEDDING_ID; // you already have DEFAULT_WEDDING_ID
+
+// Tracker
+const trackInvitationView = async (args: {
+  wedding_id: string;
+  invitee_id: string;
+  source: "main_page" | "other";
+  event: "opened" | "page_view";
+}) => {
+  try {
+    const path = `${window.location.pathname}${window.location.search}`;
+
+    const data = {
+      source: args.source,          // ✅ where it was sent from
+      event: args.event,            // ✅ what happened
+      path,
+
+      // non-permission metadata
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      lang: navigator.language,
+      languages: Array.isArray(navigator.languages) ? navigator.languages : [],
+      platform: (navigator as any).platform ?? null,
+      screen: { w: window.screen?.width ?? null, h: window.screen?.height ?? null },
+      viewport: { w: window.innerWidth, h: window.innerHeight },
+      devicePixelRatio: window.devicePixelRatio ?? null,
+      referrer: document.referrer || null,
+      client_ts: new Date().toISOString(),
+    };
+
+    const res = await fetch(`${API_URL}/guests/invitation-view-events`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        wedding_id: args.wedding_id,
+        invitee_id: args.invitee_id,
+        data,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      console.warn("Invitation view tracking failed:", res.status, err);
+    }
+  } catch (e) {
+    console.warn("Invitation view tracking exception:", e);
+  }
+};
+
 
 const API_URL = "https://rest.trip-nus.com"; // adjust if needed
 
@@ -875,6 +923,10 @@ export default function Invitation() {
   const isLockedRef = useRef(false);
   const totalSections = 10;
 
+  // Tracker
+  const hasTrackedPageViewRef = useRef(false);
+  const hasTrackedOpenRef = useRef(false);
+
   // Section Menut State
   const [isSectionMenuOpen, setIsSectionMenuOpen] = useState(false);
   const sectionLabels = [
@@ -1425,6 +1477,38 @@ export default function Invitation() {
       });
   }, []);
 
+  // Send event tracker
+  useEffect(() => {
+  if (typeof window === "undefined") return;
+
+  // Only send once
+  if (hasTrackedPageViewRef.current) return;
+
+  // Requirement: send when loading is done
+  if (!isLoaded) return;
+
+  const wedding_id = WEDDING_ID;
+  if (!wedding_id) return;
+
+  // guest_id if available; else fallback
+  const invitee_id =
+    recipient.mode === "backend" && recipient.id
+      ? recipient.id
+      : DEFAULT_WISH_GUEST_ID;
+
+  if (!invitee_id) return;
+
+  hasTrackedPageViewRef.current = true;
+
+  trackInvitationView({
+    wedding_id,
+    invitee_id,
+    source: "main_page",
+    event: "page_view",
+  });
+}, [isLoaded, recipient.mode, recipient.id]);
+
+
   // -------------------------
   // Smooth section-by-section scroll
   // + go back to cover when scrolling/swiping UP from section 0
@@ -1619,6 +1703,22 @@ export default function Invitation() {
           console.warn("Failed to play audio on open", err);
         });
     }
+
+    if (!hasTrackedOpenRef.current) {
+    const invitee_id =
+      recipient.mode === "backend" && recipient.id
+        ? recipient.id
+        : DEFAULT_WISH_GUEST_ID;
+
+    hasTrackedOpenRef.current = true;
+
+    trackInvitationView({
+      wedding_id: WEDDING_ID,
+      invitee_id,
+      source: "main_page",
+      event: "opened",
+    });
+  }
   };
 
   // -------------------------
