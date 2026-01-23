@@ -79,7 +79,7 @@ function formatJakartaDateTime(iso?: string | null): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
 
-  return new Intl.DateTimeFormat("en-GB", {
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Jakarta",
     year: "numeric",
     month: "2-digit",
@@ -88,8 +88,15 @@ function formatJakartaDateTime(iso?: string | null): string {
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
-  }).format(d);
+  }).formatToParts(d);
+
+  const get = (type: string) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+
+  // MM/DD/YYYY, HH:MM:SS
+  return `${get("month")}/${get("day")}/${get("year")}, ${get("hour")}:${get("minute")}:${get("second")}`;
 }
+
 
 type InvitationViewSummaryRow = {
   guest_id: string;
