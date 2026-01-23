@@ -6,7 +6,7 @@ import Approval from "./Approval";
 import { type Session } from "@supabase/supabase-js";
 
 interface ProtectedPageProps {
-  page: "admin" | "approval";
+  page: "admin" | "approval" | "dashboard";
 }
 
 export default function ProtectedPage({ page }: ProtectedPageProps) {

@@ -65,12 +65,74 @@ type Guest = {
   attendance_confirmed?: boolean | null;
   invited_by?: string;
   notes?: string;
+  last_viewed_at?: string | null; // ISO datetime
+  last_opened_at?: string | null; // ISO datetime
 };
 
 type QRScannerProps = {
   onResult: (result: string) => void;
   setShowScanner: (value: boolean) => void;
 };
+
+function formatJakartaDateTime(iso?: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(d);
+}
+
+type InvitationViewSummaryRow = {
+  guest_id: string;
+  last_viewed_at: string | null;
+  last_opened_at: string | null;
+};
+
+const fetchInvitationViewSummaryMap = async (weddingId: string) => {
+  const res = await fetch(
+    `${API_URL}/guests/invitation-view-events/summary?wedding_id=${encodeURIComponent(
+      weddingId
+    )}&limit=2000&offset=0`,
+    { headers: { Accept: "application/json" } }
+  );
+
+  if (!res.ok) {
+    // do not break the page if tracker API fails
+    console.warn("Tracker summary fetch failed:", res.status, res.statusText);
+    return new Map<
+      string,
+      { last_viewed_at: string | null; last_opened_at: string | null }
+    >();
+  }
+
+  const json = await res.json();
+  const rows: InvitationViewSummaryRow[] = json?.data ?? [];
+
+  const map = new Map<
+    string,
+    { last_viewed_at: string | null; last_opened_at: string | null }
+  >();
+
+  for (const r of rows) {
+    if (!r?.guest_id) continue;
+    map.set(String(r.guest_id), {
+      last_viewed_at: r.last_viewed_at ?? null,
+      last_opened_at: r.last_opened_at ?? null,
+    });
+  }
+
+  return map;
+};
+
 
 function toTitleCase(str: string): string {
   return str
@@ -277,38 +339,55 @@ export default function GuestAdmin() {
     }
   }, [rowData]);
 
-  const fetchGuests = useCallback(async () => {
-    setLoading(true);
-    try {
-      const queryParams = new URLSearchParams({
-        wedding_id: DEFAULT_WEDDING_ID,
-        limit: "1000",
-      });
+  const fetchGuests = useCallback(async (): Promise<Guest[]> => {
+  setLoading(true);
 
-      if (invitedBy) {
-        const formattedInvitedBy = invitedBy.replace(/-/g, " - ");
-        queryParams.set("invited_by", formattedInvitedBy);
-      }
+  let enrichedGuests: Guest[] = []; // ✅ always defined
 
-      const res = await fetch(`${API_URL}/guests?${queryParams.toString()}`);
-      const response = await res.json();
+  try {
+    const queryParams = new URLSearchParams({
+      wedding_id: DEFAULT_WEDDING_ID,
+      limit: "1000",
+    });
 
-      let guests = response.data || [];
-      guests = guests.sort((a: Guest, b: Guest) =>
-        (a.nickname || "")
-          .toLowerCase()
-          .localeCompare((b.nickname || "").toLowerCase())
-      );
-
-      setRowData(guests);
-
-      return guests;
-    } catch (err) {
-      console.error("Error fetching guests", err);
-    } finally {
-      setLoading(false);
+    if (invitedBy) {
+      const formattedInvitedBy = invitedBy.replace(/-/g, " - ");
+      queryParams.set("invited_by", formattedInvitedBy);
     }
-  }, [invitedBy]);
+
+    const res = await fetch(`${API_URL}/guests?${queryParams.toString()}`);
+    const response = await res.json();
+
+    let guests: Guest[] = response.data || [];
+
+    guests = guests.sort((a: Guest, b: Guest) =>
+      (a.nickname || "")
+        .toLowerCase()
+        .localeCompare((b.nickname || "").toLowerCase())
+    );
+
+    const summaryMap = await fetchInvitationViewSummaryMap(DEFAULT_WEDDING_ID);
+
+    enrichedGuests = guests.map((g) => {
+      const s = summaryMap.get(String(g.id));
+      return {
+        ...g,
+        last_viewed_at: s?.last_viewed_at ?? null,
+        last_opened_at: s?.last_opened_at ?? null,
+      };
+    });
+
+    setRowData(enrichedGuests);
+    return enrichedGuests;
+  } catch (err) {
+    console.error("Error fetching guests", err);
+    setRowData([]); // optional: keep UI consistent on failure
+    return enrichedGuests; // [] in error case
+  } finally {
+    setLoading(false);
+  }
+}, [invitedBy]);
+
 
   useEffect(() => {
     fetchGuests();
@@ -1070,6 +1149,22 @@ ${EMOJI.pray}`;
             hour12: false,
           });
         },
+      },
+      {
+        field: "last_viewed_at",
+        headerName: "Last Viewed (WIB)",
+        width: 180,
+        minWidth: 170,
+        valueFormatter: (params) => formatJakartaDateTime(params.value),
+        filter: false,
+      },
+      {
+        field: "last_opened_at",
+        headerName: "Last Opened (WIB)",
+        width: 180,
+        minWidth: 170,
+        valueFormatter: (params) => formatJakartaDateTime(params.value),
+        filter: false,
       },
       {
         field: "created_at",
